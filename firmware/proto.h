@@ -13,8 +13,12 @@
 #define CMD_ODREAD 8      // doc byte du lieu OLED (n<=28)
 #define CMD_ODWRITE 9     // ghi byte du lieu OLED
 #define CMD_PREVIEW 10    // [10, n]: 0 dung, 1 loi chao, 2 screensaver, 4 logo
+#define CMD_LNREAD 11     // doc ten layer: [11, layer] -> r[3..14] = 12 byte (0 = ten mac dinh)
+#define CMD_LNWRITE 12    // ghi ten layer: [12, layer, n<=NAMELEN, ky tu...]; n = 0 -> ten mac dinh; co hieu luc ngay, luu bang CMD_SAVE
 #define PROTO_SAVE 1      // proto_cmd tra ve bit nay: caller phai luu flash roi moi gui tra loi
 #define PROTO_PREVIEW 2   // caller phai goi ui_cmd(out[1])
+
+static bool name_char_ok(char ch) { return (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || (ch && strchr(" !()*+,-./:=?", ch)); }
 
 static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
   memset(out, 0, 32);
@@ -34,7 +38,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
     case CMD_DEFAULTS: { cfg_t *g = &c->cfg; cfg_defaults(g); core_reset(c); } break;
     case CMD_INFO:
       out[1] = NLAYER; out[2] = NW & 255; out[3] = NW >> 8; out[4] = FW_VER; out[5] = 16; out[6] = NMAC;
-      out[7] = MSLOT & 255; out[8] = MSLOT >> 8; out[9] = OLED_H; out[10] = OD_NF; out[11] = OD_FSZ & 255; out[12] = OD_FSZ >> 8;
+      out[7] = MSLOT & 255; out[8] = MSLOT >> 8; out[9] = OLED_H; out[10] = OD_NF; out[11] = OD_FSZ & 255; out[12] = OD_FSZ >> 8; out[13] = NAMELEN;
       break;
     case CMD_MREAD: case CMD_MWRITE:
       if (n > 28 || off + n > NMAC * MSLOT) { out[0] = 0xFF; break; }
@@ -44,6 +48,19 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
       if (n > 28 || off + n > OD_SIZE) { out[0] = 0xFF; break; }
       if (in[0] == CMD_ODREAD) memcpy(out + 3, c->cfg.od + off, n); else memcpy(c->cfg.od + off, in + 3, n);
       break;
+    case CMD_LNREAD:
+      if (in[1] >= NLAYER) { out[0] = 0xFF; break; }
+      memcpy(out + 3, c->cfg.lname[in[1]], 12);
+      break;
+    case CMD_LNWRITE: {
+      char nm[12] = {0}; bool ok = in[1] < NLAYER && n <= NAMELEN;
+      for (unsigned i = 0; ok && i < n; i++) {
+        char ch = (char)in[3 + i]; if (ch >= 'a' && ch <= 'z') ch -= 32;
+        if (!name_char_ok(ch)) ok = false; else nm[i] = ch;
+      }
+      if (!ok) { out[0] = 0xFF; break; }
+      memcpy(c->cfg.lname[in[1]], nm, 12);
+    } break;
     case CMD_PREVIEW: flags |= PROTO_PREVIEW; break;
     default: out[0] = 0xFF; break;
   }

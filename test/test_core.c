@@ -238,6 +238,15 @@ int main(void) {
     proto_cmd(&C, in, out); in[0] = CMD_ODREAD; memset(in + 3, 0, 28); proto_cmd(&C, in, out); for (int i = 0; i < 28; i++) CHECK(out[3 + i] == 0xA0 + i);
     memset(in, 0, 32); in[0] = CMD_ODREAD; in[1] = (OD_SIZE - 10) & 255; in[2] = 20; in[31] = (OD_SIZE - 10) >> 8; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
     // luu / xem thu
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = 6; memcpy(in + 3, "Mixer1", 6); CHECK(proto_cmd(&C, in, out) == 0 && out[0] == CMD_LNWRITE);
+    { char b[16]; core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "MIXER1")); }
+    memset(in, 0, 32); in[0] = CMD_LNREAD; in[1] = 3; proto_cmd(&C, in, out); CHECK(!memcmp(out + 3, "MIXER1\0\0\0\0\0\0", 12));
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = NAMELEN + 1; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);   // qua dai
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = 1; in[3] = '#'; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);   // ky tu khong co trong font
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = NLAYER; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
+    memset(in, 0, 32); in[0] = CMD_LNREAD; in[1] = NLAYER; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
+    { char b[16]; core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "MIXER1")); }   // loi khong lam hong ten cu
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = 0; proto_cmd(&C, in, out); { char b[16]; core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "LAYER3")); }
     memset(in, 0, 32); in[0] = CMD_SAVE; CHECK(proto_cmd(&C, in, out) == PROTO_SAVE);
     memset(in, 0, 32); in[0] = CMD_PREVIEW; in[1] = 4; CHECK(proto_cmd(&C, in, out) == PROTO_PREVIEW && out[1] == 4);
     // ve mac dinh
