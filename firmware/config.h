@@ -19,7 +19,7 @@
 
 // Cau hinh luu o sector cuoi cua flash. RP2350-Zero co 2 MB; doi gia tri neu board cua ban khac.
 #define CFG_FLASH_SIZE (2 * 1024 * 1024)
-#define CFG_FLASH_SECTORS 2                  // cau hinh dung 2 sector (8 KB) cuoi flash
+#define CFG_FLASH_SECTORS 4                  // cau hinh dung 4 sector (16 KB) cuoi flash (logo 8 khung)
 #define CFG_FLASH_OFFSET (CFG_FLASH_SIZE - CFG_FLASH_SECTORS * 4096)
 
 // 6 kenh den LED don sac, moi kenh 1 BJT (GPIO -> dien tro -> base). 6 chan con trong cua RP2350-Zero, moi chan 1 kenh PWM rieng.

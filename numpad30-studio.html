@@ -1218,7 +1218,8 @@ MACRO_POS.forEach((idx, n) => { LAYER2[idx] = MACRO(n); });
 function emptyLayer() { return Array.from({ length: NK }, (_, i) => HOLES.has(i) ? 0 : 1); }
 function defaultExt() {
   return { td: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], cb: [0, 1, 2, 3].map(() => ({ a: 255, b: 255, r: 0 })),
-    led: { mode: 0, speed: 128, bri: 200 }, oled: { greet: 'NUMPAD30', saver: 0, ms: 150, frames: [] } };
+    led: { mode: 0, speed: 128, bri: 200 }, oled: { greet: 'NUMPAD30', saver: 0, ms: 150, frames: [],
+      rotate: 0, corner: 0, greetEnable: 1, greetSpeed: 5, greetLoops: 1, greetLogoBefore: 0, ssMode: 0, ssSpeed: 5, ssText: 'NUMPAD30' } };
 }
 function sanitizeExt(r) {
   const e = defaultExt();
@@ -1231,7 +1232,16 @@ function sanitizeExt(r) {
     e.oled.greet = toAscii(String(r.oled.greet == null ? e.oled.greet : r.oled.greet)).toUpperCase().replace(/[^ !()*+,\-./0-9:=?A-Z]/g, '').slice(0, 27);
     e.oled.saver = Number(r.oled.saver) === 1 ? 1 : 0;
     e.oled.ms = Math.max(30, Math.min(5000, Math.round(+r.oled.ms) || 150));
-    if (Array.isArray(r.oled.frames)) e.oled.frames = r.oled.frames.filter(h => typeof h === 'string' && /^[0-9a-f]{1024}$/i.test(h)).slice(0, 4).map(h => h.toLowerCase());
+    if (Array.isArray(r.oled.frames)) e.oled.frames = r.oled.frames.filter(h => typeof h === 'string' && /^[0-9a-f]{1024}$/i.test(h)).slice(0, 8).map(h => h.toLowerCase());
+    e.oled.rotate = [0,1,2,3].includes(+r.oled.rotate) ? +r.oled.rotate : e.oled.rotate;
+    e.oled.corner = Number(r.oled.corner) ? 1 : 0;
+    e.oled.greetEnable = Number(r.oled.greetEnable) ? 1 : 0;
+    e.oled.greetSpeed = Math.max(1, Math.min(10, Math.round(+r.oled.greetSpeed) || e.oled.greetSpeed));
+    e.oled.greetLoops = Math.max(1, Math.min(5, Math.round(+r.oled.greetLoops) || e.oled.greetLoops));
+    e.oled.greetLogoBefore = Number(r.oled.greetLogoBefore) ? 1 : 0;
+    e.oled.ssMode = Math.max(0, Math.min(3, Math.round(+r.oled.ssMode) || 0));
+    e.oled.ssSpeed = Math.max(1, Math.min(10, Math.round(+r.oled.ssSpeed) || e.oled.ssSpeed));
+    e.oled.ssText = toAscii(String(r.oled.ssText == null ? e.oled.ssText : r.oled.ssText)).toUpperCase().replace(/[^ !()*+,\-./0-9:=?A-Z]/g, '').slice(0, 27);
   }
   return e;
 }
@@ -1747,6 +1757,7 @@ function renderMacro() {
       <button class="btn xs" data-ins="\\t">⇥ Tab</button>
       <button class="btn xs" data-ins=" ">␣ Space</button>
       <button class="btn xs" id="macPlay">▶ Gõ thử</button>
+      <button class="btn xs" id="macRec">● Ghi từ bàn phím</button>
       <span class="sep"></span>
       <button class="btn xs" id="macDup">Nhân bản</button>
       <button class="btn xs" id="macClear">Xoá nội dung</button>
@@ -1819,6 +1830,39 @@ function playMacro() {
 /* =====================================================================
    Nâng cao: tên layer, config.h, sơ đồ ma trận
    ===================================================================== */
+let macRecOn = false, macRecHandler = null;
+function toggleMacRec() {
+  const btn = document.getElementById('macRec');
+  if (macRecOn) {
+    macRecOn = false; if (macRecHandler) document.removeEventListener('keydown', macRecHandler, true); macRecHandler = null;
+    if (btn) btn.textContent = '● Ghi từ bàn phím';
+    toast('Đã dừng ghi macro', 'ok', 1400);
+    return;
+  }
+  const ta = document.getElementById('macText');
+  if (!ta) return;
+  macRecOn = true;
+  if (btn) btn.textContent = '■ Dừng ghi';
+  toast('Đang ghi: nhấn phím trên bàn phím máy tính. Esc để dừng.', 'warn', 3000);
+  macRecHandler = (e) => {
+    if (!macRecOn) return;
+    if (e.key === 'Escape') { toggleMacRec(); e.preventDefault(); return; }
+    e.preventDefault(); e.stopPropagation();
+    const mods = (e.ctrlKey ? 'ctrl+' : '') + (e.shiftKey ? 'shift+' : '') + (e.altKey ? 'alt+' : '') + (e.metaKey ? 'win+' : '');
+    let key = e.key.toLowerCase();
+    if (key === ' ') key = 'space';
+    const map = { enter:'enter', tab:'tab', backspace:'bksp', delete:'del', insert:'ins', home:'home', end:'end', pageup:'pgup', pagedown:'pgdn', arrowup:'up', arrowdown:'down', arrowleft:'left', arrowright:'right' };
+    if (key.length === 1 && !mods && /[a-z0-9]/.test(key)) {
+      insertAt(ta, key);
+    } else {
+      const kname = map[key] || key;
+      insertAt(ta, '{' + mods + kname + '}');
+    }
+    state.macros[ui.macSel].text = ta.value;
+    updMacBytes();
+  };
+  document.addEventListener('keydown', macRecHandler, true);
+}
 const CFG_META = [
   { k: 'DEBOUNCE_MS', n: 'Chống dội', d: 'ms · số lần quét 1 ms trùng nhau', min: 1, max: 50 },
   { k: 'TAP_TERM_MS', n: 'Tap – hold', d: 'ms · giữ lâu hơn = hold (LT)', min: 50, max: 1000 },
@@ -2597,6 +2641,7 @@ function bindEvents() {
     if (ins && ta) { insertAt(ta, decodeIns(ins.dataset.ins)); return; }
     if (fill && ta) { insertAt(ta, decodeIns(fill.dataset.fill)); return; }
     if (e.target.closest('#macPlay')) { playMacro(); return; }
+    if (e.target.closest('#macRec')) { toggleMacRec(); return; }
     if (e.target.closest('#macClear')) {
       state.macros[ui.macSel].text = '';
       pushHist(); markDirty(); renderMacro(); toast('Đã xoá nội dung macro', 'warn', 1600); return;
@@ -2871,7 +2916,7 @@ function extMacroBar() {
 }
 
 /* ---------- khối ext <-> byte (bảng offset giống hid_proto.h) ---------- */
-const HID_NK = 35, EXT_HDR = 76, EXT_LEN = 76 + 4 * 512;
+const HID_NK = 35, EXT_HDR = 112, EXT_LEN = 112 + 8 * 512;
 const hexOf = u8 => Array.from(u8, v => v.toString(16).padStart(2, '0')).join('');
 function extBytes() {
   const e = state.ext, b = new Uint8Array(EXT_LEN), dv = new DataView(b.buffer);
@@ -2879,7 +2924,10 @@ function extBytes() {
   for (let n = 0; n < 4; n++) { dv.setUint16(24 + n * 2, e.cb[n].r, true); b[34 + n] = e.cb[n].a; b[38 + n] = e.cb[n].b; }
   dv.setUint16(32, e.oled.ms, true);
   b[42] = NL; b[43] = e.led.mode; b[44] = e.led.speed; b[45] = e.led.bri; b[46] = e.oled.saver; b[47] = e.oled.frames.length;
-  for (let i = 0; i < e.oled.greet.length && i < 27; i++) b[48 + i] = e.oled.greet.charCodeAt(i);
+   b[48] = e.oled.rotate; b[49] = e.oled.corner; b[50] = e.oled.greetEnable; b[51] = e.oled.greetSpeed; b[52] = e.oled.greetLoops;
+   b[53] = e.oled.greetLogoBefore; b[54] = e.oled.ssMode; b[55] = e.oled.ssSpeed;
+  for (let i = 0; i < e.oled.greet.length && i < 27; i++) b[56 + i] = e.oled.greet.charCodeAt(i);
+   for (let i = 0; i < e.oled.ssText.length && i < 27; i++) b[84 + i] = e.oled.ssText.charCodeAt(i);
   e.oled.frames.forEach((h, f) => { for (let i = 0; i < 512; i++) b[EXT_HDR + f * 512 + i] = parseInt(h.substr(i * 2, 2), 16); });
   return b;
 }
@@ -2889,9 +2937,13 @@ function extFromBytes(b) {
   for (let n = 0; n < 4; n++) e.cb[n] = { a: b[34 + n] < HID_NK ? b[34 + n] : 255, b: b[38 + n] < HID_NK ? b[38 + n] : 255, r: dv.getUint16(24 + n * 2, true) };
   e.oled.ms = Math.max(30, dv.getUint16(32, true)); e.oled.saver = b[46] === 1 ? 1 : 0;
   e.led = { mode: Math.min(b[43], 11), speed: b[44], bri: b[45] };
-  let g = ''; for (let i = 48; i < 75 && b[i]; i++) g += String.fromCharCode(b[i]);
-  e.oled.greet = g;
-  for (let f = 0; f < Math.min(b[47], 4); f++) e.oled.frames.push(hexOf(b.subarray(EXT_HDR + f * 512, EXT_HDR + (f + 1) * 512)));
+  let g = ''; for (let i = 56; i < 83 && b[i]; i++) g += String.fromCharCode(b[i]);
+  e.oled.greet = g || e.oled.greet;
+   e.oled.rotate = b[48]; e.oled.corner = b[49] ? 1 : 0; e.oled.greetEnable = b[50] ? 1 : 0;
+   e.oled.greetSpeed = Math.max(1, Math.min(10, b[51] || 5)); e.oled.greetLoops = Math.max(1, Math.min(5, b[52] || 1));
+   e.oled.greetLogoBefore = b[53] ? 1 : 0; e.oled.ssMode = Math.max(0, Math.min(3, b[54])); e.oled.ssSpeed = Math.max(1, Math.min(10, b[55] || 5));
+   let s = ''; for (let i = 84; i < 111 && b[i]; i++) s += String.fromCharCode(b[i]); e.oled.ssText = s || e.oled.greet;
+  for (let f = 0; f < Math.min(b[47], 8); f++) e.oled.frames.push(hexOf(b.subarray(EXT_HDR + f * 512, EXT_HDR + (f + 1) * 512)));
   return e;
 }
 
@@ -3050,15 +3102,24 @@ function renderExtScr() {
   const o = state.ext.oled, n = o.frames.length;
   box.innerHTML = `<div class="card xcard"><div class="card-hd"><b>Lời chào & màn hình chờ</b><small class="muted">Chỉ dùng chữ in hoa, số và ký tự có trong font OLED</small></div><div class="xbody">
     <label class="xrow"><span class="xl">Lời chào khi cắm USB</span><input class="cfg-in" style="text-align:left;width:260px" id="xGreet" maxlength="27" value="${esc(o.greet)}" placeholder="(trống = không hiện)"></label>
+    <label class="xrow"><span class="xl">Tốc độ lời chào</span><input class="cfg-in" type="number" min="1" max="10" id="xGreetSpeed" value="${o.greetSpeed}"></label>
+    <label class="xrow"><span class="xl">Số lần chạy lời chào</span><input class="cfg-in" type="number" min="1" max="5" id="xGreetLoops" value="${o.greetLoops}"></label>
+    <label class="xrow"><span class="xl">Chiếu logo trước lời chào</span><select class="cfg-in" id="xGreetLogoBefore"><option value="0" ${o.greetLogoBefore ? '' : 'selected'}>Tắt</option><option value="1" ${o.greetLogoBefore ? 'selected' : ''}>Bật</option></select></label>
+    <label class="xrow"><span class="xl">Xoay OLED</span><select class="cfg-in" id="xRotate"><option value="0" ${o.rotate === 0 ? 'selected' : ''}>0°</option><option value="2" ${o.rotate === 2 ? 'selected' : ''}>180°</option></select></label>
+    <label class="xrow"><span class="xl">Logo nhỏ ở góc</span><select class="cfg-in" id="xCorner"><option value="0" ${o.corner ? '' : 'selected'}>Tắt</option><option value="1" ${o.corner ? 'selected' : ''}>Bật</option></select></label>
     <label class="xrow"><span class="xl">Màn hình chờ</span><select class="cfg-in" id="xSaver"><option value="0" ${o.saver ? '' : 'selected'}>Tắt OLED và LED</option><option value="1" ${o.saver ? 'selected' : ''}>Phát logo động (tắt LED)</option></select></label>
+    <label class="xrow"><span class="xl">Kiểu màn hình chờ</span><select class="cfg-in" id="xSsMode"><option value="0" ${o.ssMode === 0 ? 'selected' : ''}>Tắt</option><option value="1" ${o.ssMode === 1 ? 'selected' : ''}>Logo động</option><option value="2" ${o.ssMode === 2 ? 'selected' : ''}>Chữ chạy</option><option value="3" ${o.ssMode === 3 ? 'selected' : ''}>Xen kẽ</option></select></label>
+    <label class="xrow"><span class="xl">Chữ màn hình chờ</span><input class="cfg-in" style="text-align:left;width:260px" id="xSsText" maxlength="27" value="${esc(o.ssText)}" placeholder="NUMPAD30"></label>
+    <label class="xrow"><span class="xl">Tốc độ màn hình chờ</span><input class="cfg-in" type="number" min="1" max="10" id="xSsSpeed" value="${o.ssSpeed}"></label>
     <label class="xrow"><span class="xl">Thời gian mỗi khung (ms)</span><input class="cfg-in" type="number" min="30" max="5000" id="xLgMs" value="${o.ms}"></label></div></div>
-    <div class="card xcard"><div class="card-hd"><b>Logo động 128×32</b><small class="muted">${n} / 4 khung · chuột trái vẽ, chuột phải tẩy</small></div><div class="xbody">
+    <div class="card xcard"><div class="card-hd"><b>Logo động 128×32</b><small class="muted">${n} / 8 khung · chuột trái vẽ, chuột phải tẩy</small></div><div class="xbody">
     <div class="xrow">${o.frames.map((_, i) => `<button class="xmode ${i === LG.f ? 'on' : ''}" data-lgf="${i}">Khung ${i + 1}</button>`).join('')}
-      <button class="btn xs" id="xAdd" ${n >= 4 ? 'disabled' : ''}>＋ Khung</button></div>
+      <button class="btn xs" id="xAdd" ${n >= 8 ? 'disabled' : ''}>＋ Khung</button></div>
     <canvas id="xLogo" class="xlogo" width="128" height="32"></canvas>
     <div class="xrow"><button class="btn xs" id="xPlay" ${n ? '' : 'disabled'}>▶ Phát</button><button class="btn xs" id="xClear" ${n ? '' : 'disabled'}>Xoá khung</button>
-      <button class="btn xs" id="xInv" ${n ? '' : 'disabled'}>Đảo màu</button><button class="btn xs" id="xDup" ${n && n < 4 ? '' : 'disabled'}>Nhân đôi</button>
-      <button class="btn xs" id="xDel" ${n ? '' : 'disabled'}>Bỏ khung</button><label class="btn xs" for="xFile">Nhập ảnh / GIF…</label><input type="file" id="xFile" accept="image/*" hidden></div>
+      <button class="btn xs" id="xInv" ${n ? '' : 'disabled'}>Đảo màu</button><button class="btn xs" id="xFlip" ${n ? '' : 'disabled'}>Lật ngang</button><button class="btn xs" id="xDup" ${n && n < 8 ? '' : 'disabled'}>Nhân đôi</button>
+      <button class="btn xs" id="xDel" ${n ? '' : 'disabled'}>Bỏ khung</button><button class="btn xs" id="xLeft" ${n ? '' : 'disabled'} title="Dịch trái">←</button><button class="btn xs" id="xRight" ${n ? '' : 'disabled'} title="Dịch phải">→</button><button class="btn xs" id="xUp" ${n ? '' : 'disabled'} title="Dịch lên">↑</button><button class="btn xs" id="xDown" ${n ? '' : 'disabled'} title="Dịch xuống">↓</button><label class="btn xs" for="xFile">Nhập ảnh / GIF…</label><input type="file" id="xFile" accept="image/*" hidden></div>
+    <div class="xrow"><label class="xl">Tạo từ chữ</label><input class="cfg-in" id="xGenText" maxlength="16" placeholder="NUMPAD30" style="text-align:left;width:180px"><button class="btn xs" id="xGen">Tạo khung</button></div>
     <small class="muted">Không có khung nào = màn hình chờ chỉ tắt OLED. Ảnh được thu về 128×32 đen trắng (ngưỡng sáng).</small></div></div>`;
   lgLoad();
 }
@@ -3241,6 +3302,19 @@ const _renderMacro = renderMacro; renderMacro = function () { _renderMacro(); ex
     else if (q('#xDel')) { state.ext.oled.frames.splice(LG.f, 1); LG.f = Math.max(0, LG.f - 1); pushHist(); markDirty(); renderExtScr(); }
     else if (q('#xClear')) { LG.bits.fill(0); lgCommit(true); lgDraw(LG.bits); }
     else if (q('#xInv')) { for (let y = 0; y < 32; y++) for (let x = 0; x < 128; x++) LG.bits[(y >> 3) * 128 + x] ^= 1 << (y & 7); lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xFlip')) { const nb = new Uint8Array(512); for (let y = 0; y < 32; y++) for (let x = 0; x < 128; x++) if (LG.bits[(y >> 3) * 128 + x] >> (y & 7) & 1) nb[(y >> 3) * 128 + (127 - x)] |= 1 << (y & 7); LG.bits = nb; lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xLeft')) { const nb = new Uint8Array(512); for (let y = 0; y < 32; y++) for (let x = 1; x < 128; x++) if (LG.bits[(y >> 3) * 128 + x] >> (y & 7) & 1) nb[(y >> 3) * 128 + (x - 1)] |= 1 << (y & 7); LG.bits = nb; lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xRight')) { const nb = new Uint8Array(512); for (let y = 0; y < 32; y++) for (let x = 0; x < 127; x++) if (LG.bits[(y >> 3) * 128 + x] >> (y & 7) & 1) nb[(y >> 3) * 128 + (x + 1)] |= 1 << (y & 7); LG.bits = nb; lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xUp')) { const nb = new Uint8Array(512); for (let y = 1; y < 32; y++) for (let x = 0; x < 128; x++) if (LG.bits[(y >> 3) * 128 + x] >> (y & 7) & 1) nb[((y - 1) >> 3) * 128 + x] |= 1 << ((y - 1) & 7); LG.bits = nb; lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xDown')) { const nb = new Uint8Array(512); for (let y = 0; y < 31; y++) for (let x = 0; x < 128; x++) if (LG.bits[(y >> 3) * 128 + x] >> (y & 7) & 1) nb[((y + 1) >> 3) * 128 + x] |= 1 << ((y + 1) & 7); LG.bits = nb; lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xGen')) {
+      const txt = (document.getElementById('xGenText')?.value || '').trim().toUpperCase() || 'NUMPAD30';
+      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 32;
+      const c = cv.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, 128, 32); c.fillStyle = '#fff'; c.font = 'bold 16px monospace'; c.textBaseline = 'middle'; c.fillText(txt, 2, 16);
+      const frame = lgFromCanvas(cv, 128, 32, false);
+      state.ext.oled.frames = [frame]; LG.f = 0; pushHist(); markDirty(); renderExtScr(); lgLoad();
+      toast('Đã tạo khung từ chữ', 'ok', 1400);
+    }
     else if (q('#xPlay')) {
       if (LG.play) { lgStop(); return; }
       const fr = state.ext.oled.frames; if (!fr.length) return;
@@ -3253,6 +3327,10 @@ const _renderMacro = renderMacro; renderMacro = function () { _renderMacro(); ex
     if (t.id === 'macText') updMacBytes();
     else if (t.dataset && t.dataset.fxr) { state.ext.led[t.dataset.fxr] = +t.value; const o = $(t.dataset.fxr === 'speed' ? '#fxSpeedV' : '#fxBriV'); if (o) o.textContent = t.value; markDirty(); }
     else if (t.id === 'xGreet') { state.ext.oled.greet = toAscii(t.value).toUpperCase().replace(/[^ !()*+,\-./0-9:=?A-Z]/g, '').slice(0, 27); markDirty(); }
+    else if (t.id === 'xGreetSpeed') { state.ext.oled.greetSpeed = Math.max(1, Math.min(10, Math.round(+t.value) || 5)); markDirty(); }
+    else if (t.id === 'xGreetLoops') { state.ext.oled.greetLoops = Math.max(1, Math.min(5, Math.round(+t.value) || 1)); markDirty(); }
+    else if (t.id === 'xSsText') { state.ext.oled.ssText = toAscii(t.value).toUpperCase().replace(/[^ !()*+,\-./0-9:=?A-Z]/g, '').slice(0, 27); markDirty(); }
+    else if (t.id === 'xSsSpeed') { state.ext.oled.ssSpeed = Math.max(1, Math.min(10, Math.round(+t.value) || 5)); markDirty(); }
     else if (t.id === 'xLgMs') { state.ext.oled.ms = Math.max(30, Math.min(5000, Math.round(+t.value) || 150)); markDirty(); }
   });
   document.addEventListener('change', e => {
@@ -3260,6 +3338,10 @@ const _renderMacro = renderMacro; renderMacro = function () { _renderMacro(); ex
     if (t.dataset && t.dataset.fxr) pushHist();
     else if (t.id === 'xGreet' || t.id === 'xLgMs') { pushHist(); renderExtScr(); }
     else if (t.id === 'xSaver') { state.ext.oled.saver = +t.value; pushHist(); markDirty(); }
+    else if (t.id === 'xGreetLogoBefore') { state.ext.oled.greetLogoBefore = +t.value; pushHist(); markDirty(); }
+    else if (t.id === 'xRotate') { state.ext.oled.rotate = +t.value; pushHist(); markDirty(); }
+    else if (t.id === 'xCorner') { state.ext.oled.corner = +t.value; pushHist(); markDirty(); }
+    else if (t.id === 'xSsMode') { state.ext.oled.ssMode = +t.value; pushHist(); markDirty(); }
     else if (t.dataset && t.dataset.cbsel) { const [n, k] = t.dataset.cbsel.split(':'); state.ext.cb[+n][k] = +t.value; pushHist(); markDirty(); }
     else if (t.id === 'xFile' && t.files[0]) { lgImport(t.files[0]); t.value = ''; }
   });

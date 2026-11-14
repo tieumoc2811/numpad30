@@ -43,18 +43,21 @@ enum {
 
 // Khoi cau hinh mo rong (toan so nguyen, sap xep de khong can packed). Offset (app Studio dung cung bang nay):
 //   0 td[4][3] u16 | 24 cb_r[4] u16 | 32 lg_ms u16 | 34 cb_a[4] | 38 cb_b[4] | 42 nlayer | 43 led_mode | 44 led_speed
-//   45 led_bri | 46 saver_mode (0 tat, 1 logo) | 47 lg_n | 48 greet[28] | 76 logo[4][512] (page SSD1306: (y>>3)*128 + x, bit y&7)
+//   45 led_bri | 46 saver_mode | 47 lg_n | 48 oled_rotate | 49 corner_logo | 50 greet_enable | 51 greet_speed | 52 greet_loops
+//   53 greet_logo_before | 54 ss_mode | 55 ss_speed | 56 greet[28] | 84 ss_text[28] | 112 logo[NLOGO][512]
 typedef struct {
   uint16_t td[NTD][3];
   uint16_t cb_r[NCB];
   uint16_t lg_ms;
   uint8_t cb_a[NCB], cb_b[NCB];
   uint8_t nlayer, led_mode, led_speed, led_bri, saver_mode, lg_n;
+  uint8_t oled_rotate, corner_logo, greet_enable, greet_speed, greet_loops, greet_logo_before, ss_mode, ss_speed;
   char greet[28];
+  char ss_text[28];
   uint8_t logo[NLOGO][512];
 } ext_t;
-_Static_assert(sizeof(ext_t) == 76 + NLOGO * 512, "ext_t layout");
-_Static_assert(offsetof(ext_t, cb_a) == 34 && offsetof(ext_t, nlayer) == 42 && offsetof(ext_t, greet) == 48 && offsetof(ext_t, logo) == 76, "ext_t offsets");
+_Static_assert(sizeof(ext_t) == 112 + NLOGO * 512, "ext_t layout");
+_Static_assert(offsetof(ext_t, greet) == 56 && offsetof(ext_t, ss_text) == 84 && offsetof(ext_t, logo) == 112, "ext_t offsets");
 
 // Toan bo cau hinh song cua thiet bi (RAM) + co yeu cau ghi flash / nap mac dinh.
 typedef struct {
@@ -75,10 +78,16 @@ void ext_sanitize(ext_t *e);
 void ext_sanitize(ext_t *e) {
   if (e->nlayer < 1 || e->nlayer > NLAYER) e->nlayer = DEF_NLAYER;
   if (e->led_mode >= LED_NMODES) e->led_mode = 0;
-  if (e->saver_mode > 1) e->saver_mode = 0;
+  if (e->saver_mode > 3) e->saver_mode = 0;
   if (e->lg_n > NLOGO) e->lg_n = NLOGO;
   if (e->lg_ms < 30) e->lg_ms = 30;
+  if (e->oled_rotate > 3) e->oled_rotate = 0;
+  if (e->greet_speed < 1 || e->greet_speed > 10) e->greet_speed = 5;
+  if (e->greet_loops < 1 || e->greet_loops > 5) e->greet_loops = 1;
+  if (e->ss_speed < 1 || e->ss_speed > 10) e->ss_speed = 5;
+  if (e->ss_mode > 3) e->ss_mode = 0;
   e->greet[sizeof e->greet - 1] = 0;
+  e->ss_text[sizeof e->ss_text - 1] = 0;
 }
 static void hp_err(uint8_t *rep, uint8_t cmd, uint8_t code) {
   memset(rep, 0, HP_PKT); rep[0] = HP_ERR; rep[1] = cmd; rep[2] = code;

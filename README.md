@@ -47,7 +47,7 @@ Chong doi 5 ms, 6KRO (tran -> ErrorRollOver), tap-hold co permissive hold, macro
   - Layer dong (1-8), Tap Dance TD1-TD4 (cham / giu / cham 2 lan), Combo CB1-CB4 (2 phim theo vi tri -> 1 phim), 16 macro nhieu buoc, ten + mau layer, screensaver, do sang.
   - Macro: chuoi ASCII va the buoc `{ctrl+c}` `{down:shift}` `{up:shift}` `{wait:200}` (`{{` = dau `{`). Toi da 254 byte sau bien dich. Xuat keymap.h chi giu phan chu (bo the buoc), va chi 3 layer dau lam mac dinh.
   - 6 den LED don sac qua BJT (GP14 GP15 GP26-29, doi trong `LEDCH_PINS`): 12 hieu ung (`ledfx.h`, app xem truoc cung cong thuc), phim LED / LED+ / LED-.
-  - OLED: loi chao chu chay khi cam USB, man hinh cho (tat hoac logo dong toi da 4 khung 128x32, ve tay hoac nhap anh/GIF).
+  - OLED: loi chao chu chay khi cam USB, man hinh cho (tat hoac logo dong toi da 8 khung 128x32, ve tay hoac nhap anh/GIF).
 
 Giao thuc Raw HID v2 (32 byte, usage page 0xFF60, usage 0x61) mo ta trong `firmware/hid_proto.h`; cau hinh luu o `CFG_FLASH_OFFSET` (`config.h`, 2 sector cuoi flash 2 MB). Flash hong/rong/phien ban cu -> dung keymap bien dich san trong `keymap.h`.
 

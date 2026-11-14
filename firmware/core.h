@@ -13,7 +13,7 @@
 #define MSLOT 256
 #define NTD 4               // Tap Dance
 #define NCB 4               // Combo
-#define NLOGO 4             // so khung logo OLED
+#define NLOGO 8             // so khung logo OLED (tang de khop studio Macropad)
 #ifndef COMBO_MS
 #define COMBO_MS 30         // hai phim combo phai bam cach nhau toi da bay nhieu ms
 #endif
