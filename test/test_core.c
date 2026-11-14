@@ -78,25 +78,8 @@ int main(void) {
     core_label(LT(1, KC_NUMLOCK), b, sizeof b); CHECK(!strcmp(b, "NUM")); core_label(KC_F10, b, sizeof b); CHECK(!strcmp(b, "F10"));
     core_label(KC_F9, b, sizeof b); CHECK(!strcmp(b, "F9")); }
   // moi nhan chi dung ky tu co trong font
-  for (int l = 0; l < NLAYER_DEF; l++) for (int i = 0; i < NKEYS; i++) { char b[24]; core_label(keymap[l][i], b, sizeof b);
+  for (int l = 0; l < NLAYER; l++) for (int i = 0; i < NKEYS; i++) { char b[24]; core_label(keymap[l][i], b, sizeof b);
     for (char *p = b; *p; p++) if (!strchr(" !()*+,-./0123456789:=?ABCDEFGHIJKLMNOPQRSTUVWXYZ", *p)) { printf("ky tu ngoai font '%c' o layer %d phim %d\n", *p, l, i); fails++; } }
-  // 10) toi da 16 layer: MO / TG / LT toi layer 12 va 15, nhan 2 chu so, giam so layer thi layer vuot bi bo qua
-  { static kc_t km[NLAYER][NKEYS]; for (int l = 0; l < NLAYER; l++) for (int i = 0; i < NKEYS; i++) km[l][i] = KC_TRNS;
-    CHECK(NLAYER == 16);
-    for (int i = 0; i < NKEYS; i++) km[0][i] = KC_NO;
-    km[0][0] = MO(12); km[0][1] = TG(15); km[0][2] = LT(14, KC_SPACE); km[0][3] = KC_P7; km[12][3] = KC_P8; km[15][3] = KC_P9; km[14][3] = KC_P5;
-    core_init(&C); memset(raw, 0, sizeof raw); T = 1000; core_set_layers(&C, 16); CHECK(C.nl == 16);
-    raw[0] = 1; for (int i = 0; i < 6; i++) { T++; core_scan_update(&C, raw, T, km, macros, NMACROS); } CHECK(core_top_layer(&C) == 12);
-    raw[3] = 1; for (int i = 0; i < 6; i++) { T++; core_scan_update(&C, raw, T, km, macros, NMACROS); } { kb_report_t r = kb(); CHECK(has(r, KC_P8)); }
-    raw[3] = 0; raw[0] = 0; for (int i = 0; i < 6; i++) { T++; core_scan_update(&C, raw, T, km, macros, NMACROS); } CHECK(core_top_layer(&C) == 0);
-    raw[1] = 1; for (int i = 0; i < 6; i++) { T++; core_scan_update(&C, raw, T, km, macros, NMACROS); } raw[1] = 0; for (int i = 0; i < 6; i++) { T++; core_scan_update(&C, raw, T, km, macros, NMACROS); }
-    CHECK(core_top_layer(&C) == 15);
-    core_set_layers(&C, 3); CHECK(core_top_layer(&C) == 0 && C.toggled == 0);      // xoa layer: TG(15) khong con tac dung
-    core_set_layers(&C, 16); CHECK(core_top_layer(&C) == 0);                         // them lai: khong tu bat
-    raw[2] = 1; for (int i = 0; i < 6 + TAP_TERM_MS; i++) { T++; core_scan_update(&C, raw, T, km, macros, NMACROS); } CHECK(core_top_layer(&C) == 14);
-    core_set_layers(&C, 0); CHECK(C.nl == 1 && core_top_layer(&C) == 0); core_set_layers(&C, 99); CHECK(C.nl == 16);
-    char b[24]; core_label(MO(12), b, sizeof b); CHECK(!strcmp(b, "LAYER 12")); core_label(TG(5), b, sizeof b); CHECK(!strcmp(b, "LAYER 5"));
-    core_label(MO(15), b, sizeof b); CHECK(!strcmp(b, "LAYER 15")); core_label(MO(10), b, sizeof b); CHECK(!strcmp(b, "LAYER 10")); }
   printf(fails ? "core: %d LOI\n" : "core: tat ca dat\n", fails);
   return fails != 0;
 }

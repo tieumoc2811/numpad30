@@ -2,20 +2,24 @@
 // Giao thuc cau hinh Numpad30 qua Raw HID: bao cao 32 byte, report ID 0.
 // Dung chung firmware + test tren may tinh (dinh nghia HP_IMPL de lay phan xu ly).
 // Lenh (byte 0) / tra loi:
-//   1  INFO        -> [1, ver, nlayers, NKEYS, NMACROS, MACRO_MAX, NAME_MAX, flags, NLAYER(toi da)]
+//   1  INFO        -> [1, ver, NLAYER, NKEYS, NMACROS, MACRO_MAX, NAME_MAX, flags]
 //   2  GET_KEYS    <- [2, layer, off, n]           -> [2, layer, off, n, k0 lo, k0 hi, ...]
 //   3  SET_KEYS    <- [3, layer, off, n, data...]  -> [3, layer, off, n]
 //   4  GET_NAME    <- [4, layer]                   -> [4, layer, len, chars...]
 //   5  SET_NAME    <- [5, layer, len, chars...]    -> [5, layer, len]
-//   6  GET_COLORS  <- [6, off, n]                  -> [6, off, n, r,g,b, ...]   (n <= 9)
-//   7  SET_COLORS  <- [7, off, n, r,g,b, ...]      -> [7, off, n]
+//   6  GET_COLORS  <- [6]                          -> [6, r0,g0,b0, r1,g1,b1, r2,g2,b2]
+//   7  SET_COLORS  <- [7, r0,g0,b0, ...]           -> [7]
 //   8  GET_MACRO   <- [8, idx, off, n]             -> [8, idx, off, n, chars...]
 //   9  SET_MACRO   <- [9, idx, off, n, chars...]   -> [9, idx, off, n]
 //   10 SAVE        <- [10]                         -> [10, 1]   (ghi flash, xu ly o main loop)
 //   11 GET_CFG     <- [11]                         -> [11, ss0..ss3, bright]
 //   12 SET_CFG     <- [12, ss0..ss3, bright]       -> [12]
-//   13 SET_NLAYERS <- [13, n]                      -> [13, n]   (1..NLAYER; du lieu layer luon co san toi NLAYER)
-//   0xEE loi       -> [0xEE, cmd, ma loi]  (1 = layer/offset, 2 = macro, 3 = ten)
+//   13 GET_TD     <- [13, n]                      -> [13, n, tap lo,hi, giu lo,hi, doi lo,hi]
+//   14 SET_TD     <- [14, n, tap lo,hi, giu lo,hi, doi lo,hi] -> [14, n]
+//   15 GET_COMBO  <- [15, n]                      -> [15, n, A lo,hi, B lo,hi, ketqua lo,hi]
+//   16 SET_COMBO  <- [16, n, A lo,hi, B lo,hi, ketqua lo,hi]    -> [16, n]
+//   INFO bo sung: rep[8] = NTD, rep[9] = NCOMBO
+//   0xEE loi       -> [0xEE, cmd, ma loi]  (1 = layer/offset, 2 = macro, 3 = ten, 4 = chi so tap dance/combo)
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -35,7 +39,8 @@ enum {
   HP_GET_NAME = 4, HP_SET_NAME = 5,
   HP_GET_COLORS = 6, HP_SET_COLORS = 7,
   HP_GET_MACRO = 8, HP_SET_MACRO = 9,
-  HP_SAVE = 10, HP_GET_CFG = 11, HP_SET_CFG = 12, HP_SET_NLAYERS = 13,
+  HP_SAVE = 10, HP_GET_CFG = 11, HP_SET_CFG = 12,
+  HP_GET_TD = 13, HP_SET_TD = 14, HP_GET_COMBO = 15, HP_SET_COMBO = 16,
   HP_ERR = 0xEE
 };
 
@@ -47,7 +52,7 @@ typedef struct {
   char macs[NMACROS][HP_MACRO_MAX + 1];
   uint32_t ss_ms;
   uint8_t bright;
-  uint8_t nl;                         // so layer dang dung (1..NLAYER)
+  core_ext_t ext;                 // tap dance + combo
   bool save_req;
 } cfg_store_t;
 
@@ -61,8 +66,8 @@ void hp_handle(cfg_store_t *s, const uint8_t *q, uint8_t *rep) {
   memset(rep, 0, HP_PKT);
   switch (q[0]) {
   case HP_INFO:
-    rep[0] = HP_INFO; rep[1] = HP_VER; rep[2] = s->nl; rep[3] = NKEYS;
-    rep[4] = NMACROS; rep[5] = HP_MACRO_MAX; rep[6] = HP_NAME_MAX; rep[7] = 0x07; rep[8] = NLAYER;
+    rep[0] = HP_INFO; rep[1] = HP_VER; rep[2] = NLAYER; rep[3] = NKEYS;
+    rep[4] = NMACROS; rep[5] = HP_MACRO_MAX; rep[6] = HP_NAME_MAX; rep[7] = 0x07; rep[8] = NTD; rep[9] = NCOMBO;
     break;
   case HP_GET_KEYS: {
     uint8_t l = q[1], off = q[2], n = q[3];
@@ -93,21 +98,12 @@ void hp_handle(cfg_store_t *s, const uint8_t *q, uint8_t *rep) {
     memcpy(s->names[l], q + 3, n); s->names[l][n] = 0;
     rep[0] = HP_SET_NAME; rep[1] = l; rep[2] = n;
     break; }
-  case HP_GET_COLORS: {
-    uint8_t off = q[1], n = q[2];
-    if (n == 0 || n > 9 || (int)off + n > NLAYER) { hp_err(rep, q[0], 1); break; }
-    rep[0] = HP_GET_COLORS; rep[1] = off; rep[2] = n;
-    memcpy(rep + 3, s->colors[off], n * 3);
-    break; }
-  case HP_SET_COLORS: {
-    uint8_t off = q[1], n = q[2];
-    if (n == 0 || n > 9 || (int)off + n > NLAYER) { hp_err(rep, q[0], 1); break; }
-    memcpy(s->colors[off], q + 3, n * 3);
-    rep[0] = HP_SET_COLORS; rep[1] = off; rep[2] = n;
-    break; }
-  case HP_SET_NLAYERS:
-    if (q[1] < 1 || q[1] > NLAYER) { hp_err(rep, q[0], 1); break; }
-    s->nl = q[1]; rep[0] = HP_SET_NLAYERS; rep[1] = s->nl;
+  case HP_GET_COLORS:
+    rep[0] = HP_GET_COLORS; memcpy(rep + 1, s->colors, NLAYER * 3);
+    break;
+  case HP_SET_COLORS:
+    memcpy(s->colors, q + 1, NLAYER * 3);
+    rep[0] = HP_SET_COLORS;
     break;
   case HP_GET_MACRO: {
     uint8_t i = q[1], off = q[2], n = q[3];
@@ -136,6 +132,20 @@ void hp_handle(cfg_store_t *s, const uint8_t *q, uint8_t *rep) {
     s->bright = q[5];
     rep[0] = HP_SET_CFG;
     break;
+  case HP_GET_TD: case HP_GET_COMBO: {
+    uint8_t n = q[1], td = q[0] == HP_GET_TD;
+    if (n >= (td ? NTD : NCOMBO)) { hp_err(rep, q[0], 4); break; }
+    const kc_t *v = td ? s->ext.td[n] : s->ext.cb[n];
+    rep[0] = q[0]; rep[1] = n;
+    for (int i = 0; i < 3; i++) { rep[2 + 2 * i] = (uint8_t)v[i]; rep[3 + 2 * i] = (uint8_t)(v[i] >> 8); }
+    break; }
+  case HP_SET_TD: case HP_SET_COMBO: {
+    uint8_t n = q[1], td = q[0] == HP_SET_TD;
+    if (n >= (td ? NTD : NCOMBO)) { hp_err(rep, q[0], 4); break; }
+    kc_t *v = td ? s->ext.td[n] : s->ext.cb[n];
+    for (int i = 0; i < 3; i++) v[i] = (kc_t)(q[2 + 2 * i] | (q[3 + 2 * i] << 8));
+    rep[0] = q[0]; rep[1] = n;
+    break; }
   default:
     hp_err(rep, q[0], 9);
     break;

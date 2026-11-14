@@ -359,6 +359,17 @@ html[data-theme="light"] .toast{background:rgba(255,255,255,.97)}
 @keyframes toastOut{to{opacity:0;transform:translateY(6px) scale(.98)}}
 
 /* ============ macro ============ */
+.smart-layout{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.slot-table{display:grid;gap:8px}
+.slot-row{display:grid;grid-template-columns:44px repeat(3,minmax(0,1fr)) 28px;gap:6px;align-items:stretch}
+.slot-row>b{align-self:center;font:700 11px var(--mono);color:var(--accent-2)}
+.slot-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--text-2);text-align:left;transition:.15s}
+.slot-btn small{font:600 9px var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.4px}
+.slot-btn span{font:600 12px var(--sans);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.slot-btn.empty span{color:var(--faint);font-weight:500}
+.slot-btn:hover{border-color:var(--line-2);background:var(--panel-2)}
+.slot-x{border:1px solid var(--line);border-radius:9px;background:none;color:var(--faint)}
+.slot-x:hover{color:var(--text);border-color:var(--line-2)}
 .macro-layout{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr);gap:18px;align-items:start}
 .mac-list{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
 .mac-chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--text-2);text-align:left;transition:.15s}
@@ -562,7 +573,8 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
   .key .kdot{top:4px;right:4px;width:3px;height:3px}
   .device-foot{font-size:7px;letter-spacing:.5px;margin-top:10px;padding-top:7px}
   .side-panels{grid-template-columns:1fr}
-  .macro-layout{grid-template-columns:1fr}
+  .macro-layout,.smart-layout{grid-template-columns:1fr}
+  .slot-row{grid-template-columns:36px repeat(3,minmax(0,1fr)) 24px}
   .mac-list{grid-template-columns:repeat(3,1fr)}
   .mac-fields{grid-template-columns:1fr 1fr}
   .adv-grid,.led-controls,.scr-grid,.tools-grid{grid-template-columns:1fr}
@@ -615,6 +627,10 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>
         <span>Macro</span>
       </button>
+      <button data-view="smart" title="Thông minh">
+        <svg viewBox="0 0 24 24"><path d="M5 18V8a2 2 0 0 1 4 0v6M9 14V6a2 2 0 0 1 4 0v8M13 14V8a2 2 0 0 1 4 0v8c0 3-2 5-5 5H9a4 4 0 0 1-4-3z"/></svg>
+        <span>Thông minh</span>
+      </button>
       <button data-view="adv" title="Nâng cao">
         <svg viewBox="0 0 24 24"><path d="M4 6h9M18 6h2M4 12h2M11 12h9M4 18h9M18 18h2"/><circle cx="15" cy="6" r="2.2"/><circle cx="8" cy="12" r="2.2"/><circle cx="15" cy="18" r="2.2"/></svg>
         <span>Nâng cao</span>
@@ -649,7 +665,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
   </aside>
   <main class="main">
     <header class="topbar">
-      <div class="tb-title"><h1 id="viewTitle">Bàn phím</h1><p id="viewSub">Gán 30 phím, tối đa 16 layer và macro</p></div>
+      <div class="tb-title"><h1 id="viewTitle">Bàn phím</h1><p id="viewSub">Gán 30 phím, 3 layer và macro</p></div>
       <div class="dirty-pill" id="dirtyPill" hidden><i></i>CHƯA XUẤT</div>
       <button class="btn icon" id="undoBtn" title="Hoàn tác (Ctrl+Z)">
         <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
@@ -670,15 +686,13 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
           <div class="layerbar-top">
             <div class="layers" id="layers"></div>
             <div class="layer-actions">
-              <button class="btn sm" id="addLayer">+ Thêm layer</button>
               <button class="btn sm" id="renameLayer">Đổi tên</button>
               <button class="btn sm" id="resetLayer">Đặt lại layer</button>
-              <button class="btn sm" id="clearLayer">Làm trống</button>
-              <button class="btn sm danger" id="delLayer">Xoá layer</button>
+              <button class="btn sm danger" id="clearLayer">Xoá layer</button>
             </div>
           </div>
           <div class="layerbar-foot">
-            <span id="layerCount">3 / 16 layer</span>
+            <span id="layerCount">3 / 3 layer · firmware cố định</span>
             <span class="muted" id="layerHint">Chạm một phím để gán</span>
             <label class="switch-wrap" for="testSwitch"><span>Chế độ thử</span><button class="switch" id="testSwitch" aria-label="Chế độ thử"></button></label>
           </div>
@@ -719,6 +733,26 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
           <b>Macro trên Numpad30 là một chuỗi ký tự ASCII.</b> Firmware gõ lần lượt từng ký tự, <span class="mono">\n</span> là Enter, <span class="mono">\t</span> là Tab.
           Để chạy macro, vào tab <b>Bàn phím</b>, chọn phím rồi gán <b>MACRO 1…9</b> (hoặc dùng layer MACRO có sẵn ở các phím M1–M9).
           Chữ có dấu tiếng Việt sẽ bị bỏ dấu khi xuất firmware; app hiển thị cảnh báo trước khi xuất. Nút <b>Gõ thử</b> mô phỏng đúng nhịp gõ và nội dung hiện trên OLED.
+        </div>
+      </section>
+
+      <section class="view" id="view-smart">
+        <div class="macro-layout smart-layout">
+          <div class="card">
+            <div class="card-hd"><h2>Tap Dance</h2><span class="sub">TD1 – TD8</span></div>
+            <div class="card-bd"><div class="slot-table" id="tdTable"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h2>Combo</h2><span class="sub">bấm đồng thời 2 phím (trong 30 ms)</span></div>
+            <div class="card-bd"><div class="slot-table" id="cbTable"></div></div>
+          </div>
+        </div>
+        <div class="hint-card">
+          <b>Tap Dance:</b> chạm 1 lần = ô <i>Chạm</i>, giữ quá TAP_TERM = ô <i>Giữ</i>, chạm 2 lần nhanh = ô <i>Đôi</i>. Một phím khác bấm xen vào sẽ chốt tap dance ngay theo thứ tự bấm.
+          Kết quả có thể là phím, tổ hợp, media, Morse, Latch, macro, TG; ô <i>Giữ</i> còn nhận MO (giữ để vào layer).<br>
+          <b>Combo:</b> Phím A/B là <i>mã phím</i> mà 2 phím vật lý đang gán (ví dụ J và K); bấm cả hai cùng lúc thì chỉ gõ <i>Kết quả</i>. Phím thuộc combo bị trễ tối đa 30 ms để chờ ghép cặp.<br>
+          <b>Latch:</b> gán <i>LATCH</i> cho 1 phím: bấm nó rồi bấm phím X → X được giữ cho tới khi bấm LATCH lần nữa. Các phím <i>Khoá Space/Shift/Ctrl/Alt</i> bật/tắt giữ riêng từng phím.<br>
+          <b>Morse 3 phím:</b> gán <i>chấm</i>, <i>gạch</i>, <i>xong</i> (tab Bàn phím → danh mục “Chốt &amp; Morse”). Ký tự hiện ngay trên máy tính và được sửa dần khi bạn thêm chấm/gạch; <i>xong</i> hoặc phím khác chốt ký tự.
         </div>
       </section>
 
@@ -827,7 +861,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
                 <button class="btn danger" id="resetLocalBtn">Mặc định</button>
               </div>
               <input type="file" id="fileInput" accept=".json,application/json" hidden>
-              <p class="hint">Hồ sơ gồm các layer (tối đa 16), toàn bộ phím, 9 macro, thông số firmware và màu LED. Bản nháp cũng được tự lưu trong trình duyệt.</p>
+              <p class="hint">Hồ sơ gồm 3 layer, toàn bộ phím, 9 macro, thông số firmware và màu LED. Bản nháp cũng được tự lưu trong trình duyệt.</p>
             </div>
           </div>
           <div class="card">
@@ -874,7 +908,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
             <div class="card-bd shortcut-list">
               <div class="sc-row2"><span>Xuất keymap.h</span><span class="kbd">Ctrl + S</span></div>
               <div class="sc-row2"><span>Hoàn tác / làm lại</span><span class="kbd">Ctrl + Z / Ctrl + Y</span></div>
-              <div class="sc-row2"><span>Chuyển layer</span><span class="kbd">← / → hoặc 1…9</span></div>
+              <div class="sc-row2"><span>Chuyển layer</span><span class="kbd">← / → hoặc 1…3</span></div>
               <div class="sc-row2"><span>Đóng hộp chọn phím</span><span class="kbd">Esc</span></div>
               <div class="sc-row2"><span>Bắt phím thật</span><span class="kbd">trong hộp chọn phím</span></div>
             </div>
@@ -883,7 +917,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
             <div class="card-hd"><h2>Giới thiệu</h2></div>
             <div class="card-bd about">
               <div class="ver">STUDIO · V1</div>
-              <b>Numpad30 Studio</b> là giao diện cấu hình cho Numpad30 RP2350: 30 phím, tối đa 16 layer (mặc định NUM/FN/MACRO), OLED 128×32 và LED RGB onboard. Sửa phím, macro và thông số, sau đó xuất <b>keymap.h</b> / <b>config.h</b> để build firmware.
+              <b>Numpad30 Studio</b> là giao diện cấu hình cho Numpad30 RP2350: 30 phím, 3 layer NUM/FN/MACRO, OLED 128×32 và LED RGB onboard. Sửa phím, macro và thông số, sau đó xuất <b>keymap.h</b> / <b>config.h</b> để build firmware.
               <p class="hint">Bố cục, cách chọn phím và bản nháp trình duyệt lấy cảm hứng từ Macropad15 Studio. WebHID chỉ cần khi sửa trực tiếp; xuất mã vẫn chạy offline trong một tệp HTML.</p>
             </div>
           </div>
@@ -954,7 +988,7 @@ const rgbCss = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
 const clampByte = v => clamp(Math.round(+v) || 0, 0, 255);
 const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
 
-const NR = 5, NC = 7, NK = NR * NC, NL_MAX = 16, NM = 9;
+const NR = 5, NC = 7, NK = NR * NC, NL = 3, NM = 9;
 const HOLES = new Set([2 * NC + 6, 3 * NC + 0, 3 * NC + 2, 4 * NC + 4, 4 * NC + 6]); // 20,21,23,32,34
 const KEYS = Array.from({ length: NK }, (_, i) => i).filter(i => !HOLES.has(i));
 const posLabel = i => 'R' + Math.floor(i / NC) + 'C' + (i % NC);
@@ -979,6 +1013,12 @@ const MACRO = n => 0x5000 | (n & 0xFFF);
 const LT = (n, k) => 0x6000 | ((n & 0xF) << 8) | (k & 0xFF);
 const CONS = u => 0x8000 | (u & 0x7FFF);
 const BOOT = 0x7F00;
+const NTD = 8, NCB = 4;
+const TD = n => 0x4200 | (n & 0xFF);
+const KC_LATCH = 0x7001, MORSE_DOT = 0x7060, MORSE_DASH = 0x7061, MORSE_OK = 0x7062, MORSE_HINT = 0x7063;
+const isTD = c => (c & 0xFF00) === 0x4200;
+const isLatch = c => c >= KC_LATCH && c <= KC_LATCH + 4;
+const isMorse = c => c >= MORSE_DOT && c <= MORSE_HINT;
 const C_ = k => 0x0100 | (k & 0xFF);
 const S_ = k => 0x0200 | (k & 0xFF);
 const A_ = k => 0x0400 | (k & 0xFF);
@@ -997,7 +1037,7 @@ const CATS = [
   { id: 'basic', name: 'Cơ bản' }, { id: 'letters', name: 'Chữ cái' }, { id: 'digits', name: 'Số' },
   { id: 'nav', name: 'Điều hướng & Num' }, { id: 'fkeys', name: 'Phím F' }, { id: 'mods', name: 'Bổ trợ' },
   { id: 'media', name: 'Media' }, { id: 'combo', name: 'Tổ hợp' }, { id: 'layer', name: 'Layer' },
-  { id: 'macro', name: 'Macro' }, { id: 'special', name: 'Đặc biệt' }
+  { id: 'macro', name: 'Macro' }, { id: 'td', name: 'Tap Dance' }, { id: 'smart', name: 'Chốt & Morse' }, { id: 'special', name: 'Đặc biệt' }
 ];
 const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.name]));
 const DEFS = [];
@@ -1032,8 +1072,8 @@ for (let i = 0; i < 12; i++) A(0x3A + i, 'F' + (i + 1), 'fkeys');
   [0x221, 'WWW Search', 'Search'], [0x223, 'WWW Home', 'Home'], [0x224, 'WWW Back', 'Back'], [0x225, 'WWW Forward', 'Fwd'],
   [0x226, 'WWW Stop', 'Stop'], [0x227, 'WWW Refresh', 'Refresh'], [0x22A, 'WWW Favorites', 'Favs'], [0x22D, 'Sleep', 'Sleep']
 ].forEach(([u, n, s]) => A(CONS(u), n, 'media', s));
-for (let n = 1; n < NL_MAX; n++) A(MO(n), `MO(${n}) — giữ để dùng layer ${n}`, 'layer', `MO${n}`);
-for (let n = 1; n < NL_MAX; n++) A(TG(n), `TG(${n}) — bật/tắt layer ${n}`, 'layer', `TG${n}`);
+for (let n = 1; n < NL; n++) A(MO(n), `MO(${n}) — giữ để dùng layer ${n}`, 'layer', `MO${n}`);
+for (let n = 1; n < NL; n++) A(TG(n), `TG(${n}) — bật/tắt layer ${n}`, 'layer', `TG${n}`);
 [
   [LT(1, KC.NUMLOCK), 'LT(1, NumLock) — chạm NumLock, giữ vào FN', 'Num'],
   [LT(1, KC.SPACE), 'LT(1, Space) — chạm Space, giữ vào FN', 'Space'],
@@ -1050,6 +1090,14 @@ for (let n = 1; n < NL_MAX; n++) A(TG(n), `TG(${n}) — bật/tắt layer ${n}`,
   [COMBO(3, KC.Z), 'Ctrl+Shift+Z — làm lại', 'CS+Z'], [COMBO(3, KC.ESC), 'Ctrl+Shift+Esc — Task Manager', 'CS+Esc']
 ].forEach(([c, n, s]) => A(c, n, 'combo', s));
 for (let i = 0; i < NM; i++) A(MACRO(i), `MACRO ${i + 1} — chạy macro ${i + 1}`, 'macro', `M${i + 1}`);
+for (let n = 0; n < NTD; n++) A(TD(n), `TD(${n + 1}) — tap dance ${n + 1} (chạm / giữ / bấm đôi, đặt ở tab Thông minh)`, 'td', `TD${n + 1}`);
+[
+  [KC_LATCH, 'LATCH — chốt phím kế tiếp (bấm lại để nhả)', 'Latch'],
+  [KC_LATCH + 1, 'Khoá Space (bật/tắt giữ Space)', 'LkSpc'], [KC_LATCH + 2, 'Khoá Shift (bật/tắt giữ Shift)', 'LkShf'],
+  [KC_LATCH + 3, 'Khoá Ctrl (bật/tắt giữ Ctrl)', 'LkCtl'], [KC_LATCH + 4, 'Khoá Alt (bật/tắt giữ Alt)', 'LkAlt'],
+  [MORSE_DOT, 'Morse · chấm (.)', '·'], [MORSE_DASH, 'Morse · gạch (-)', '—'],
+  [MORSE_OK, 'Morse · xong ký tự', 'OK'], [MORSE_HINT, 'Morse · bật/tắt gợi ý', 'Gợi ý']
+].forEach(([c, n, s]) => A(c, n, 'smart', s));
 A(BOOT, 'BOOTSEL — vào chế độ nạp firmware', 'special', 'BOOT');
 const KMAP = new Map(DEFS.map(o => [o.c, o]));
 
@@ -1076,6 +1124,7 @@ function nameOf(c) {
   if (isLT(c)) return `LT(${(c >> 8) & 0xF}, ${baseName(c & 0xFF)}) — chạm ${baseShort(c & 0xFF)}, giữ vào layer ${(c >> 8) & 0xF}`;
   if (isMO(c)) return `MO(${c & 0xF}) — giữ để dùng layer ${c & 0xF}`;
   if (isTG(c)) return `TG(${c & 0xF}) — bật/tắt layer ${c & 0xF}`;
+  if (isTD(c)) return `TD(${(c & 0xFF) + 1}) — tap dance ${(c & 0xFF) + 1}`;
   if (isCombo(c)) return comboName(c >> 8, c & 0xFF);
   return baseName(c);
 }
@@ -1086,6 +1135,7 @@ function shortOf(c) {
   if (isLT(c)) return baseShort(c & 0xFF);
   if (isMO(c)) return 'MO' + (c & 0xF);
   if (isTG(c)) return 'TG' + (c & 0xF);
+  if (isTD(c)) return 'TD' + ((c & 0xFF) + 1);
   if (isCombo(c)) return comboShort(c >> 8, c & 0xFF);
   return baseShort(c);
 }
@@ -1100,7 +1150,7 @@ function catClass(c) {
   if (c === 1) return 'trns';
   if (isCons(c)) return 'media';
   if (isMO(c) || isTG(c) || isLT(c)) return 'layer';
-  if (isMacro(c) || c === BOOT) return 'special';
+  if (isMacro(c) || c === BOOT || isTD(c) || isLatch(c) || isMorse(c)) return 'special';
   if (isCombo(c) || (c >= 0xE0 && c <= 0xE7)) return 'mod';
   return 'std';
 }
@@ -1114,6 +1164,13 @@ function coreLabel(c) {
   if (isMO(c) || isTG(c)) return 'LAYER ' + (c & 0xF);
   if (isLT(c)) return coreLabel(c & 0xFF);
   if (c === BOOT) return 'BOOT';
+  if (isTD(c)) return 'TAP DANCE ' + ((c & 7) + 1);
+  if (c === KC_LATCH) return 'LATCH';
+  if (isLatch(c)) return ['LOCK SPACE', 'LOCK SHIFT', 'LOCK CTRL', 'LOCK ALT'][c - KC_LATCH - 1];
+  if (c === MORSE_DOT) return 'DOT';
+  if (c === MORSE_DASH) return 'DASH';
+  if (c === MORSE_OK) return 'OK';
+  if (c === MORSE_HINT) return 'HINT';
   let pre = '';
   if (isCombo(c)) {
     const m = c >> 8;
@@ -1159,11 +1216,8 @@ const FONT_INDEX = new Map(Array.from(FONT_CHARS, (ch, i) => [ch, i]));
 /* =====================================================================
    Trạng thái mặc định — lấy đúng từ firmware/keymap.h
    ===================================================================== */
-const LAYER_COLORS = [[0, 60, 255], [255, 110, 0], [0, 255, 60], [255, 0, 160], [0, 220, 220], [255, 230, 0], [160, 60, 255], [255, 60, 60],
-  [60, 160, 255], [160, 255, 60], [255, 140, 140], [0, 160, 120], [200, 120, 0], [120, 120, 255], [255, 255, 255], [120, 255, 200]];
+const LAYER_COLORS = [[0, 60, 255], [255, 110, 0], [0, 255, 60]];
 const DEFAULT_NAMES = ['NUM', 'FN', 'MACRO'];
-const defName = l => DEFAULT_NAMES[l] || 'L' + l;
-const nLayers = () => state.keymap.length;
 const DEFAULT_MACROS = [
   { name: 'Hello', text: 'Hello!' },
   { name: 'Chào', text: 'Xin chao' },
@@ -1195,8 +1249,6 @@ const LAYER1 = [
 const MACRO_POS = [0, 1, 2, 7, 8, 9, 14, 15, 16];
 const LAYER2 = Array.from({ length: NK }, () => 1);
 MACRO_POS.forEach((idx, n) => { LAYER2[idx] = MACRO(n); });
-const blankLayer = () => Array.from({ length: NK }, (_, i) => HOLES.has(i) ? 0 : 1);   // layer moi: toan bo xuyen xuong layer duoi
-const defaultLayer = l => l === 0 ? LAYER0.slice() : l === 1 ? LAYER1.slice() : l === 2 ? LAYER2.slice() : blankLayer();
 
 function defaultState() {
   return {
@@ -1204,9 +1256,11 @@ function defaultState() {
     colors: LAYER_COLORS.map(c => c.slice()),
     keymap: [LAYER0.slice(), LAYER1.slice(), LAYER2.slice()],
     macros: DEFAULT_MACROS.map(m => ({ name: m.name, text: m.text })),
+    td: Array.from({ length: NTD }, () => [0, 0, 0]),
+    cb: Array.from({ length: NCB }, () => [0, 0, 0]),
     cfg: {
       DEBOUNCE_MS: 5, TAP_TERM_MS: 200, MACRO_GAP_MS: 12,
-      SCREENSAVER_MS: 0, LED_BRIGHT: 24, OLED_H: 32, OLED_ROTATE: 1
+      SCREENSAVER_MS: 60000, LED_BRIGHT: 24, OLED_H: 32, OLED_ROTATE: 0
     }
   };
 }
@@ -1217,7 +1271,7 @@ let state = defaultState();
 const ui = {
   view: 'keymap', layer: 0, sel: 3, test: false, pressed: -1,
   caps: false, num: true, saver: false, boot: false,
-  macSel: 0, codeSel: 0, pk: { cat: 'all', q: '', mods: 0, lt: false, ltLayer: 1, capturing: false },
+  macSel: 0, codeSel: 0, pk: { cat: 'all', q: '', mods: 0, lt: false, ltLayer: 1, capturing: false, target: null },
   lastLabel: '', lastLabelLayer: 0
 };
 
@@ -1229,30 +1283,21 @@ const intIn = (v, lo, hi, def) => {
 function sanitize(raw) {
   const s = defaultState();
   if (!raw || typeof raw !== 'object') return s;
-  let nl = 3;
-  if (Array.isArray(raw.keymap) && raw.keymap.length) nl = raw.keymap.length;
-  else if (Array.isArray(raw.names) && raw.names.length) nl = raw.names.length;
-  nl = clamp(nl, 1, NL_MAX);
-  while (s.keymap.length < nl) {
-    const l = s.keymap.length;
-    s.keymap.push(defaultLayer(l)); s.names.push(defName(l)); s.colors.push(LAYER_COLORS[l].slice());
-  }
-  s.keymap.length = s.names.length = s.colors.length = nl;
   if (Array.isArray(raw.names)) {
-    for (let i = 0; i < nl; i++) {
+    for (let i = 0; i < NL; i++) {
       if (typeof raw.names[i] === 'string' && raw.names[i].trim()) {
-        s.names[i] = toAscii(raw.names[i]).toUpperCase().replace(/\s+/g, ' ').trim().slice(0, 12) || defName(i);
+        s.names[i] = toAscii(raw.names[i]).toUpperCase().replace(/\s+/g, ' ').trim().slice(0, 12) || DEFAULT_NAMES[i];
       }
     }
   }
   if (Array.isArray(raw.colors)) {
-    for (let i = 0; i < nl; i++) {
+    for (let i = 0; i < NL; i++) {
       const c = raw.colors[i];
       if (Array.isArray(c) && c.length >= 3) s.colors[i] = c.slice(0, 3).map(v => clampByte(v));
     }
   }
   if (Array.isArray(raw.keymap)) {
-    for (let l = 0; l < nl; l++) {
+    for (let l = 0; l < NL; l++) {
       const row = raw.keymap[l];
       if (!Array.isArray(row)) continue;
       for (let i = 0; i < NK; i++) {
@@ -1260,7 +1305,7 @@ function sanitize(raw) {
         if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 0xFFFF) s.keymap[l][i] = v | 0;
       }
     }
-    for (let l = 0; l < nl; l++) for (const h of HOLES) s.keymap[l][h] = 0;
+    for (let l = 0; l < NL; l++) for (const h of HOLES) s.keymap[l][h] = 0;
   }
   if (Array.isArray(raw.macros)) {
     for (let i = 0; i < NM; i++) {
@@ -1272,6 +1317,15 @@ function sanitize(raw) {
       };
     }
   }
+  const slots = (src, dst) => {
+    if (!Array.isArray(src)) return;
+    for (let n = 0; n < dst.length; n++) {
+      const r = src[n];
+      if (!Array.isArray(r)) continue;
+      for (let k = 0; k < 3; k++) { const v = r[k]; if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 0xFFFF) dst[n][k] = v | 0; }
+    }
+  };
+  slots(raw.td, s.td); slots(raw.cb, s.cb);
   if (raw.cfg && typeof raw.cfg === 'object') {
     const c = raw.cfg;
     s.cfg.DEBOUNCE_MS = intIn(c.DEBOUNCE_MS, 1, 50, s.cfg.DEBOUNCE_MS);
@@ -1313,7 +1367,6 @@ function redo() {
 }
 function afterHistory(msg) {
   ui.sel = clamp(ui.sel, 0, NK - 1);
-  fixLayerUi();
   markDirty();
   renderAll();
   updateHistBtns();
@@ -1372,7 +1425,7 @@ function setKey(idx, code) {
 }
 function setLayerName(l, name) {
   const clean = toAscii(name || '').toUpperCase().replace(/\s+/g, ' ').trim().slice(0, 12);
-  state.names[l] = clean || defName(l);
+  state.names[l] = clean || DEFAULT_NAMES[l];
   pushHist();
   markDirty();
   renderAll();
@@ -1398,51 +1451,15 @@ function clearLayer() {
   renderAll();
 }
 function resetLayer() {
-  state.keymap[ui.layer] = defaultLayer(ui.layer);
+  const def = [LAYER0, LAYER1, LAYER2][ui.layer];
+  state.keymap[ui.layer] = def.slice();
   pushHist();
   markDirty();
   renderAll();
-}
-function fixLayerUi() {
-  const n = nLayers();
-  ui.layer = clamp(ui.layer, 0, n - 1);
-  ui.pk.ltLayer = clamp(ui.pk.ltLayer, 1, Math.max(1, n - 1));
-}
-function addLayer() {
-  const n = nLayers();
-  if (n >= NL_MAX) { toast('Tối đa ' + NL_MAX + ' layer', 'warn'); return false; }
-  state.keymap.push(blankLayer());
-  state.names.push(defName(n));
-  state.colors.push(LAYER_COLORS[n].slice());
-  ui.layer = n;
-  pushHist();
-  markDirty();
-  renderAll();
-  renderCode();
-  return true;
-}
-function deleteLayer(d) {
-  const n = nLayers();
-  if (n <= 1) { toast('Phải còn ít nhất 1 layer', 'warn'); return false; }
-  state.keymap.splice(d, 1); state.names.splice(d, 1); state.colors.splice(d, 1);
-  // danh lai so layer trong MO / TG / LT: tro toi layer vua xoa -> xuyen (LT -> chi con phim chạm), lon hon -> giam 1
-  const fix = c => {
-    if (isMO(c) || isTG(c)) { const t = c & 0xF; return t === d ? 1 : t > d ? c - 1 : c; }
-    if (isLT(c)) { const t = (c >> 8) & 0xF; return t === d ? (c & 0xFF) : t > d ? c - 0x100 : c; }
-    return c;
-  };
-  for (const row of state.keymap) for (let i = 0; i < NK; i++) row[i] = fix(row[i]);
-  ui.layer = d >= nLayers() ? nLayers() - 1 : d;
-  fixLayerUi();
-  pushHist();
-  markDirty();
-  renderAll();
-  renderCode();
-  return true;
 }
 function replaceState(next) {
   state = sanitize(next);
-  fixLayerUi();
+  ui.layer = clamp(ui.layer, 0, NL - 1);
   histReset();
   markDirty();
   renderAll();
@@ -1492,7 +1509,7 @@ function drawOledInto(cv) {
   };
   const tw = (t, s) => t.length ? t.length * 6 * s - s : 0;
   const layer = ui.layer;
-  const ln = state.names[layer] || defName(layer);
+  const ln = state.names[layer] || DEFAULT_NAMES[layer];
   const lab = ui.lastLabel || 'READY';
   if (H === 32) {
     txt(0, 0, 2, ln, true);
@@ -1519,7 +1536,7 @@ function renderOled() {
     dev.style.setProperty('--layerGlow', `rgba(${layerC[0]},${layerC[1]},${layerC[2]},.35)`);
   }
   const pl = $('#plateLayer');
-  if (pl) pl.textContent = state.names[ui.layer] || defName(ui.layer);
+  if (pl) pl.textContent = state.names[ui.layer] || DEFAULT_NAMES[ui.layer];
   const selCode = state.keymap[ui.layer][ui.sel] || 0;
   const ik = $('#icKey');
   if (ik) ik.textContent = shortOf(selCode);
@@ -1544,7 +1561,7 @@ function renderOled() {
 /* ---------- nhãn phím thực sau khi xuyên layer ---------- */
 function resolveCode(l, idx) {
   let n = l, guard = 0;
-  while (n > 0 && state.keymap[n][idx] === 1 && guard++ < nLayers()) n--;
+  while (n > 0 && state.keymap[n][idx] === 1 && guard++ < NL) n--;
   return state.keymap[n][idx];
 }
 function keyLabel(l, idx) {
@@ -1566,14 +1583,11 @@ function renderLayers() {
     const c = state.colors[l] || LAYER_COLORS[l];
     const used = row.filter((v, i) => !HOLES.has(i) && v !== 0 && v !== 1).length;
     return `<button class="layer-chip ${l === ui.layer ? 'on' : ''}" data-layer="${l}" style="--c:${rgbCss(c)}">
-      <span class="lc-dot"></span><span>${esc(state.names[l] || defName(l))}</span><span class="lc-n">L${l} · ${used}</span>
+      <span class="lc-dot"></span><span>${esc(state.names[l] || DEFAULT_NAMES[l])}</span><span class="lc-n">L${l} · ${used}</span>
     </button>`;
   }).join('');
   const lc = $('#layerCount');
-  if (lc) lc.textContent = `${nLayers()} / ${NL_MAX} layer`;
-  const ba = $('#addLayer'), bd = $('#delLayer');
-  if (ba) ba.disabled = nLayers() >= NL_MAX;
-  if (bd) bd.disabled = nLayers() <= 1;
+  if (lc) lc.textContent = `${NL} / ${NL} layer · firmware cố định`;
   const lh = $('#layerHint');
   if (lh) lh.textContent = `${KEYS.length} phím thực · ${HOLES.size} ô trống · ${NM} macro`;
   const sw = $('#testSwitch');
@@ -1612,7 +1626,7 @@ function renderKeyboard() {
   const box = $('#keys');
   if (!box) return;
   const selCode = state.keymap[ui.layer][ui.sel] || 0;
-  const ln = state.names[ui.layer] || defName(ui.layer);
+  const ln = state.names[ui.layer] || DEFAULT_NAMES[ui.layer];
   const macro = PHYS_MACRO.map(i => keyBtn(i, '')).join('');
   const arrow = PHYS_ARROW.map(k => keyBtn(k.i, `grid-row:${k.r};grid-column:${k.c}`)).join('');
   const num = PHYS_NUM.map(k => keyBtn(k.i, `grid-row:${k.r}/span ${k.rs || 1};grid-column:${k.c}/span ${k.cs || 1}`)).join('');
@@ -1650,7 +1664,7 @@ function renderInspector() {
   const code = state.keymap[ui.layer][idx];
   const cls = catClass(code);
   const col = catColor(code);
-  const def = defaultLayer(ui.layer)[idx];
+  const def = [LAYER0, LAYER1, LAYER2][ui.layer][idx];
   const canReset = code !== def;
   const kind = ({ media: 'Media', layer: 'Layer', special: 'Đặc biệt', mod: 'Tổ hợp', trns: 'Xuyên layer', none: 'Chưa gán' }[cls] || 'Phím thường');
   box.innerHTML = `
@@ -1685,8 +1699,8 @@ function renderLayerInfo() {
   const st = $('#layerStat');
   if (st) st.textContent = `L${ui.layer}`;
   box.innerHTML = `
-    <div class="layer-title"><span class="lc-dot" style="--c:${rgbCss(c)}"></span>${esc(state.names[ui.layer] || defName(ui.layer))}</div>
-    <div class="layer-sub">${ui.layer === 0 ? 'Layer mặc định khi cắm USB' : 'Vào bằng phím MO / TG / LT (layer ' + ui.layer + ')'}</div>
+    <div class="layer-title"><span class="lc-dot" style="--c:${rgbCss(c)}"></span>${esc(state.names[ui.layer] || DEFAULT_NAMES[ui.layer])}</div>
+    <div class="layer-sub">${ui.layer === 0 ? 'Layer mặc định khi cắm USB' : ui.layer === 1 ? 'Giữ phím Num (LT) để vào' : 'TG(2) ở phím 0 của FN'}</div>
     <div style="margin-top:10px">
       <div class="stat-row"><span>Phím đã gán</span><b>${assigned} / ${KEYS.length}</b></div>
       <div class="stat-row"><span>Macro</span><b>${macros}</b></div>
@@ -1722,6 +1736,17 @@ function macWarn(t) {
   let bad = 0;
   for (const ch of t) if (ch.codePointAt(0) > 127) bad++;
   return bad;
+}
+function renderSmart() {
+  const row = (kind, n, names) => {
+    const v = state[kind][n];
+    return `<div class="slot-row"><b>${kind === 'td' ? 'TD' : 'CB'}${n + 1}</b>` + v.map((c, s) =>
+      `<button class="slot-btn ${c ? '' : 'empty'}" data-slot="${kind},${n},${s}" title="${esc(c ? nameOf(c) : 'Chưa gán')}"><small>${names[s]}</small><span>${c ? esc(shortOf(c)) : 'Trống'}</span></button>`).join('') +
+      `<button class="slot-x" data-slotclr="${kind},${n}" title="Xoá">×</button></div>`;
+  };
+  const td = $('#tdTable'), cb = $('#cbTable');
+  if (td) td.innerHTML = state.td.map((_, n) => row('td', n, ['Chạm', 'Giữ', 'Đôi'])).join('');
+  if (cb) cb.innerHTML = state.cb.map((_, n) => row('cb', n, ['Phím A', 'Phím B', 'Kết quả'])).join('');
 }
 function renderMacro() {
   stopMacPlay();
@@ -1963,8 +1988,9 @@ function renderTools() {
    Điều hướng view + render tổng
    ===================================================================== */
 const VIEWS = {
-  keymap: ['Bàn phím', 'Gán 30 phím · tối đa 16 layer · macro'],
+  keymap: ['Bàn phím', 'Gán 30 phím · 3 layer · macro'],
   macro: ['Macro', '9 chuỗi ký tự gõ tự động'],
+  smart: ['Thông minh', 'Tap Dance · Combo · Latch · Morse'],
   adv: ['Nâng cao', 'Tên layer, thông số firmware, ma trận 5×7'],
   led: ['Đèn LED', 'Màu theo layer · CapsLock · độ sáng'],
   screen: ['Màn hình', 'Mô phỏng OLED SSD1306 128×32'],
@@ -1983,6 +2009,7 @@ function switchView(v) {
   if (v === 'led') renderLed();
   if (v === 'adv') renderAdvanced();
   if (v === 'macro') renderMacro();
+  if (v === 'smart') renderSmart();
   if (v === 'tools') renderTools();
 }
 function updateTopbar() {
@@ -2002,6 +2029,7 @@ function renderAll() {
   renderLayoutMini();
   renderOled();
   renderMacro();
+  renderSmart();
   renderAdvanced();
   renderLed();
   renderScreen();
@@ -2051,12 +2079,9 @@ function usedKeyNames() {
     const n = kcName(c);
     if (!CORE_KC.has(n) && !found.has(n)) found.set(n, c);
   };
-  for (let l = 0; l < nLayers(); l++) {
-    for (const c of state.keymap[l]) {
-      if (isCombo(c) || isLT(c)) add(c & 0xFF);
-      else add(c);
-    }
-  }
+  const scan = c => { if (isCombo(c) || isLT(c)) add(c & 0xFF); else add(c); };
+  for (let l = 0; l < NL; l++) state.keymap[l].forEach(scan);
+  state.td.forEach(r => r.forEach(scan)); state.cb.forEach(r => r.forEach(scan));
   return Array.from(found.entries()).sort((a, b) => a[1] - b[1]);
 }
 
@@ -2066,6 +2091,10 @@ function cCode(c) {
   if (c === BOOT) return 'KC_BOOT';
   if (isCons(c)) return 'CONS(' + cnName(c & 0x7FFF) + ')';
   if (isMacro(c)) return 'MACRO(' + (c & 0xFFF) + ')';
+  if (isTD(c)) return 'TD(' + (c & 0xFF) + ')';
+  if (c === KC_LATCH) return 'KC_LATCH';
+  if (isLatch(c)) return '(KC_LATCH + ' + (c - KC_LATCH) + ')';
+  if (isMorse(c)) return ['KC_MORSE_DOT', 'KC_MORSE_DASH', 'KC_MORSE_OK', 'KC_MORSE_HINT'][c - MORSE_DOT];
   if (isMO(c)) return 'MO(' + (c & 0xF) + ')';
   if (isTG(c)) return 'TG(' + (c & 0xF) + ')';
   if (isLT(c)) return 'LT(' + ((c >> 8) & 0xF) + ', ' + kcName(c & 0xFF) + ')';
@@ -2087,7 +2116,7 @@ function cStr(s) {
   return '"' + toAscii(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t') + '"';
 }
 function layerHead(l) {
-  return toAscii(state.names[l] || defName(l));
+  return ['NUM (numpad + phim tat)', 'FN (giu phim Num): F1-F9, media, dieu huong', 'MACRO (TG(2) o layer FN): M1..M9 go chuoi'][l];
 }
 function layerNameC(n) {
   return '"' + toAscii(n).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
@@ -2103,7 +2132,6 @@ function genKeymap() {
   L.push('//   R4: Left Down Right 0   -   .  -');
   L.push('// Phim "Num": tap = NumLock, giu = vao layer FN (LT).');
   L.push('// Tep nay duoc tao boi Numpad30 Studio.');
-  L.push('#define NLAYER_DEF ' + nLayers() + '   // so layer mac dinh (toi da 16)');
   L.push('#include "core.h"');
   L.push('#define __ KC_NO');
   L.push('#define ___ KC_TRNS');
@@ -2118,8 +2146,8 @@ function genKeymap() {
   }
   L.push('#define NUM_LAYER_NAMES { ' + state.names.map(layerNameC).join(', ') + ' }');
   L.push('');
-  L.push('static const kc_t keymap[NLAYER_DEF][NKEYS] = {');
-  for (let l = 0; l < nLayers(); l++) {
+  L.push('static const kc_t keymap[NLAYER][NKEYS] = {');
+  for (let l = 0; l < NL; l++) {
     L.push('  // ---- Layer ' + l + ': ' + layerHead(l) + ' ----');
     const cells = state.keymap[l].map(cCode);
     for (let r = 0; r < NR; r++) {
@@ -2137,6 +2165,11 @@ function genKeymap() {
   }
   L.push('};');
   L.push('#define NMACROS ((int)(sizeof macros / sizeof macros[0]))');
+  L.push('');
+  L.push('// Tap dance {tap, giu, bam doi} va combo {phim A, phim B, ket qua}: gia tri mac dinh, sua duoc qua Studio.');
+  L.push('static const core_ext_t def_ext = {');
+  L.push('  { ' + state.td.map(r => '{ ' + r.map(cCode).join(', ') + ' }').join(', ') + ' },');
+  L.push('  { ' + state.cb.map(r => '{ ' + r.map(cCode).join(', ') + ' }').join(', ') + ' } };');
   L.push('');
   return L.join('\n');
 }
@@ -2166,10 +2199,10 @@ function genConfig() {
   ].join('\n');
 }
 function ledSnippet() {
-  const cols = Array.from({ length: NL_MAX }, (_, l) => { const c = state.colors[l] || LAYER_COLORS[l]; return `{${c[0]}, ${c[1]}, ${c[2]}}`; }).join(', ');
+  const cols = state.colors.map(c => `{${c[0]}, ${c[1]}, ${c[2]}}`).join(', ');
   return [
-    '// main.c — thay mang def_colors (mau mac dinh cua 16 layer; layer chua dung giu mau goi y):',
-    'static const uint8_t def_colors[NLAYER][3] = {' + cols + '};   // ' + state.names.map(n => toAscii(n)).join(', '),
+    '// main.c — thay dong nay trong led_update():',
+    'static const uint8_t col[NLAYER][3] = {' + cols + '};   // ' + state.names.map(n => toAscii(n)).join(', '),
     ''
   ].join('\n');
 }
@@ -2185,9 +2218,9 @@ function renderCode() {
   const note = $('#codeNote');
   if (note) {
     note.textContent = [
-      `Thay firmware/keymap.h bằng tệp này rồi build lại. 30 phím · ${nLayers()} layer · 9 macro. Chữ có dấu đã được bỏ dấu.`,
+      'Thay firmware/keymap.h bằng tệp này rồi build lại. 30 phím · 3 layer · 9 macro. Chữ có dấu đã được bỏ dấu.',
       'Thay firmware/config.h nếu bạn đổi thông số phần cứng hoặc thời gian. Giữ đúng các define phần cứng nếu mạch không đổi.',
-      'Dán mảng màu này thay def_colors trong main.c để đổi màu LED mặc định theo layer. Không cần sửa config.h.'
+      'Dán dòng mảng màu này vào main.c (hàm led_update) để đổi màu LED theo layer. Không cần sửa config.h.'
     ][ui.codeSel];
   }
 }
@@ -2256,7 +2289,8 @@ function pkEffective(code) {
   if (ui.pk.mods && isBasic(code)) return COMBO(ui.pk.mods, code);
   return code;
 }
-function openPicker(idx) {
+function openPicker(idx, target) {
+  ui.pk.target = target || null;
   if (idx != null && !HOLES.has(idx)) ui.pk.idx = idx;
   ui.pk.q = '';
   ui.pk.capturing = false;
@@ -2272,6 +2306,7 @@ function openPicker(idx) {
 }
 function closePicker() {
   ui.pk.capturing = false;
+  ui.pk.target = null;
   const wrap = $('#pkWrap');
   if (wrap) { wrap.classList.remove('on'); wrap.setAttribute('aria-hidden', 'true'); }
   const strip = $('#capStrip');
@@ -2280,10 +2315,7 @@ function closePicker() {
 }
 function pickerList() {
   const qs = norm(ui.pk.q.trim()).split(/\s+/).filter(Boolean);
-  const nl = nLayers();
   return DEFS.filter(o => {
-    if ((isMO(o.c) || isTG(o.c)) && (o.c & 0xF) >= nl) return false;
-    if (isLT(o.c) && ((o.c >> 8) & 0xF) >= nl) return false;
     if (ui.pk.cat !== 'all' && catOf(o.c) !== ui.pk.cat) return false;
     if (!qs.length) return true;
     const numpad = o.c >= 0x53 && o.c <= 0x63 ? ' numpad kp' : '';
@@ -2292,10 +2324,10 @@ function pickerList() {
   });
 }
 function renderPicker() {
-  const idx = ui.pk.idx;
-  const cur = state.keymap[ui.layer][idx] || 0;
+  const idx = ui.pk.idx, tg = ui.pk.target;
+  const cur = (tg ? state[tg.k][tg.n][tg.s] : state.keymap[ui.layer][idx]) || 0;
   const sub = $('#pkSub');
-  if (sub) sub.textContent = `Layer ${state.names[ui.layer]} · ${posLabel(idx)} · ${shortOf(cur)}`;
+  if (sub) sub.textContent = tg ? `${tgLabel(tg)} · ${shortOf(cur)}` : `Layer ${state.names[ui.layer]} · ${posLabel(idx)} · ${shortOf(cur)}`;
   const cats = $('#pkCats');
   if (cats) {
     const counts = {};
@@ -2333,13 +2365,19 @@ function renderPicker() {
   const lt = $('#pkLtBtn');
   if (lt) lt.classList.toggle('on', ui.pk.lt);
   const ltsel = $('#pkLtLayer');
-  if (ltsel) {
-    const nl = nLayers();
-    ltsel.innerHTML = Array.from({ length: Math.max(1, nl - 1) }, (_, i) => `<option value="${i + 1}">Layer ${i + 1}</option>`).join('');
-    ltsel.value = String(clamp(ui.pk.ltLayer, 1, Math.max(1, nl - 1))); ltsel.disabled = !ui.pk.lt || nl < 2;
-  }
+  if (ltsel) { ltsel.value = String(ui.pk.ltLayer); ltsel.disabled = !ui.pk.lt; }
+}
+function tgLabel(t) {
+  return t.k === 'td' ? `Tap Dance ${t.n + 1} · ${['Chạm', 'Giữ', 'Bấm đôi'][t.s]}` : `Combo ${t.n + 1} · ${['Phím A', 'Phím B', 'Kết quả'][t.s]}`;
 }
 function applyPick(code) {
+  const tg = ui.pk.target;
+  if (tg) {
+    state[tg.k][tg.n][tg.s] = code;
+    closePicker(); pushHist(); markDirty(); renderSmart(); renderCode();
+    toast(`${tgLabel(tg)} → ${shortOf(code)}`, 'ok', 1600);
+    return;
+  }
   const idx = ui.pk.idx;
   ui.sel = idx;
   setKey(idx, code);
@@ -2409,7 +2447,6 @@ function scheduleMacHist() {
   macHistTimer = setTimeout(() => pushHist(), 700);
 }
 function setLayer(l) {
-  const NL = nLayers();
   const n = ((l % NL) + NL) % NL;
   if (n === ui.layer) return;
   ui.layer = n;
@@ -2442,6 +2479,16 @@ function simulatePress(idx) {
 }
 
 function bindEvents() {
+  const slotClick = e => {
+    const b = e.target.closest('[data-slot]');
+    if (b) { const [k, n, s] = b.dataset.slot.split(','); openPicker(null, { k, n: +n, s: +s }); return; }
+    const x = e.target.closest('[data-slotclr]');
+    if (x) {
+      const [k, n] = x.dataset.slotclr.split(',');
+      state[k][+n] = [0, 0, 0]; pushHist(); markDirty(); renderSmart(); renderCode();
+    }
+  };
+  on('#tdTable', 'click', slotClick); on('#cbTable', 'click', slotClick);
   /* --- điều hướng --- */
   on('#nav', 'click', e => {
     const b = e.target.closest('button[data-view]');
@@ -2482,15 +2529,9 @@ function bindEvents() {
     const ok = await ask('Đặt lại layer', `Khôi phục layer ${ui.layer} (${state.names[ui.layer]}) về bố cục mặc định của firmware?`, 'Đặt lại');
     if (ok) { resetLayer(); toast('Đã đặt lại layer', 'ok'); }
   });
-  on('#addLayer', 'click', () => { if (addLayer()) toast(`Đã thêm layer ${ui.layer} (${nLayers()} / ${NL_MAX})`, 'ok'); });
-  on('#delLayer', 'click', async () => {
-    const l = ui.layer;
-    const ok = await ask('Xoá layer', `Xoá hẳn layer ${l} (${state.names[l]})? Các layer sau sẽ dồn lên và phím MO / TG / LT được đánh lại số.`, 'Xoá layer', true);
-    if (ok && deleteLayer(l)) toast('Đã xoá layer', 'warn');
-  });
   on('#clearLayer', 'click', async () => {
-    const ok = await ask('Làm trống layer', `Đặt toàn bộ phím trên layer ${ui.layer} thành ▽ Trống (xuyên xuống layer dưới)?`, 'Làm trống', true);
-    if (ok) { clearLayer(); toast('Đã làm trống layer', 'warn'); }
+    const ok = await ask('Xoá layer', `Đặt toàn bộ phím trên layer ${ui.layer} thành ▽ Trống (xuyên xuống layer dưới)?`, 'Xoá layer', true);
+    if (ok) { clearLayer(); toast('Đã xoá layer', 'warn'); }
   });
 
   /* --- phím đang chọn --- */
@@ -2502,7 +2543,7 @@ function bindEvents() {
     else if (act === 'trns') { setKey(ui.sel, 1); toast('Đã đặt ▽ Trống', 'ok', 1400); }
     else if (act === 'none') { setKey(ui.sel, 0); toast('Đã xoá phím', 'ok', 1400); }
     else if (act === 'reset') {
-      const def = defaultLayer(ui.layer)[ui.sel];
+      const def = [LAYER0, LAYER1, LAYER2][ui.layer][ui.sel];
       setKey(ui.sel, def);
       toast('Đã trả về mặc định', 'ok', 1400);
     }
@@ -2685,7 +2726,7 @@ function bindPicker() {
     if (ui.pk.lt) ui.pk.mods = 0;
     renderPicker();
   });
-  on('#pkLtLayer', 'change', e => { ui.pk.ltLayer = clamp(+e.target.value || 1, 1, Math.max(1, nLayers() - 1)); renderPicker(); });
+  on('#pkLtLayer', 'change', e => { ui.pk.ltLayer = +e.target.value === 2 ? 2 : 1; renderPicker(); });
   on('#pkSearch', 'input', e => { ui.pk.q = e.target.value; renderPicker(); });
   on('#pkCap', 'click', () => {
     ui.pk.capturing = true;
@@ -2756,7 +2797,7 @@ function bindGlobalKeys() {
     if (typing) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); setLayer(ui.layer - 1); return; }
     if (e.key === 'ArrowRight') { e.preventDefault(); setLayer(ui.layer + 1); return; }
-    if (/^[1-9]$/.test(e.key) && +e.key <= nLayers()) { setLayer(+e.key - 1); return; }
+    if (/^[1-3]$/.test(e.key)) { setLayer(+e.key - 1); return; }
     if ((e.key === ' ' || e.key === 'Enter') && ui.test) { e.preventDefault(); simulatePress(ui.sel); }
   });
 }
@@ -2784,7 +2825,7 @@ init();
    ===================================================================== */
 const HID = { dev: null, chain: Promise.resolve(), synced: null, timer: 0, unsaved: false, busy: false };
 const HID_FILTER = [{ vendorId: 0xC1A0, productId: 0x0030, usagePage: 0xFF60, usage: 0x61 }];
-const HID_NK = 35, HID_NM = 9, HID_MMAX = 255, HID_NAME = 12;
+const HID_NK = 35, HID_NL = 3, HID_NM = 9, HID_MMAX = 255, HID_NAME = 12;
 
 function hidReq(bytes) {
   const run = () => new Promise((res, rej) => {
@@ -2809,43 +2850,38 @@ function hidReq(bytes) {
 
 function hidSnap() {
   const keys = [];
-  for (let l = 0; l < state.keymap.length; l++) {
+  for (let l = 0; l < HID_NL; l++) {
     const row = [];
     for (let i = 0; i < HID_NK; i++) row.push(state.keymap[l][i] | 0);
     keys.push(row);
   }
   return {
-    nl: keys.length,
     keys,
     names: state.names.map(n => toAscii(n).replace(/[\n\t]/g, '').slice(0, HID_NAME)),
     colors: state.colors.map(c => c.slice(0, 3)),
     macs: state.macros.slice(0, HID_NM).map(m => toAscii(m.text || '').slice(0, HID_MMAX)),
     ss: state.cfg.SCREENSAVER_MS >>> 0,
-    br: state.cfg.LED_BRIGHT & 255
+    br: state.cfg.LED_BRIGHT & 255,
+    td: state.td.map(r => r.slice()),
+    cb: state.cb.map(r => r.slice())
   };
 }
 
 async function hidPull() {
   const info = await hidReq([1]);
-  const nl = info[2], nlMax = info[8] || NL_MAX;
-  if (info[1] !== 2 || info[3] !== HID_NK || info[4] !== HID_NM || nl < 1 || nl > Math.min(nlMax, NL_MAX))
+  if (info[1] !== 2 || info[2] !== HID_NL || info[3] !== HID_NK || info[4] !== HID_NM || info[8] !== NTD || info[9] !== NCB)
     throw new Error('Firmware không khớp app (ver ' + info[1] + ', ' + info[2] + ' layer, ' + info[3] + ' phím). Hãy nạp firmware mới.');
   const n = JSON.parse(JSON.stringify(state));
-  n.keymap = Array.from({ length: nl }, () => Array.from({ length: NK }, () => 0));
-  n.names = Array.from({ length: nl }, (_, l) => defName(l));
-  n.colors = Array.from({ length: nl }, (_, l) => LAYER_COLORS[l].slice());
-  for (let l = 0; l < nl; l++) for (let off = 0; off < HID_NK; off += 14) {
+  for (let l = 0; l < HID_NL; l++) for (let off = 0; off < HID_NK; off += 14) {
     const c = Math.min(14, HID_NK - off), v = await hidReq([2, l, off, c]);
     for (let i = 0; i < c; i++) n.keymap[l][off + i] = v[4 + 2 * i] | (v[5 + 2 * i] << 8);
   }
-  for (let l = 0; l < nl; l++) {
+  for (let l = 0; l < HID_NL; l++) {
     const v = await hidReq([4, l]);
     n.names[l] = String.fromCharCode(...v.slice(3, 3 + v[2]));
   }
-  for (let off = 0; off < nl; off += 9) {
-    const c = Math.min(9, nl - off), v = await hidReq([6, off, c]);
-    for (let i = 0; i < c; i++) n.colors[off + i] = [v[3 + 3 * i], v[4 + 3 * i], v[5 + 3 * i]];
-  }
+  const col = await hidReq([6]);
+  for (let l = 0; l < HID_NL; l++) n.colors[l] = [col[1 + 3 * l], col[2 + 3 * l], col[3 + 3 * l]];
   for (let i = 0; i < HID_NM; i++) {
     let text = '';
     for (let off = 0; off <= HID_MMAX; off += 28) {
@@ -2860,6 +2896,8 @@ async function hidPull() {
   const cf = await hidReq([11]);
   n.cfg.SCREENSAVER_MS = (cf[1] | (cf[2] << 8) | (cf[3] << 16) | (cf[4] << 24)) >>> 0;
   n.cfg.LED_BRIGHT = cf[5];
+  for (let i = 0; i < NTD; i++) { const v = await hidReq([13, i]); for (let k = 0; k < 3; k++) n.td[i][k] = v[2 + 2 * k] | (v[3 + 2 * k] << 8); }
+  for (let i = 0; i < NCB; i++) { const v = await hidReq([15, i]); for (let k = 0; k < 3; k++) n.cb[i][k] = v[2 + 2 * k] | (v[3 + 2 * k] << 8); }
   state = sanitize(n);
   pushHist(); dirty = false; saveDraft();
   const p = $('#dirtyPill'); if (p) p.hidden = true;
@@ -2873,18 +2911,13 @@ async function hidPush(all) {
   try {
     const cur = hidSnap(), old = all || !HID.synced ? null : HID.synced, sendQ = [];
     const diff = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
-    if (!old || cur.nl !== old.nl) sendQ.push([13, cur.nl]);
-    for (let l = 0; l < cur.nl; l++) for (let off = 0; off < HID_NK; off += 14) {
+    for (let l = 0; l < HID_NL; l++) for (let off = 0; off < HID_NK; off += 14) {
       const c = Math.min(14, HID_NK - off), seg = cur.keys[l].slice(off, off + c);
-      if (old && old.keys[l] && !diff(seg, old.keys[l].slice(off, off + c))) continue;
+      if (old && !diff(seg, old.keys[l].slice(off, off + c))) continue;
       const q = [3, l, off, c]; seg.forEach(k => q.push(k & 255, k >> 8)); sendQ.push(q);
     }
     cur.names.forEach((nm, l) => { if (!old || nm !== old.names[l]) sendQ.push([5, l, nm.length, ...Array.from(nm, ch => ch.charCodeAt(0))]); });
-    for (let off = 0; off < cur.nl; off += 9) {
-      const seg = cur.colors.slice(off, off + 9);
-      if (old && old.colors.length > off && !diff(seg, old.colors.slice(off, off + 9))) continue;
-      sendQ.push([7, off, seg.length, ...seg.flat()]);
-    }
+    if (!old || diff(cur.colors, old.colors)) sendQ.push([7, ...cur.colors.flat()]);
     cur.macs.forEach((tx, i) => {
       if (old && tx === old.macs[i]) return;
       if (!tx.length) { sendQ.push([9, i, 0, 0]); return; }
@@ -2895,6 +2928,9 @@ async function hidPush(all) {
     });
     if (!old || cur.ss !== old.ss || cur.br !== old.br)
       sendQ.push([12, cur.ss & 255, (cur.ss >> 8) & 255, (cur.ss >> 16) & 255, (cur.ss >>> 24) & 255, cur.br]);
+    const pk = (cmd, i, r) => { const q = [cmd, i]; r.forEach(k => q.push(k & 255, k >> 8)); return q; };
+    cur.td.forEach((r, i) => { if (!old || diff(r, old.td[i])) sendQ.push(pk(14, i, r)); });
+    cur.cb.forEach((r, i) => { if (!old || diff(r, old.cb[i])) sendQ.push(pk(16, i, r)); });
     for (const q of sendQ) await hidReq(q);
     HID.synced = cur;
     if (sendQ.length) HID.unsaved = true;
