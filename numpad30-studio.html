@@ -1119,7 +1119,7 @@ function catClass(c) {
   if (c === 1) return 'trns';
   if (isCons(c)) return 'media';
   if (isMO(c) || isTG(c) || isLT(c)) return 'layer';
-  if (isMacro(c) || c === BOOT) return 'special';
+  if (isMacro(c) || c === BOOT || (c & 0xFF00) === 0x7800) return 'special';
   if (isCombo(c) || (c >= 0xE0 && c <= 0xE7)) return 'mod';
   return 'std';
 }
@@ -1665,10 +1665,11 @@ function renderInspector() {
     <div class="sel-actions">
       <button class="btn sm" data-act="pick">Đổi phím</button>
       <button class="btn sm" data-act="trns" title="Để phím xuyên xuống layer dưới">▽ Trống</button>
+      <button class="btn sm" data-act="toggle" title="Bấm 1 lần giữ phím, bấm lần nữa nhả">⟳ Toggle giữ</button>
       <button class="btn sm" data-act="reset" ${canReset ? '' : 'disabled'}>Mặc định</button>
       <button class="btn sm danger" data-act="none">Xoá phím</button>
     </div>
-    <p class="hint">Nhãn OLED khi bấm: <b class="mono">${esc(keyLabel(ui.layer, idx))}</b></p>`;
+    <p class="hint">Nhãn OLED khi bấm: <b class="mono">${esc(keyLabel(ui.layer, idx))}</b>${(state.keymap[ui.layer][idx] & 0xFF00) === 0x7800 ? ' · Toggle giữ, bấm lại để nhả' : ''}</p>`;
 }
 
 /* ---------- thông tin layer ---------- */
@@ -2531,6 +2532,12 @@ function bindEvents() {
     const act = b.dataset.act;
     if (act === 'pick') openPicker(ui.sel);
     else if (act === 'trns') { setKey(ui.sel, 1); toast('Đã đặt ▽ Trống', 'ok', 1400); }
+    else if (act === 'toggle') {
+      const c = state.keymap[ui.layer][ui.sel];
+      if ((c & 0xFF00) === 0x7800) { setKey(ui.sel, c & 0xFF); toast('Đã bỏ toggle giữ', 'ok', 1400); }
+      else if ((c & 0xFF) >= 0x04 && (c & 0xFF) <= 0xE7) { setKey(ui.sel, 0x7800 | (c & 0xFF)); toast('Đã đặt toggle giữ', 'ok', 1400); }
+      else toast('Chỉ toggle được phím thường hoặc modifier', 'warn', 1600);
+    }
     else if (act === 'none') { setKey(ui.sel, 0); toast('Đã xoá phím', 'ok', 1400); }
     else if (act === 'reset') {
       const def = [LAYER0, LAYER1, LAYER2][ui.layer][ui.sel];
