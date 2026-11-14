@@ -3,17 +3,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include "config.h"
 typedef unsigned int uint;
 #define GPIO_OUT 1
 #define GPIO_IN 0
 #define GPIO_FUNC_I2C 3
-#define GPIO_FUNC_PWM 4
-extern uint8_t sim_pwm[32];
-static inline uint pwm_gpio_to_slice_num(uint g) { return g / 2; }
-static inline void pwm_set_wrap(uint s, uint w) { (void)s; (void)w; } static inline void pwm_set_clkdiv(uint s, float d) { (void)s; (void)d; } static inline void pwm_set_enabled(uint s, bool e) { (void)s; (void)e; }
-static inline void pwm_set_gpio_level(uint g, uint16_t v) { sim_pwm[g] = (uint8_t)v; }
 typedef struct { int dummy; } i2c_inst_t; extern i2c_inst_t *i2c0;
 typedef struct { int dummy; } PIO_t; typedef PIO_t *PIO; extern PIO pio0;
 typedef struct { int dummy; } pio_sm_config; typedef struct { int dummy; } pio_program_t; extern pio_program_t ws2812_program;
@@ -58,14 +54,14 @@ bool tud_hid_report(uint8_t id, const void *r, uint16_t n);
 static inline bool tud_suspended(void) { return sim_suspended; }
 static inline bool tud_remote_wakeup(void) { sim_wakeups++; return true; }
 static inline void tusb_init(void) {}
-bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n);
-// Flash gia: 1 sector 4 KB, XIP_BASE tro sao cho XIP_BASE + CFG_FLASH_OFFSET = sim_flash
-#define FLASH_SECTOR_SIZE 4096
-#define FLASH_PAGE_SIZE 256
-extern uint8_t sim_flash[8192]; extern int sim_flash_writes;
-#define XIP_BASE ((uintptr_t)sim_flash - CFG_FLASH_OFFSET)
-static inline void flash_range_erase(uint32_t off, size_t n) { memset(sim_flash + off - CFG_FLASH_OFFSET, 0xFF, n); }
-static inline void flash_range_program(uint32_t off, const uint8_t *d, size_t n) { memcpy(sim_flash + off - CFG_FLASH_OFFSET, d, n); sim_flash_writes++; }
-static inline int flash_safe_execute(void (*fn)(void *), void *p, uint32_t t) { (void)t; fn(p); return 0; }
 void tud_task(void);
 void tud_hid_set_report_cb(uint8_t itf, uint8_t id, hid_report_type_t t, uint8_t const *b, uint16_t sz);
+// ---- flash + HID raw (v2) ----
+#define XIP_BASE ((uintptr_t)sim_flash)
+#define FLASH_SECTOR_SIZE 4096
+#define PICO_OK 0
+extern uint8_t sim_flash[2 * 1024 * 1024]; extern int sim_flash_erases;
+static inline void flash_range_erase(uint32_t off, size_t n) { memset(sim_flash + off, 0xFF, n); sim_flash_erases++; }
+static inline void flash_range_program(uint32_t off, const uint8_t *d, size_t n) { memcpy(sim_flash + off, d, n); }
+static inline int flash_safe_execute(void (*f)(void *), void *p, uint32_t t) { (void)t; f(p); return PICO_OK; }
+bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n);

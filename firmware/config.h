@@ -9,19 +9,18 @@
 #define OLED_SCL 13                          // I2C0 SCL
 #define OLED_ADDR 0x3C
 #define OLED_H 32                            // 32 = 128x32 (0.91"), 64 = 128x64 (0.96")
-#define OLED_ROTATE 1                        // 1 = xoay 180 do neu man hinh lap nguoc
+#define OLED_ROTATE 0                        // 1 = xoay 180 do neu man hinh lap nguoc
 #define LED_PIN 16                           // WS2812 onboard cua RP2350-Zero
 #define LED_BRIGHT 24                        // do sang den (0-255), giu thap de khong qua dong USB
 #define DEBOUNCE_MS 5                        // so lan quet 1 ms giong nhau lien tiep de chot trang thai phim
 #define TAP_TERM_MS 200                      // giu >= so ms nay la "hold" (cho phim LT), nha som hon la "tap"
 #define MACRO_GAP_MS 12                      // khoang nghi giua 2 bao cao khi go macro
-#define SCREENSAVER_MS 60000                 // tat OLED + LED sau so ms khong bam phim (0 = khong bao gio)
-
-// Cau hinh luu o sector cuoi cua flash. RP2350-Zero co 2 MB; doi gia tri neu board cua ban khac.
-#define CFG_FLASH_SIZE (2 * 1024 * 1024)
-#define CFG_FLASH_SECTORS 4                  // cau hinh dung 4 sector (16 KB) cuoi flash (logo 8 khung)
-#define CFG_FLASH_OFFSET (CFG_FLASH_SIZE - CFG_FLASH_SECTORS * 4096)
-
-// 6 kenh den LED don sac, moi kenh 1 BJT (GPIO -> dien tro -> base). 6 chan con trong cua RP2350-Zero, moi chan 1 kenh PWM rieng.
-#define LEDCH_PINS {14, 15, 26, 27, 28, 29}   // kenh 0..5; doi theo day cua ban
-#define LEDCH_ACTIVE_HIGH 1                  // 1 = NPN, GPIO cao la sang; 0 = dao muc
+// (screensaver nay duoc cau hinh bang app: o OSB[0] tinh bang giay, 0 = tat)
+// ===== Them o v2 (tuong thich app Studio) =====
+#define COMBO_MS 30                          // 2 phim combo bam trong khoang nay -> ket qua combo
+#define TD_TERM_MS 200                       // tap dance: giu >= hold, nha roi cho lan bam thu 2 trong khoang nay
+#define NOKIA_MS 600                         // multitap Nokia: bam lai cung phim trong khoang nay -> ky tu ke tiep
+#define TAP_HOLD_MS 10                       // phim "tap" tao ra (LT/TD) duoc giu it nhat so ms nay
+#define STORE_OFFSET (1024 * 1024)           // vi tri vung cau hinh trong flash (RP2350-Zero 2 MB)
+#define STORE_SECTORS 12                     // 12 x 4 KB = 48 KB cho cau hinh + macro + du lieu OLED
+#define FW_VER 7                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y

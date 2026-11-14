@@ -1,6 +1,6 @@
 # Numpad30 RP2350-Zero
 
-Firmware cho ban phim 30 phim (khoi macro 3x3, cum mui ten, numpad 17 phim) dung RP2350-Zero + OLED SSD1306. Ma nguon C tren Pico SDK, khung USB/OLED/LED dua theo du an macropad15rp2350.
+Firmware cho ban phim 30 phim (khoi macro 3x3, cum mui ten, numpad 17 phim) dung RP2350-Zero + OLED SSD1306. Ma nguon C tren Pico SDK. Tu v2 firmware tuong thich app Studio cua macropad15: cau hinh qua Raw HID, luu flash (xem `docs/PROTOCOL.md`).
 
 ## Phan cung (khop so do ma tran 5x7 co diode)
 
@@ -23,33 +23,14 @@ R3: .    Up   .     1    2   3  Enter
 R4: Left Down Right 0    .   .  .      (. = o trong; 0 o C3, dau cham o C5)
 ```
 
-## Layer (`firmware/keymap.h`)
+## Cau hinh (v2)
+Keymap, macro, OLED khong con nam trong ma nguon: `firmware/keymap.h` chi la **mac dinh** (lan dau, hoac lenh "ve mac dinh"). Sau do app Studio sua tat ca qua USB (giao dien Raw HID usage page 0xFF60) va luu vao flash o 1 MB.
 
-- **NUM** (mac dinh): numpad day du, 9 phim tat (Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D), mui ten.
-- **FN** (giu phim `Num`; nha ngan = NumLock): F1-F9, tat tieng / am luong / bai truoc-tiep-dung, Home/End/PgUp/PgDn/Ins/Del, Esc, Tab, Space, Enter, Backspace. Phim `0` bat/tat layer MACRO, phim `.` vao bootloader (BOOT).
-- **MACRO** (bat/tat bang phim `0` o layer FN): M1-M9 go chuoi ky tu (sua trong `macros[]`, chi ASCII).
+Mac dinh: 3 layer **NUM** (numpad + Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D, mui ten), **FN** (giu `Num`; nha ngan = NumLock: F1-F9, media, Home/End/PgUp/PgDn/Ins/Del, `0` bat/tat layer MACRO, `.` = BOOTSEL), **MACRO** (M1-M9). Con lai la layer 3..31 (trong suot).
 
-Ma phim: `C_(k)`/`S_(k)`/`A_(k)`/`G_(k)` to hop modifier, `MO(n)` giu layer, `TG(n)` bat tat layer, `LT(n,k)` tap/hold, `MACRO(n)`, `CONS(x)` media, `KC_BOOT`.
+Tinh nang: 32 layer, MO/TL/LY+/LY-/LT, 4 tap dance (cham/giu/cham 2 lan), 4 combo (30 ms), 8 bo chuoi SEQ x 8 buoc, LATCH, TG Space/Shift/Ctrl/Alt, Nokia multitap + RENAME (doi ten layer tren OLED), Morse (co goi y), 32 macro dang buoc (nhan/giu/nha/cho/go chuoi, lap), OLED: loi chao chu chay + logo dong 16 khung 128x32, screensaver 4 kieu, xoay 0/90/180/270 (chung hoac theo layer), LED RGB onboard (theo layer / cau vong / mot mau / tho / tat, CapsLock = do). Chong doi 5 ms, 6KRO, remote wakeup.
 
-## Tinh nang
-
-Chong doi 5 ms, 6KRO (tran -> ErrorRollOver), tap-hold co permissive hold, macro go chuoi, phim media, OLED hien layer + phim vua bam + NumLock/CapsLock cua may tinh, LED RGB theo layer (CapsLock = do), tiet kiem OLED/LED sau 60 s, remote wakeup.
-
-## App chinh phim (web, 1 tep)
-
-`numpad30-studio.html` — mo bang trinh duyet, khong can cai dat:
-
-- Sua 30 phim tren 3 layer, doi ten layer, mau LED, thong so `config.h`, xem truoc OLED 128x32 / 128x64.
-- Chon phim theo danh muc hoac tim kiem, bat modifier (Ctrl/Shift/Alt/Win), LT/MO/TG, hoac bam phim that de gan.
-- Sua 9 macro (tu bo dau khi xuat), hoan tac / lam lai, tu luu nhap trong trinh duyet.
-- Xuat `keymap.h`, `config.h`, doan ma mau LED va ho so JSON.
-- **Ket noi truc tiep** (Chrome/Edge, WebHID): bam "Ket noi ban phim" -> app doc cau hinh tu ban phim; moi chinh sua ap dung ngay vao RAM; "Luu vao ban phim" (hoac Ctrl+S) ghi 2 sector cuoi flash, tu nap lai khi cam USB; "Ve mac dinh thiet bi" nap lai mac dinh.
-  - Layer dong (1-8), Tap Dance TD1-TD4 (cham / giu / cham 2 lan), Combo CB1-CB4 (2 phim theo vi tri -> 1 phim), 16 macro nhieu buoc, ten + mau layer, screensaver, do sang.
-  - Macro: chuoi ASCII va the buoc `{ctrl+c}` `{down:shift}` `{up:shift}` `{wait:200}` (`{{` = dau `{`). Toi da 254 byte sau bien dich. Xuat keymap.h chi giu phan chu (bo the buoc), va chi 3 layer dau lam mac dinh.
-  - 6 den LED don sac qua BJT (GP14 GP15 GP26-29, doi trong `LEDCH_PINS`): 12 hieu ung (`ledfx.h`, app xem truoc cung cong thuc), phim LED / LED+ / LED-.
-  - OLED: loi chao chu chay khi cam USB, man hinh cho (tat hoac logo dong toi da 8 khung 128x32, ve tay hoac nhap anh/GIF).
-
-Giao thuc Raw HID v2 (32 byte, usage page 0xFF60, usage 0x61) mo ta trong `firmware/hid_proto.h`; cau hinh luu o `CFG_FLASH_OFFSET` (`config.h`, 2 sector cuoi flash 2 MB). Flash hong/rong/phien ban cu -> dung keymap bien dich san trong `keymap.h`.
+Ma phim, ban do word, giao thuc: `docs/PROTOCOL.md`. Cau truc ma: `core.h` (engine phim), `proto.h` (giao thuc + dong goi flash), `ui.h` (OLED), `keymap.h` (mac dinh), `main.c` (phan cung).
 
 ## Build
 
@@ -61,8 +42,8 @@ cd firmware && mkdir build && cd build
 cmake .. -DPICO_BOARD=pico2 && make -j
 ```
 
-Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. `.github/workflows/build.yml` build san bang GitHub Actions.
+Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 2.1.1 co `pico_flash`. `.github/workflows/build.yml` build san bang GitHub Actions.
 
 ## Kiem thu tren may tinh
 
-`sh test/run_tests.sh` (chi can gcc): test don vi cho `core.h` (chong doi, LT, layer, to hop, macro, 6KRO, nhan) va mo phong end-to-end chinh `main.c` voi Pico SDK/TinyUSB gia. Chua thu tren phan cung that.
+`sh test/run_tests.sh` (chi can gcc): test don vi (chong doi, LT, layer, tap dance, combo, SEQ, LATCH, Nokia, Morse, RENAME, macro, 6KRO, giao thuc, CRC flash, OLED) va mo phong end-to-end chinh `main.c` voi Pico SDK/TinyUSB gia (gom Raw HID + luu/nap flash). **Chua thu tren phan cung that** (chua bien dich ARM, chua thu USB/flash/OLED that).

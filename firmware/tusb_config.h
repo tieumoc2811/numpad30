@@ -2,7 +2,7 @@
 #define CFG_TUD_ENABLED 1
 #define CFG_TUSB_RHPORT0_MODE (OPT_MODE_DEVICE)
 #define CFG_TUD_ENDPOINT0_SIZE 64
-#define CFG_TUD_HID 2                 // 0 = ban phim + media, 1 = Raw HID cau hinh
+#define CFG_TUD_HID 2                 // itf 0: ban phim + media, itf 1: Raw HID cau hinh (app Studio)
 #define CFG_TUD_HID_EP_BUFSIZE 32
 #define CFG_TUD_CDC 0
 #define CFG_TUD_MSC 0

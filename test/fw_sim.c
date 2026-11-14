@@ -7,11 +7,12 @@
 #include "pico_stub.h"
 
 i2c_inst_t dummy_i2c, *i2c0 = &dummy_i2c; PIO_t dummy_pio, *pio0 = &dummy_pio; pio_program_t ws2812_program;
+uint8_t sim_flash[2 * 1024 * 1024]; int sim_flash_erases; static uint8_t raw_tx[32]; static int raw_txn;
+bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)id; if (itf == 1 && n == 32) { memcpy(raw_tx, r, 32); raw_txn++; } return true; }
+typedef struct { uint32_t t; void (*f)(void); } act_t; static act_t acts[64]; static int nacts;
 uint32_t sim_led, fake_ms; uint8_t sim_down[NROW][NCOL]; int sim_rowhi[32]; int sim_i2c_writes, sim_boot, sim_wakeups; uint8_t sim_i2c_cmd[2]; bool sim_suspended;
 typedef struct { uint32_t t; uint8_t mods, k[6]; } kbl_t; static kbl_t kbl[4096]; static int nkb;
 typedef struct { uint32_t t; uint16_t u; } cnl_t; static cnl_t cnl[1024]; static int ncn;
-uint8_t sim_flash[8192]; uint8_t sim_pwm[32]; int sim_flash_writes; uint8_t sim_rep[32][32], rq[32][32]; int sim_raw_n, nrq;
-bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)itf; (void)id; if (sim_raw_n < 32) memcpy(sim_rep[sim_raw_n], r, n); sim_raw_n++; return true; }
 bool tud_hid_n_ready(uint8_t i) { (void)i; return true; }
 bool tud_hid_keyboard_report(uint8_t id, uint8_t mod, const uint8_t k[6]) { (void)id; kbl_t *e = &kbl[nkb++]; e->t = fake_ms; e->mods = mod; memcpy(e->k, k, 6); return true; }
 bool tud_hid_report(uint8_t id, const void *r, uint16_t n) { (void)n; if (id == 2) { cnl[ncn].t = fake_ms; cnl[ncn++].u = *(const uint16_t *)r; } return true; }
@@ -19,11 +20,9 @@ bool tud_hid_report(uint8_t id, const void *r, uint16_t n) { (void)n; if (id == 
 typedef struct { uint32_t t; int r, c, d; } ev_t; static ev_t evs[256]; static int nev; static uint32_t endt; static jmp_buf jb;
 static void ev(uint32_t t, int r, int c, int d) { evs[nev++] = (ev_t){t, r, c, d}; }
 static void tap(uint32_t t, int r, int c, int len) { ev(t, r, c, 1); ev(t + len, r, c, 0); }
-void tud_hid_set_report_cb(uint8_t itf, uint8_t id, hid_report_type_t t, uint8_t const *b, uint16_t sz);
-int rq_sent;
 void tud_task(void) {
   fake_ms++;
-  if (rq_sent < nrq && fake_ms >= 10 + 3 * (uint32_t)rq_sent) tud_hid_set_report_cb(1, 0, 2, rq[rq_sent++], 32);
+  for (int i = 0; i < nacts; i++) if (acts[i].t == fake_ms) acts[i].f();
   for (int i = 0; i < nev; i++) if (evs[i].t == fake_ms) sim_down[evs[i].r][evs[i].c] = evs[i].d;
   if (fake_ms >= endt) longjmp(jb, 1);
 }
@@ -31,95 +30,98 @@ void tud_task(void) {
 #include "../firmware/main.c"
 #undef main
 
+#define POS_(r, c) ((r) * NCOL + (c))
 static int fails;
 #define CHECK(c) do { if (!(c)) { printf("  LOI dong %d: %s\n", __LINE__, #c); fails++; } } while (0)
 static int find_key(uint8_t k, uint8_t mods) { for (int i = 0; i < nkb; i++) if (kbl[i].k[0] == k && kbl[i].mods == mods) return i; return -1; }
 static int run(void) { endt += 0; if (setjmp(jb) == 0) fw_main(); return 0; }
 
-static int scenario_main(void) {   // layer, tap-hold, to hop, media, macro, BOOT, LED/OLED
-  tap(100, 0, 3, 30);             // A: tap Num -> NumLock
-  tap(300, 1, 3, 40);             // B: KP7
-  tap(500, 0, 0, 40);             // C: Ctrl+C
-  ev(700, 0, 3, 1); tap(900, 1, 3, 40); ev(1000, 0, 3, 0);   // D: giu Num, bam 7 -> Prev
-  ev(1100, 0, 3, 1); tap(1400, 4, 3, 50); ev(1460, 0, 3, 0); // E: giu Num + 0 -> bat layer MACRO
-  tap(1600, 0, 0, 40);            // M1 -> "Hello!"
-  ev(2300, 0, 3, 1); tap(2600, 4, 5, 50);                    // F: giu Num + R4C5 -> BOOT
+
+// ---- ho tro lenh Raw HID: dat bao cao OUT vao ham goi lai cua firmware, firmware tra loi qua tud_hid_n_report ----
+static uint8_t R_in[32];
+static void raw_send(void) { tud_hid_set_report_cb(1, 0, 2, R_in, 32); }
+static void act_at(uint32_t t, void (*f)(void)) { acts[nacts].t = t; acts[nacts++].f = f; }
+static void mk(uint8_t cmd, unsigned off, unsigned n) { memset(R_in, 0, 32); R_in[0] = cmd; R_in[1] = off & 255; R_in[2] = (uint8_t)n; R_in[31] = off >> 8; }
+static uint8_t got[16][32]; static int ngot;
+static void keep(void) { memcpy(got[ngot++], raw_tx, 32); }
+static void a_info(void) { mk(CMD_INFO, 0, 0); raw_send(); }
+static void a_wkey(void) { mk(CMD_WRITE, W_KM + POS_(1, 3), 1); R_in[3] = KC_A; raw_send(); }    // P7 -> A tren layer 0
+static void a_rkey(void) { mk(CMD_READ, W_KM + POS_(1, 3), 1); raw_send(); }
+static void a_wmac(void) { mk(CMD_MWRITE, 2 * MSLOT + 0, 6); memcpy(R_in + 3, "\x01\x00\x00\x00", 4); raw_send(); }
+static void a_save(void) { mk(CMD_SAVE, 0, 0); raw_send(); }
+static void a_wosb(void) { mk(CMD_WRITE, W_OSB, 1); R_in[3] = 2; raw_send(); }              // timeout 2 s
+static void a_wosb5(void) { mk(CMD_WRITE, W_OSB + 5, 1); R_in[3] = 3; raw_send(); }         // kieu 3: tat man hinh
+static void a_prev(void) { mk(CMD_PREVIEW, 0, 0); R_in[1] = 0; raw_send(); }
+static void a_defaults(void) { mk(CMD_DEFAULTS, 0, 0); raw_send(); }
+
+static int scenario_main(void) {   // layer, tap-hold, to hop, media, macro mac dinh, BOOT, LED/OLED
+  tap(100, 0, 3, 30); tap(300, 1, 3, 40); tap(500, 0, 0, 40);
+  ev(700, 0, 3, 1); tap(900, 1, 3, 40); ev(1000, 0, 3, 0);
+  ev(1100, 0, 3, 1); tap(1400, 4, 3, 50); ev(1460, 0, 3, 0);   // giu Num + 0 -> bat layer MACRO
+  tap(1600, 0, 0, 40);                                          // M1 -> "Hello!"
+  ev(2300, 0, 3, 1); tap(2600, 4, 5, 50);                       // giu Num + R4C5 -> BOOT
   endt = 2800; run();
   int a = find_key(KC_NUMLOCK, 0); CHECK(a >= 0 && kbl[a].t >= 100 && kbl[a].t < 200);
-  CHECK(find_key(KC_P7, 0) >= 0);
-  CHECK(find_key(KC_C, 0x01) >= 0);
+  CHECK(find_key(KC_P7, 0) >= 0); CHECK(find_key(KC_C, 0x01) >= 0);
   { int p = -1; for (int i = 0; i < ncn; i++) if (cnl[i].u == CN_PREV) { p = i; break; } CHECK(p >= 0 && cnl[p].t >= 900 && cnl[p].t < 1000); CHECK(p + 1 < ncn && cnl[p + 1].u == 0); }
-  { char out[64]; int n = 0;   // go chuoi qua bao cao HID (chi lay cac bao cao trong khoang macro)
+  { char out[64]; int n = 0;
     for (int i = 0; i < nkb; i++) if (kbl[i].t >= 1600 && kbl[i].t < 2300 && kbl[i].k[0]) {
       for (int ch = 32; ch < 127; ch++) { uint8_t m, k; if (core_ascii((char)ch, &m, &k) && m == kbl[i].mods && k == kbl[i].k[0]) { out[n++] = (char)ch; break; } } }
     out[n] = 0; printf("  macro go ra: '%s'\n", out); CHECK(!strcmp(out, "Hello!")); }
-  CHECK(sim_boot >= 1);   // firmware that khong quay lai sau reset_usb_boot; stub thi lap lai moi vong
-  CHECK(sim_i2c_writes > 10);             // OLED da duoc khoi tao va ve
-  CHECK(sim_led != 0);                    // den LED sang theo layer
-  // khong con phim ket sau khi moi thu nha
+  CHECK(sim_boot >= 1); CHECK(sim_i2c_writes > 10); CHECK(sim_led != 0);
   CHECK(kbl[nkb - 1].k[0] == 0 && kbl[nkb - 1].mods == 0);
   return fails;
 }
-static int scenario_saver(void) {   // LED NumLock/Caps tu may tinh, man hinh cho, danh thuc, remote wakeup
+static uint8_t snap_cmd; static uint32_t snap_led;
+static void snap(void) { snap_cmd = sim_i2c_cmd[1]; snap_led = sim_led; }
+static void susp(void) { sim_suspended = true; }
+static int scenario_saver(void) {   // LED NumLock/Caps tu may tinh, screensaver cau hinh bang app, danh thuc, remote wakeup
   uint8_t l1[] = {0x03}; tud_hid_set_report_cb(0, 1, 2, l1, 1); CHECK(host_leds == 3);
   uint8_t l2[] = {1, 0x02}; tud_hid_set_report_cb(0, 0, 2, l2, 2); CHECK(host_leds == 2);
-  endt = 500; run(); CHECK(sim_led == (((uint32_t)0 << 16 | (uint32_t)(255 * LED_BRIGHT / 255) << 8 | 0) << 8));   // CapsLock -> do
+  endt = 500; run(); CHECK(sim_led == (((uint32_t)0 << 16 | (uint32_t)(255 * 24 / 255) << 8 | 0) << 8));   // CapsLock -> do
   host_leds = 0;
-  endt = SCREENSAVER_MS + 1000; run();
-  CHECK(sim_i2c_cmd[1] == 0xAE); CHECK(sim_led == 0);
-  sim_suspended = true; sim_down[1][3] = 1; endt += 20; run();
+  act_at(600, a_wosb); act_at(610, a_wosb5);   // screensaver sau 2 s, kieu tat man hinh
+  act_at(8900, snap); act_at(8950, susp); ev(9000, 1, 3, 1);
+  endt = 9100; run();   // loi chao chay ~2.5 s truoc, roi 2 s khong bam phim
+  CHECK(snap_cmd == 0xAE && snap_led == 0);
   CHECK(sim_i2c_cmd[1] == 0xAF); CHECK(sim_wakeups > 0);
   return fails;
 }
-// Raw HID: xep hang cac goi (moi goi cach 3 ms) de tud_task() tiem vao firmware trong MOT lan chay, ghi lai tung tra loi
-static void rawq(const uint8_t *q, int n) { if (nrq < 32) { memset(rq[nrq], 0, 32); memcpy(rq[nrq], q, n); nrq++; } }
-static int scenario_raw(void) {     // Raw HID v2: phim, ten, mau, macro buoc, ext (TD/combo/LED/OLED), luu 2 sector, mac dinh
-  memset(sim_flash, 0xFF, sizeof sim_flash);
-  rawq((uint8_t[]){HP_INFO}, 1);                                              // 0
-  rawq((uint8_t[]){HP_GET_KEYS, 0, 0, 2}, 4);                                 // 1
-  rawq((uint8_t[]){HP_SET_KEYS, 0, 5, 1, (uint8_t)KC_Y, (uint8_t)(KC_Y >> 8)}, 6);   // 2
-  rawq((uint8_t[]){HP_SET_NAME, 1, 3, 'A', 'B', 'C'}, 6);                     // 3
-  rawq((uint8_t[]){HP_SET_COLORS, 1, 2, 3, 4, 5, 6, 7, 8, 9}, 10);           // 4
-  rawq((uint8_t[]){HP_SET_MACRO, 12, 0, 8, 7, 2, 0xE1, 0, 1, 4, 0, 0}, 12);  // 5 macro 12 = [7: nhan LSFT, tap A(0x04)...] (chi kiem tra luu/doc)
-  rawq((uint8_t[]){HP_GET_KEYS, 9, 0, 1}, 4);                                 // 6 loi layer
-  rawq((uint8_t[]){HP_SET_CFG, 0x10, 0x27, 0, 0, 77}, 6);                     // 7 ss = 10000 ms, sang 77
-  rawq((uint8_t[]){HP_SET_EXT, 42, 0, 5, 6, 3, 90, 200, 1}, 9);              // 8 nlayer 6, led_mode 3, speed 90, bri 200, saver_mode 1
-  rawq((uint8_t[]){HP_SET_EXT, 0, 0, 6, 0x00, 0x70, 0x04, 0, 0x05, 0}, 10);  // 9 td[0] = {TD? , A, B}
-  rawq((uint8_t[]){HP_SET_EXT, 48, 0, 6, 'H', 'E', 'L', 'L', 'O', 0}, 10);       // 10 greet
-  rawq((uint8_t[]){HP_SET_EXT, 76, 0, 4, 0xAA, 0x55, 0xAA, 0x55}, 8);        // 11 logo frame 0
-  rawq((uint8_t[]){HP_GET_EXT, 42, 0, 3}, 4);                                 // 12
-  rawq((uint8_t[]){HP_SET_EXT, 0x4A, 0x08, 4, 0, 0, 0, 0}, 8);              // 13 vuot ext -> loi (2122 + 4 > 2124)
-  rawq((uint8_t[]){HP_SET_EXT, 42, 0, 1, 99}, 5);                             // 14 nlayer 99 -> kep ve mac dinh
-  rawq((uint8_t[]){HP_SAVE}, 1);                                              // 15
-  endt = 120; run();
-  CHECK(sim_raw_n == 16);
-  CHECK(sim_rep[0][0] == HP_INFO && sim_rep[0][1] == 2 && sim_rep[0][2] == NLAYER && sim_rep[0][3] == NKEYS && sim_rep[0][4] == NMACROS && sim_rep[0][8] == NTD && sim_rep[0][11] == LED_N);
-  CHECK(sim_rep[1][0] == HP_GET_KEYS && (sim_rep[1][4] | sim_rep[1][5] << 8) == C_(KC_C));
-  CHECK(sim_rep[2][0] == HP_SET_KEYS && sim_rep[6][0] == HP_ERR && sim_rep[13][0] == HP_ERR && sim_rep[15][0] == HP_SAVE);
-  CHECK(sim_rep[12][0] == HP_GET_EXT && sim_rep[12][4] == 6 && sim_rep[12][5] == 3 && sim_rep[12][6] == 90);
-  CHECK(sim_flash_writes == 2 && !memcmp(sim_flash, "NP30", 4));
-  cfg_store_t before = cfg; memset(&cfg, 0, sizeof cfg); cfg_load();            // gia lap khoi dong lai tu flash
-  CHECK(cfg.km[0][5] == KC_Y && !strcmp(cfg.names[1], "ABC") && cfg.macs[12][0] == 7 && cfg.macs[12][2] == 0xE1 && cfg.colors[2][2] == 9);
-  CHECK(cfg.ss_ms == 10000 && cfg.bright == 77 && !memcmp(cfg.km, before.km, sizeof cfg.km) && cf.macs == (const uint8_t (*)[MSLOT])cfg.macs);
-  CHECK(cfg.ext.nlayer == DEF_NLAYER && cfg.ext.led_mode == 3 && cfg.ext.led_speed == 90 && cfg.ext.led_bri == 200 && cfg.ext.saver_mode == 1);
-  CHECK(cfg.ext.td[0][0] == 0x7000 && cfg.ext.td[0][1] == 4 && cfg.ext.td[0][2] == 5 && !strcmp(cfg.ext.greet, "HELLO") && cfg.ext.logo[0][0] == 0xAA && cfg.ext.logo[0][3] == 0x55);
-  CHECK(!memcmp(&cfg.ext, &before.ext, sizeof cfg.ext));
-  sim_flash[100] ^= 0xFF; cfg_load(); CHECK(cfg.km[0][5] != KC_Y && cfg.bright == LED_BRIGHT && cfg.macs[0][1] == 5 && cfg.ext.cb_a[0] == 0xFF);   // CRC hong -> mac dinh
-  return fails;
-}
-static int scenario_defaults(void) {   // lenh DEFAULTS dua RAM ve mac dinh, khong dung flash
-  endt = 5; nrq = 0; sim_raw_n = 0; rq_sent = 0;
-  rawq((uint8_t[]){HP_SET_NAME, 0, 2, 'Z', 'Z'}, 5);
-  rawq((uint8_t[]){HP_DEFAULTS}, 1);
-  endt = 80; run();
-  CHECK(sim_raw_n == 2 && !strcmp(cfg.names[0], "NUM") && cfg.ext.nlayer == DEF_NLAYER && cfg.km[3][0] == KC_TRNS && !strcmp(cfg.names[4], "L4") && !strcmp(cfg.ext.greet, "NUMPAD30"));
+static int scenario_proto(void) {   // Raw HID: info, ghi phim co hieu luc ngay, macro, luu flash, "khoi dong lai" van con
+  act_at(20, a_info); act_at(22, keep);
+  act_at(30, a_wkey); act_at(32, keep);
+  act_at(40, a_rkey); act_at(42, keep);
+  act_at(50, a_wmac); act_at(52, keep);
+  act_at(60, a_save); act_at(300, keep);     // flash_safe_execute dong bo trong stub
+  tap(100, 1, 3, 40);                        // phim P7 da thanh A
+  int e0 = sim_flash_erases;
+  endt = 500; run();
+  CHECK(ngot == 5);
+  CHECK(got[0][0] == 5 && got[0][1] == 32 && (got[0][2] | got[0][3] << 8) == NW && got[0][4] == FW_VER && got[0][6] == 32);
+  CHECK(got[1][0] == CMD_WRITE); CHECK(got[2][0] == CMD_READ && got[2][3] == KC_A);
+  CHECK(find_key(KC_A, 0) >= 0 && find_key(KC_P7, 0) < 0);
+  CHECK(got[4][0] == CMD_SAVE); CHECK(sim_flash_erases - e0 == STORE_SECTORS);
+  { store_hdr_t h; memcpy(&h, sim_flash + STORE_OFFSET, sizeof h); CHECK(h.magic == STORE_MAGIC); }
+  // khoi dong lai (fw_main chay lai tu dau, doc flash): phim A van con, macro moi van con
+  nkb = 0; nacts = 0; ngot = 0; nev = 0;
+  tap(endt + 100, 1, 3, 40);
+  endt += 400; run();
+  CHECK(find_key(KC_A, 0) >= 0 && find_key(KC_P7, 0) < 0);
+  CHECK(core.cfg.mac[2][0] == 1);
+  // ve mac dinh: P7 tro lai
+  nkb = 0; nacts = 0; act_at(endt + 20, a_defaults); tap(endt + 100, 1, 3, 40);
+  endt += 300; run();
+  CHECK(find_key(KC_P7, 0) >= 0 && find_key(KC_A, 0) < 0);
+  // flash hong (CRC sai) -> mac dinh
+  sim_flash[STORE_OFFSET + 100] ^= 0xFF; nkb = 0; nacts = 0; tap(endt + 100, 1, 3, 40); endt += 300; run();
+  CHECK(core.cfg.w[W_KM + POS_(1, 3)] == KC_P7 && find_key(KC_P7, 0) >= 0);
   return fails;
 }
 int main(int argc, char **argv) {
   (void)argv; int rc = 0;
-  for (int s = 0; s < 4; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
+  for (int s = 0; s < 3; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
     fflush(stdout); pid_t p = fork();
-    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 3 ? "Raw HID: mac dinh" : s == 2 ? "Raw HID v2 + flash" : s ? "man hinh cho / LED may tinh" : "layer, tap-hold, macro, BOOT"); fflush(stdout); exit(s == 3 ? scenario_defaults() : s == 2 ? scenario_raw() : s ? scenario_saver() : scenario_main()); }
+    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : "Raw HID + luu flash"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : scenario_proto()); }
     int st; waitpid(p, &st, 0); if (!WIFEXITED(st) || WEXITSTATUS(st)) rc = 1;
   }
   if (argc > 5) return 2;

@@ -1,20 +1,19 @@
 #include "tusb.h"
 #include "pico/unique_id.h"
 
-// 1 giao dien HID: ban phim (report 1, co LED NumLock/CapsLock) + phim da phuong tien (report 2)
+// Giao dien 0: ban phim (report 1, co LED NumLock/CapsLock) + phim da phuong tien (report 2)
 static const uint8_t d_kb[] = { TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(1)), TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(2)) };
+// Giao dien 1: Raw HID, usage page 0xFF60 / usage 0x61 (app WebHID loc theo cap nay), 32 byte vao/ra, khong report ID
+static const uint8_t d_raw[] = {
+  0x06, 0x60, 0xFF, 0x09, 0x61, 0xA1, 0x01,
+  0x09, 0x62, 0x15, 0x00, 0x26, 0xFF, 0x00, 0x95, 32, 0x75, 0x08, 0x81, 0x02,
+  0x09, 0x63, 0x15, 0x00, 0x26, 0xFF, 0x00, 0x95, 32, 0x75, 0x08, 0x91, 0x02,
+  0xC0 };
 
 static const tusb_desc_device_t dev = {
   .bLength = sizeof(tusb_desc_device_t), .bDescriptorType = TUSB_DESC_DEVICE, .bcdUSB = 0x0200,
-  .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE, .idVendor = 0xC1A0, .idProduct = 0x0030, .bcdDevice = 0x0100,
+  .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE, .idVendor = 0xC1A0, .idProduct = 0x0030, .bcdDevice = 0x0200,
   .iManufacturer = 1, .iProduct = 2, .iSerialNumber = 3, .bNumConfigurations = 1 };
-
-// Raw HID (giao tiep voi app Studio qua WebHID): usage page 0xFF60, usage 0x61, bao cao 32 byte vao/ra, khong report ID
-static const uint8_t d_raw[] = {
-  0x06, 0x60, 0xFF, 0x09, 0x61, 0xA1, 0x01,
-  0x09, 0x62, 0x15, 0x00, 0x26, 0xFF, 0x00, 0x75, 0x08, 0x95, 0x20, 0x81, 0x02,
-  0x09, 0x63, 0x15, 0x00, 0x26, 0xFF, 0x00, 0x75, 0x08, 0x95, 0x20, 0x91, 0x02,
-  0xC0 };
 
 #define CFG_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_INOUT_DESC_LEN)
 static const uint8_t cfg[] = {
@@ -24,7 +23,7 @@ static const uint8_t cfg[] = {
 
 uint8_t const *tud_descriptor_device_cb(void) { return (uint8_t const *)&dev; }
 uint8_t const *tud_descriptor_configuration_cb(uint8_t i) { (void)i; return cfg; }
-uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf) { return itf == 0 ? d_kb : d_raw; }
+uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf) { return itf == 1 ? d_raw : d_kb; }
 
 uint16_t const *tud_descriptor_string_cb(uint8_t idx, uint16_t langid) {
   (void)langid; static uint16_t s[32]; const char *str; char ser[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
