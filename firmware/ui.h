@@ -87,10 +87,55 @@ static void ui_cmd(ui_t *u, int n, uint32_t now) {   // lenh xem thu tu app
   if (n == 1) u->st = UI_GREET; else if (n == 2) u->st = UI_SAVER; else if (n == 4) u->st = UI_LOGO;
   else { u->st = UI_NORMAL; u->pv = false; u->idle0 = now; }
 }
-static void ui_normal(ui_t *u, const core_t *c, uint8_t host_leds) {
+// ---- man hinh Morse / Nokia ----
+static bool ui_morse_on(const core_t *c) { return c->mo_len > 0 || (c->last_kc >= KC_MDOT && c->last_kc <= KC_MHINT); }
+static bool ui_nokia_on(const core_t *c, uint32_t now) { return c->nk_key >= 0 && c->nk_key < 11 && now - c->nk_t < NOKIA_MS; }
+static char ui_up(char ch) { return ch >= 'a' && ch <= 'z' ? ch - 32 : ch; }
+static void ui_morse_opts(const core_t *c, char *o) {   // ". E  - T": nhanh ke tiep (chi in nhanh co ky tu)
+  o[0] = 0; if (c->mo_len >= MORSE_MAX) return;
+  for (int d = 0; d < 2; d++) {
+    char nc[10]; memcpy(nc, c->mo_code, c->mo_len); nc[c->mo_len] = d ? '-' : '.'; nc[c->mo_len + 1] = 0;
+    char ch = morse_find(nc);
+    if (ch) { size_t l = strlen(o); if (l) { o[l++] = ' '; o[l++] = ' '; } o[l++] = d ? '-' : '.'; o[l++] = ' '; o[l++] = ui_up(ch); o[l] = 0; }
+  }
+}
+static void ui_mode_top(ui_t *u, const char *ln, uint8_t host_leds) {   // hang tren: ten layer + NUM / CAP (ngang, 32 hang)
+  ui_txt(u, 0, 0, 1, ln, true);
+  ui_box(u, 80, 0, 21, 9, host_leds & 1); ui_txt(u, 82, 1, 1, "NUM", !(host_leds & 1));
+  ui_box(u, 104, 0, 21, 9, host_leds & 2); ui_txt(u, 106, 1, 1, "CAP", !(host_leds & 2));
+}
+static void ui_morse_view(ui_t *u, const core_t *c, const char *ln, uint8_t host_leds) {
+  ui_mode_top(u, ln, host_leds);
+  int x = 0;   // ma dang go: cham = o vuong nho, gach = thanh dai
+  for (int i = 0; i < c->mo_len; i++) {
+    if (c->mo_code[i] == '-') { ui_box(u, x, 15, 10, 4, true); x += 14; } else { ui_box(u, x, 15, 4, 4, true); x += 8; }
+  }
+  if (!c->mo_len) ui_txt(u, 0, 13, 1, "MORSE", true);
+  char o[24]; ui_morse_opts(c, o);
+  ui_txt(u, 0, 24, 1, o[0] ? o : "-", true);
+  char ch = c->mo_len ? morse_find(c->mo_code) : 0;   // ky tu dang hien tren may tinh
+  if (c->mo_len) { char b[2] = {ch ? ui_up(ch) : '?', 0}; ui_txt(u, 104, 11, 3, b, true); }
+}
+static void ui_nokia_view(ui_t *u, const core_t *c, const char *ln, uint8_t host_leds, uint32_t now) {
+  ui_mode_top(u, ln, host_leds);
+  const char *g = NK_TAB[c->nk_key]; int n = (int)strlen(g);
+  for (int i = 0; i < n; i++) {   // nhom ky tu cua phim, ky tu dang chon dao mau
+    bool sel = i == c->nk_n; char b[2] = {ui_up(g[i]) == ' ' ? '_' : ui_up(g[i]), 0};
+    ui_box(u, i * 14, 12, 13, 16, sel); ui_txt(u, i * 14 + 1, 13, 2, b, !sel);
+  }
+  uint32_t el = now - c->nk_t; int w = el >= NOKIA_MS ? 0 : (int)(128u * (NOKIA_MS - el) / NOKIA_MS);   // thanh con lai truoc khi chot ky tu
+  ui_box(u, 0, 30, w, 2, true);
+}
+static void ui_normal(ui_t *u, const core_t *c, uint8_t host_leds, uint32_t now) {
   char ln[16], lab[24];
   if (c->rn_on) { strcpy(ln, "NAME"); strcpy(lab, c->rn_buf); strcat(lab, "_"); }
   else { core_layer_name(c, core_top_layer(c), ln, sizeof ln); strcpy(lab, u->shown); if (c->latch_wait) strcpy(lab, "LATCH ?"); }
+  bool mo = !c->rn_on && !c->latch_wait && ui_morse_on(c), nk = !c->rn_on && !c->latch_wait && ui_nokia_on(c, now);
+  if (mo || nk) {
+    if (OLED_H == 32 && !(u->rot & 1)) { if (nk) ui_nokia_view(u, c, ln, host_leds, now); else ui_morse_view(u, c, ln, host_leds); return; }
+    if (nk) { lab[0] = ui_up(NK_TAB[c->nk_key][c->nk_n]); lab[1] = 0; if (lab[0] == ' ') lab[0] = '_'; }   // man doc / 64 hang: chi hien ky tu
+    else { size_t k = 0; for (int i = 0; i < c->mo_len && k < 8; i++) lab[k++] = c->mo_code[i]; if (c->mo_len) { lab[k++] = ' '; lab[k++] = c->mo_shown ? ui_up(morse_find(c->mo_code)) : '?'; } lab[k] = 0; if (!k) strcpy(lab, "MORSE"); }
+  }
   if (u->rot & 1) {   // doc: chu 1x, xuong dong
     int cpl = OLED_H == 32 ? 5 : 10;
     ui_txt_wrap(u, 0, 0, 1, ln, cpl, 3);
@@ -128,7 +173,8 @@ static bool ui_task(ui_t *u, const core_t *c, uint32_t now, uint8_t host_leds) {
   uint16_t to = ui_osw(c, 0);
   if (u->st == UI_NORMAL && to && !c->rn_on && !c->latch_wait && now - u->idle0 >= (uint32_t)to * 1000u) { u->st = UI_SAVER; u->t0 = now; u->pv = false; u->dirty = true; }
   uint32_t sig = (uint32_t)u->st * 0x9E3779B1u ^ c->press_seq * 31u ^ (uint32_t)layer << 8 ^ host_leds << 16 ^ (uint32_t)c->rn_on << 20
-               ^ (uint32_t)c->latch_wait << 21 ^ (uint32_t)rot << 22 ^ (uint32_t)c->rn_len << 24 ^ (c->rn_len ? (uint32_t)c->rn_buf[c->rn_len - 1] << 4 : 0);
+               ^ (uint32_t)c->latch_wait << 21 ^ (uint32_t)rot << 22 ^ (uint32_t)c->rn_len << 24 ^ (c->rn_len ? (uint32_t)c->rn_buf[c->rn_len - 1] << 4 : 0)
+               ^ (uint32_t)ui_morse_on(c) << 28 ^ (uint32_t)c->mo_len << 29 ^ (ui_nokia_on(c, now) ? 0x40000000u ^ (uint32_t)((now - c->nk_t) / UI_FRAME_MS) * 2654435761u : 0);
   bool anim = u->st != UI_NORMAL;
   if (sig == u->sig && !u->dirty && !(anim && now - u->last_draw >= UI_FRAME_MS)) return false;
   u->sig = sig; u->dirty = false; u->last_draw = now; u->rot = rot;
@@ -142,7 +188,7 @@ static bool ui_task(ui_t *u, const core_t *c, uint32_t now, uint8_t host_leds) {
       if (te < logo) { ui_frame(u, c, (int)(te / frms)); break; }
       ui_text_get(c, 16, t);
       uint32_t tt = te - logo, total = ui_scroll_ms(t, sp) * ui_clamp(ui_osw(c, 4), 1, 5);
-      if (!t[0] || tt >= total) { u->st = UI_NORMAL; u->pv = false; u->idle0 = now; u->dirty = true; ui_normal(u, c, host_leds); break; }
+      if (!t[0] || tt >= total) { u->st = UI_NORMAL; u->pv = false; u->idle0 = now; u->dirty = true; ui_normal(u, c, host_leds, now); break; }
       ui_scroll(u, t, sp, tt);
       break;
     }
@@ -163,7 +209,7 @@ static bool ui_task(ui_t *u, const core_t *c, uint32_t now, uint8_t host_leds) {
       ui_scroll(u, t, sp, te);
       break;
     }
-    default: ui_normal(u, c, host_leds); break;
+    default: ui_normal(u, c, host_leds, now); break;
   }
   return true;
 }

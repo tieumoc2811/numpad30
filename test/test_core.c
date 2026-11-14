@@ -299,6 +299,35 @@ int main(void) {
     C.cfg.w[W_LRB + 0] = 4; U.dirty = true; ui_task(&U, &C, t += 50, 0); CHECK(U.rot == 0);
   }
 
+
+  // ===== 19b) man hinh Morse / Nokia =====
+  { static ui_t U; reset(); uint32_t t = 5000;
+    setk(0, 3, 3, KC_MDOT); setk(0, 3, 4, KC_MDASH); setk(0, 3, 5, KC_MOK); setk(0, 2, 3, NKK(1)); setk(0, 2, 4, NKK(1));
+    ui_init(&U, &C, t); U.st = UI_NORMAL; C.cfg.w[W_OSB + 0] = 0; C.cfg.w[W_LDB + LDB_ROT] = 0;
+    // Morse: bam cham, gach -> ma ".-" = a
+    press(3, 3, 20); press(3, 4, 20); drain();
+    CHECK(ui_morse_on(&C) && C.mo_len == 2);
+    U.dirty = true; ui_task(&U, &C, t += 50, 0);
+    int px_code = 0; for (int x = 0; x < 30; x++) for (int y = 15; y < 19; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) px_code++;
+    CHECK(px_code == 4 * 4 + 10 * 4);                      // 1 cham + 1 gach
+    int px_big = 0; for (int x = 104; x < 120; x++) for (int y = 11; y < 32; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) px_big++;
+    CHECK(px_big > 20);                                    // ky tu 'A' lon
+    { char o[24]; ui_morse_opts(&C, o); CHECK(!strcmp(o, ". R  - W")); }   // .-. = r, .-- = w
+    printf("morse .-:\n"); for (int y = 0; y < 32; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
+    press(3, 5, 20); drain(); U.dirty = true; ui_task(&U, &C, t += 50, 0); CHECK(C.mo_len == 0 && ui_morse_on(&C));   // OK: ma xoa, van o man Morse
+    // Nokia: bam 2 lan phim 2 -> chon 'b' (nhom "2def" -> index 1 = 'd')
+    T = 20000; press(2, 3, 20); press(2, 3, 20); drain();
+    CHECK(C.nk_key == 1 && C.nk_n == 1 && ui_nokia_on(&C, T));
+    U.dirty = true; ui_task(&U, &C, T, 0);
+    int inv = 0; for (int x = 14; x < 27; x++) for (int y = 12; y < 28; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) inv++;
+    CHECK(inv > 100);                                      // o chon dao mau (hop dac)
+    printf("nokia 2d:\n"); for (int y = 0; y < 32; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
+    CHECK(!ui_nokia_on(&C, T + NOKIA_MS + 1));            // het gio -> ve man hinh thuong
+    // man doc: chi hien nhan ky tu (khong vo)
+    C.cfg.w[W_LDB + LDB_ROT] = 1; U.dirty = true; ui_task(&U, &C, T, 0); { int any = 0; for (int k = 0; k < FB_SIZE; k++) any |= U.fb[k]; CHECK(any); }
+    C.cfg.w[W_LDB + LDB_ROT] = 0;
+  }
+
   // ===== 20) mac dinh la day du va tu nhat quan =====
   reset();
   for (int m = 0; m < 9; m++) { const uint8_t *s = C.cfg.mac[m]; int len = s[16] | s[17] << 8; CHECK(len > 0 && len + 18 <= MSLOT && s[0] == 1); }

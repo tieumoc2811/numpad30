@@ -47,3 +47,9 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 ## Kiem thu tren may tinh
 
 `sh test/run_tests.sh` (chi can gcc): test don vi (chong doi, LT, layer, tap dance, combo, SEQ, LATCH, Nokia, Morse, RENAME, macro, 6KRO, giao thuc, CRC flash, OLED) va mo phong end-to-end chinh `main.c` voi Pico SDK/TinyUSB gia (gom Raw HID + luu/nap flash). **Chua thu tren phan cung that** (chua bien dich ARM, chua thu USB/flash/OLED that).
+
+## Man hinh Morse / Nokia (OLED 128x32 ngang)
+
+- Morse: hang tren = ten layer + NUM/CAP; giua = ma dang go (cham = o vuong, gach = thanh dai); duoi = nhanh ke tiep (vd `. R  - W`); ben phai = ky tu dang hien tren may tinh (hoac `?` neu ma chua co ky tu). Khi chua go gi hien `MORSE`.
+- Nokia: hien nhom chu cua phim (vd `2DEF`), ky tu dang chon dao mau, thanh duoi giam dan trong 600 ms truoc khi chot. Het gio tro ve man hinh thuong.
+- Man doc (90/270) va OLED 64 hang: chi hien nhan ngan (ma Morse + ky tu, hoac ky tu Nokia dang chon).
