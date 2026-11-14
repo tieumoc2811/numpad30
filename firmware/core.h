@@ -5,13 +5,18 @@
 #include <stdbool.h>
 #include <string.h>
 #include "config.h"
-#include "morse.h"
 
 #define NKEYS (NROW * NCOL)
-#define NLAYER 3
-#define NTD 8                                // so tap dance
-#define NCOMBO 4                             // so combo
-#define QN 64                                // hang doi phim go (Morse co goi y can toi ~26 phim)
+#define NLAYER 8            // so layer toi da (so layer dang dung nam trong cau hinh, mac dinh 3)
+#define DEF_NLAYER 3
+#define NMACROS 16          // moi o macro 256 byte: [dai][buoc...] (xem hid_proto.h)
+#define MSLOT 256
+#define NTD 4               // Tap Dance
+#define NCB 4               // Combo
+#define NLOGO 4             // so khung logo OLED
+#ifndef COMBO_MS
+#define COMBO_MS 30         // hai phim combo phai bam cach nhau toi da bay nhieu ms
+#endif
 typedef uint16_t kc_t;
 
 // ---- ma phim ----
@@ -28,27 +33,26 @@ typedef uint16_t kc_t;
 #define TG(n) (0x4100 | (n))
 #define MACRO(n) (0x5000 | (n))
 #define LT(n, k) (0x6000 | ((n) << 8) | (k))
-#define TD(n) (0x4200 | (n))                 // tap dance n (0..NTD-1): tap / giu / bam doi, cau hinh trong core_ext_t
-#define KC_LATCH 0x7001                      // chot phim ke tiep (bam lan nua de nha); 0x7002..0x7005 = giu Space/Shift/Ctrl/Alt
-#define KC_MORSE_DOT 0x7060                  // Morse: cham
-#define KC_MORSE_DASH 0x7061                 // Morse: gach
-#define KC_MORSE_OK 0x7062                   // Morse: xong ky tu
-#define KC_MORSE_HINT 0x7063                 // Morse: bat/tat goi y
+#define TD(n) (0x7000 | (n))          // Tap Dance n (cham / giu / cham 2 lan)
+#define TK(k) (0x7800 | (k))           // Toggle giu: bam 1 lan = giu phim k (khong can giu tay), bam lan nua = nha
+#define KC_LED_TOG 0x7E01            // bat tat den LED ngoai
+#define KC_LED_NEXT 0x7E02
+#define KC_LED_PREV 0x7E03
 #define KC_BOOT 0x7F00
 #define CONS(x) (0x8000 | (x))
 #define IS_BASIC(k) ((k) >= 0x04 && (k) <= 0xE7)
 #define IS_COMBO(k) ((k) >= 0x0100 && (k) <= 0x0FFF)
 #define IS_MO(k) (((k) & 0xFF00) == 0x4000)
 #define IS_TG(k) (((k) & 0xFF00) == 0x4100)
-#define IS_TD(k) (((k) & 0xFF00) == 0x4200)
-#define IS_LATCH(k) ((k) >= KC_LATCH && (k) <= KC_LATCH + 4)
-#define IS_MORSE(k) ((k) >= KC_MORSE_DOT && (k) <= KC_MORSE_HINT)
 #define IS_MACRO(k) (((k) & 0xF000) == 0x5000)
 #define IS_LT(k) (((k) & 0xF000) == 0x6000)
+#define IS_TD(k) (((k) & 0xFF00) == 0x7000)
+#define IS_TK(k) (((k) & 0xFF00) == 0x7800)
+#define IS_LEDK(k) (((k) & 0xFF00) == 0x7E00)
 #define IS_CONS(k) ((k) & 0x8000)
 
 enum {
-  KC_A = 0x04, KC_C = 0x06, KC_D = 0x07, KC_J = 0x0D, KC_K = 0x0E, KC_Q = 0x14, KC_S = 0x16, KC_V = 0x19, KC_X = 0x1B, KC_Y = 0x1C, KC_Z = 0x1D,
+  KC_A = 0x04, KC_C = 0x06, KC_D = 0x07, KC_S = 0x16, KC_V = 0x19, KC_X = 0x1B, KC_Y = 0x1C, KC_Z = 0x1D,
   KC_ENTER = 0x28, KC_ESC = 0x29, KC_BSPC = 0x2A, KC_TAB = 0x2B, KC_SPACE = 0x2C,
   KC_F1 = 0x3A, KC_F2, KC_F3, KC_F4, KC_F5, KC_F6, KC_F7, KC_F8, KC_F9, KC_F10, KC_F11, KC_F12,
   KC_INS = 0x49, KC_HOME = 0x4A, KC_PGUP = 0x4B, KC_DEL = 0x4C, KC_END = 0x4D, KC_PGDN = 0x4E,
@@ -62,258 +66,224 @@ enum {
 
 typedef struct { uint8_t mods; uint8_t keys[6]; } kb_report_t;
 
-typedef struct { const char *text; } macro_t;   // chuoi ASCII; '\n' = Enter, '\t' = Tab
-
-// cau hinh tap dance / combo (do firmware nap tu flash, core chi doc)
-typedef struct {
-  kc_t td[NTD][3];                      // [n] = {tap, giu, bam doi}
-  kc_t cb[NCOMBO][3];                   // [n] = {phim A, phim B, ket qua}; A = 0: bo trong
-} core_ext_t;
+typedef struct {                        // cau hinh dang chay (tro vao RAM cua firmware / mang cua test)
+  const kc_t (*km)[NKEYS]; int nlayer;
+  const uint16_t (*td)[3];              // NTD x {cham, giu, cham 2 lan}
+  const uint8_t *cb_a, *cb_b; const uint16_t *cb_r;   // NCB combo: vi tri phim A, B (0xFF = tat), ket qua
+  const uint8_t (*macs)[MSLOT]; int nmacros;
+} core_cfg_t;
 
 typedef struct {
   uint8_t cnt[NKEYS], st[NKEYS];        // chong doi: bo dem, trang thai da chot
   kc_t act[NKEYS];                      // hanh dong dang giu cua phim i (0 = khong)
   uint8_t lts[NKEYS];                   // LT: 0 khong | 1 cho (chua biet tap/hold) | 2 hold | 3 da tap
-  uint32_t t0[NKEYS];                   // thoi diem nhan (cho LT)
+  uint32_t t0[NKEYS];                   // thoi diem nhan (cho LT / TD)
   uint8_t tapcnt[NKEYS];                // LT tap: so ms con phai giu phim
   int8_t mol[NKEYS];                    // layer ma phim nay dang giu (MO / LT hold), -1 neu khong
+  uint8_t tds[NKEYS], tdn[NKEYS];       // Tap Dance: 0 khong | 1 cho (da nhan) | 2 cho lan 2 (da nha) | 4 dang giu hanh dong | 5 vua cham
+  uint32_t t1[NKEYS];                   // TD: thoi diem nha lan 1
+  uint8_t shot[NKEYS];                  // dem nguoc ms cho phim cham nhanh (TD / combo)
+  uint8_t cbp[NKEYS]; uint32_t cbt[NKEYS];   // combo: phim dang cho phim thu hai
   uint8_t toggled;                      // layer bat bang TG
+  uint8_t lat[6];                       // phim dang duoc giu bang TK (toggle giu)
   bool boot_req;
+  int8_t ledreq;                        // phim LED vua bam: 1 = ke, -1 = truoc, 2 = bat tat (main doc roi xoa)
   uint16_t last_kc;                     // phim vua bam (de hien OLED)
   uint32_t press_seq;                   // tang moi lan bam
-  // mo rong: tap dance / combo / chot / Morse / hang doi phim go
-  const core_ext_t *x; const macro_t *mac; int nmac;
-  kc_t q[QN]; uint8_t qh, qt, qph;      // hang doi phim go (moi phan tu: nhan roi nha); qph 0 = chua gui nhan, 1 = cho nha
-  uint16_t tcons; uint8_t tcons_ms;     // phim media bam nhanh (tap dance / combo)
-  uint8_t tds, tdp, tdn, tdc; uint32_t tdt;   // tap dance: 0 nghi, 1 dang giu (tdc = lan bam), 2 da xu ly giu, 3 cho bam lan 2
-  int8_t pend; kc_t pkc; uint32_t pt;   // combo: phim dang cho ghep cap
-  bool latch_wait; kc_t lat; uint8_t tg;  // chot: dang cho phim / phim da chot / bit toggle Space,Shift,Ctrl,Alt
-  morse_t mrs;
-  char note[12];                        // chu hien OLED thay cho nhan phim (Morse, chot...); rong = dung last_kc
-  // macro
-  const char *mtxt; int mpos; uint8_t mphase; uint8_t mwait; bool mact;
+  // macro: [dai][buoc...]; buoc: 1 tap kc16 | 2 nhan kc16 | 3 nha kc16 | 4 nghi ms16 | 5 go chuoi (n, ky tu...)
+  const uint8_t *mac; uint8_t mlen, mtp, mph; uint16_t mpos, mwait, mdelay; bool mact; kb_report_t mh;
 } core_t;
 
+typedef struct { const char *text; } macro_t;   // macro mac dinh dang chuoi ASCII; '\n' = Enter, '\t' = Tab
 
 void core_init(core_t *c);
-void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now, const kc_t (*km)[NKEYS], const macro_t *macros, int nmacros);
+void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now, const core_cfg_t *f);
+uint8_t core_macro_text(uint8_t *slot, const char *s);   // chuoi ASCII -> o macro, tra ve dai
 bool core_kb(const core_t *c, kb_report_t *r);        // true = co bao cao can gui luc nay (macro dang cho -> false)
 uint16_t core_cons(const core_t *c);
-void core_macro_ack(core_t *c);                       // goi sau moi lan gui bao cao khi core_macro_active() la true
-void core_set_ext(core_t *c, const core_ext_t *x);    // nap tap dance / combo (NULL = khong co)
+void core_macro_ack(core_t *c);                       // goi sau moi lan gui bao cao khi macro dang chay
 int core_top_layer(const core_t *c);
 void core_label(kc_t kc, char *o, int n);
 bool core_ascii(char ch, uint8_t *mods, uint8_t *key);
 
-static inline bool core_macro_active(const core_t *c) { return c->mact || c->qh != c->qt; }   // dang go macro / hang doi phim: sau moi bao cao gui di phai goi core_macro_ack
+static inline bool core_macro_active(const core_t *c) { return c->mact; }
 
 #ifdef CORE_IMPL
 void core_init(core_t *c) {
   memset(c, 0, sizeof *c);
   for (int i = 0; i < NKEYS; i++) c->mol[i] = -1;
-  c->pend = -1;
-  morse_hint_on = MORSE_HINT_DEF;
 }
-void core_set_ext(core_t *c, const core_ext_t *x) { c->x = x; }
 int core_top_layer(const core_t *c) {
   uint8_t m = 1 | c->toggled;
   for (int i = 0; i < NKEYS; i++) if (c->mol[i] >= 0) m |= 1u << c->mol[i];
   for (int l = NLAYER - 1; l > 0; l--) if (m >> l & 1) return l;
   return 0;
 }
-static kc_t resolve(const core_t *c, int i, const kc_t (*km)[NKEYS]) {
-  for (int l = core_top_layer(c); l >= 0; l--) { kc_t k = km[l][i]; if (k != KC_TRNS) return k; }
+static kc_t resolve(const core_t *c, int i, const core_cfg_t *f) {
+  for (int l = core_top_layer(c); l >= 0; l--) { kc_t k = f->km[l][i]; if (k != KC_TRNS) return k; }
   return KC_NO;
 }
-static void macro_skip(core_t *c) {   // bo qua ky tu khong go duoc; het chuoi thi dung
-  uint8_t md, k;
-  while (c->mtxt[c->mpos] && !core_ascii(c->mtxt[c->mpos], &md, &k)) c->mpos++;
-  if (!c->mtxt[c->mpos]) c->mact = false;
+uint8_t core_macro_text(uint8_t *slot, const char *s) {
+  size_t n = strlen(s); if (n > 253) n = 253;
+  memset(slot, 0, MSLOT);
+  if (!n) return 0;
+  slot[0] = (uint8_t)(n + 2); slot[1] = 5; slot[2] = (uint8_t)n; memcpy(slot + 3, s, n);
+  return slot[0];
 }
-static void macro_begin(core_t *c, const macro_t *m, int n, int idx) {
-  if (c->mact || idx < 0 || idx >= n || !m[idx].text) return;
-  c->mtxt = m[idx].text; c->mpos = 0; c->mphase = 0; c->mwait = 0; c->mact = true;
-  macro_skip(c);
+static void kc_set(kb_report_t *r, kc_t k, bool on) {   // them / bo 1 phim (hoac modifier, to hop) khoi bao cao
+  uint8_t key;
+  if (IS_COMBO(k)) { uint8_t m = (k >> 8) & 0xF; if (on) r->mods |= m; else r->mods &= ~m; key = k & 0xFF; }
+  else if (IS_BASIC(k)) key = (uint8_t)k; else return;
+  if (key >= 0xE0 && key <= 0xE7) { uint8_t b = 1u << (key - 0xE0); if (on) r->mods |= b; else r->mods &= ~b; return; }
+  if (!IS_BASIC(key)) return;
+  int j; for (j = 0; j < 6; j++) if (r->keys[j] == key) break;
+  if (on) { if (j == 6) for (j = 0; j < 6; j++) if (!r->keys[j]) { r->keys[j] = key; break; } }
+  else if (j < 6) r->keys[j] = 0;
 }
-// ---- hien thi / hang doi phim go ----
-static void show(core_t *c, kc_t k) { c->press_seq++; c->last_kc = k; c->note[0] = 0; }
-static void note(core_t *c, const char *t) { strncpy(c->note, t, sizeof c->note - 1); c->note[sizeof c->note - 1] = 0; c->last_kc = 0; c->press_seq++; }
-static void qpush_raw(core_t *c, kc_t k) { if ((uint8_t)(c->qh - c->qt) < QN) c->q[c->qh++ & (QN - 1)] = k; }
-static int qn(const core_t *c) { return (uint8_t)(c->qh - c->qt); }
-// ---- Morse (logic o morse.h; ket noi vao hang doi phim) ----
-static core_t *mq_c;
-static void mq_bs(void) { qpush_raw(mq_c, KC_BSPC); }
-static void mq_put(char ch) { uint8_t md, k; if (core_ascii(ch, &md, &k)) qpush_raw(mq_c, (kc_t)((md << 8) | k)); }
-static uint8_t mq_room(void) { return (uint8_t)(QN - qn(mq_c)); }
-static const morse_io MQIO = { mq_bs, mq_put, mq_room };
-static void mcommit(core_t *c) { mq_c = c; morse_commit_io(&c->mrs, &MQIO); }
-static void morse_key(core_t *c, kc_t k) {
-  mq_c = c;
-  if (k == KC_MORSE_HINT) { uint8_t on = !morse_hint_on; if (morse_set_hint(&c->mrs, on, &MQIO)) note(c, on ? "HINT ON" : "HINT OFF"); else note(c, "FULL"); return; }
-  if (k == KC_MORSE_OK) { mcommit(c); note(c, "OK"); return; }
-  if (!morse_press(&c->mrs, k == KC_MORSE_DASH, &MQIO)) { note(c, "FULL"); return; }
-  char s[12]; int n = 0; char ch = c->mrs.shown ? morse_find(c->mrs.code) : 0;
-  if (ch && c->mrs.len <= 5) { s[n++] = ch >= 'a' && ch <= 'z' ? ch - 32 : ch; s[n++] = ' '; }
-  for (int i = 0; i < c->mrs.len && n < 8; i++) s[n++] = c->mrs.code[i];
-  s[n] = 0; note(c, s);
-}
-// ---- chot phim ----
-static void latch_key(core_t *c, kc_t k) {
-  static const char *const nm[4] = {"SPACE", "SHIFT", "CTRL", "ALT"};
-  if (k == KC_LATCH) { if (c->lat) { c->lat = 0; note(c, "LATCH OFF"); } else { c->latch_wait = !c->latch_wait; note(c, c->latch_wait ? "LATCH ?" : "LATCH OFF"); } return; }
-  int b = k - KC_LATCH - 1; c->tg ^= 1u << b;
-  char s[12]; strcpy(s, nm[b]); strcat(s, c->tg >> b & 1 ? " ON" : " OFF"); note(c, s);
-}
-// ---- ket qua tong hop (tap dance tap/doi, combo): khong gan voi phim vat ly nao ----
-static void emit(core_t *c, kc_t k) {
-  if (!k || k == KC_TRNS) return;
-  if (IS_MORSE(k)) { if (!c->latch_wait) morse_key(c, k); return; }
-  if (IS_LATCH(k)) { latch_key(c, k); return; }
-  if (IS_MACRO(k)) { show(c, k); if (!c->latch_wait) macro_begin(c, c->mac, c->nmac, k & 0xFFF); return; }
-  if (IS_TG(k)) { show(c, k); c->toggled ^= 1u << (k & 0xF); return; }
-  if (k == KC_BOOT) { c->boot_req = true; return; }
-  if (IS_CONS(k)) { mcommit(c); show(c, k); c->tcons = k & 0x7FFF; c->tcons_ms = 25; return; }
-  if (IS_BASIC(k) || IS_COMBO(k)) {
-    mcommit(c); show(c, k);
-    if (c->latch_wait) { c->lat = k; c->latch_wait = false; return; }
-    qpush_raw(c, k);
+static void m_stop(core_t *c) { c->mact = false; c->mwait = 0; memset(&c->mh, 0, sizeof c->mh); }
+static void m_fix(core_t *c) {   // dua ve buoc hop le tiep theo; het / loi -> dung macro
+  for (;;) {
+    if (c->mpos >= c->mlen) { m_stop(c); return; }
+    const uint8_t *s = c->mac + 1 + c->mpos; uint8_t op = s[0];
+    if (op == 5) {
+      if (c->mpos + 2 > c->mlen || c->mpos + 2 + s[1] > c->mlen) { m_stop(c); return; }
+      uint8_t md, k;
+      while (c->mtp < s[1] && !core_ascii((char)s[2 + c->mtp], &md, &k)) c->mtp++;
+      if (c->mtp >= s[1]) { c->mpos += 2 + s[1]; c->mtp = 0; continue; }
+      return;
+    }
+    if (op < 1 || op > 4 || c->mpos + 3 > c->mlen) { m_stop(c); return; }
+    if (op == 4) { c->mdelay = s[1] | (s[2] << 8); if (!c->mdelay) { c->mpos += 3; continue; } }
+    return;
   }
 }
-// phim vat ly i vua bam voi hanh dong k (da qua tap dance / combo)
-static void fire(core_t *c, int i, kc_t k, uint32_t now) {
-  if (!k || k == KC_TRNS) return;
-  if (IS_MORSE(k)) { if (!c->latch_wait) morse_key(c, k); return; }
-  if (!IS_TD(k)) mcommit(c);
-  if (IS_LATCH(k)) { latch_key(c, k); return; }
-  show(c, k);
-  if (IS_TD(k)) {
-    unsigned n = k & 0xFF;
-    if (!c->x || n >= NTD) return;
-    if (c->tds == 0) { c->tds = 1; c->tdp = i; c->tdn = n; c->tdc = 1; c->tdt = now; }
-    else if (c->tds == 3 && c->tdn == n) { c->tds = 1; c->tdc = 2; c->tdp = i; c->tdt = now; }
+static void macro_begin(core_t *c, const core_cfg_t *f, int idx) {
+  if (c->mact || idx < 0 || idx >= f->nmacros || !f->macs[idx][0]) return;
+  c->mac = f->macs[idx]; c->mlen = c->mac[0]; c->mpos = 0; c->mtp = 0; c->mph = 0; c->mwait = 0; c->mdelay = 0;
+  memset(&c->mh, 0, sizeof c->mh); c->mact = true; m_fix(c);
+}
+static void do_press(core_t *c, int i, kc_t k, uint32_t now, const core_cfg_t *f) {
+  if (k == KC_NO) return;
+  c->press_seq++; c->last_kc = k;
+  int n = k & 0xF;
+  if (IS_MO(k)) { if (n < f->nlayer) { c->act[i] = k; c->mol[i] = n; } }
+  else if (IS_TG(k)) { if (n < f->nlayer) c->toggled ^= 1u << n; }
+  else if (IS_MACRO(k)) macro_begin(c, f, k & 0xFFF);
+  else if (IS_LT(k)) { if (((k >> 8) & 0xF) < f->nlayer) { c->act[i] = k; c->lts[i] = 1; c->t0[i] = now; } else c->act[i] = k & 0xFF; }
+  else if (IS_TD(k)) { int t = k & 0xFF; if (t < NTD) { c->act[i] = k; c->tds[i] = 1; c->tdn[i] = t; c->t0[i] = now; } }
+  else if (IS_TK(k)) {
+    uint8_t kk = k & 0xFF; int j, fr = -1;
+    if (!IS_BASIC(kk)) return;
+    for (j = 0; j < 6; j++) { if (c->lat[j] == kk) break; if (!c->lat[j] && fr < 0) fr = j; }
+    if (j < 6) c->lat[j] = 0; else if (fr >= 0) c->lat[fr] = kk;
   }
-  else if (IS_MO(k)) { c->act[i] = k; c->mol[i] = k & 0xF; }
-  else if (IS_TG(k)) c->toggled ^= 1u << (k & 0xF);
-  else if (IS_MACRO(k)) { if (!c->latch_wait) macro_begin(c, c->mac, c->nmac, k & 0xFFF); }
-  else if (IS_LT(k)) { c->act[i] = k; c->lts[i] = 1; c->t0[i] = now; }
+  else if (IS_LEDK(k)) { int v = k & 0xFF; c->ledreq = v == 1 ? 2 : v == 2 ? 1 : -1; }
   else if (k == KC_BOOT) c->boot_req = true;
-  else if (c->latch_wait && !IS_CONS(k)) { c->lat = k; c->latch_wait = false; }
-  else if (!IS_CONS(k) && qn(c) > 0) qpush_raw(c, k);   // dang xoa/go Morse: xep hang de giu dung thu tu
   else c->act[i] = k;
 }
-// ---- tap dance ----
-static void td_release(core_t *c, int i) {
-  if (!c->tds || i != c->tdp) return;
-  if (c->tds == 1) { if (c->tdc == 2) { emit(c, c->x->td[c->tdn][2]); c->tds = 0; } else { c->tds = 3; } }
-  else if (c->tds == 2) c->tds = 0;
+static void td_tap(core_t *c, int i, uint32_t now, const core_cfg_t *f) {   // Tap Dance: cham 1 lan -> hanh dong ngan
+  c->act[i] = 0; c->tds[i] = 5; c->shot[i] = 10;
+  do_press(c, i, f->td[c->tdn[i]][0], now, f);
 }
-static void td_flush(core_t *c) {     // co phim khac bam: chot tap dance ngay theo thu tu bam
-  if (c->tds == 3) { emit(c, c->x->td[c->tdn][0]); c->tds = 0; }
-  else if (c->tds == 1) { emit(c, c->x->td[c->tdn][c->tdc == 2 ? 2 : 0]); c->tds = 2; }
+static void do_release(core_t *c, int i) {
+  if (c->tds[i] == 5) return;
+  if (c->lts[i] == 1) { c->lts[i] = 3; c->act[i] = c->act[i] & 0xFF; c->tapcnt[i] = 10; }   // tap
+  else if (c->lts[i] == 3) { /* dang giu tap, de tapcnt xu ly */ }
+  else { c->act[i] = 0; c->mol[i] = -1; c->lts[i] = 0; c->tds[i] = 0; }
 }
-static void td_task(core_t *c, uint32_t now) {
-  if (c->tds == 1 && now - c->tdt >= TAP_TERM_MS) {
-    kc_t k = c->x->td[c->tdn][1]; int i = c->tdp; c->tds = 2;
-    if (IS_MO(k)) { c->act[i] = k; c->mol[i] = k & 0xF; show(c, k); }
-    else if (IS_BASIC(k) || IS_COMBO(k) || IS_CONS(k)) { mcommit(c); show(c, k); c->act[i] = k; }
-    else emit(c, k);
-  } else if (c->tds == 3 && now - c->tdt >= TAP_TERM_MS) { emit(c, c->x->td[c->tdn][0]); c->tds = 0; }
-}
-static bool in_combo(const core_t *c, kc_t k) {
-  if (!c->x || !k || k == KC_TRNS || (k >= 0x4000 && !IS_CONS(k))) return false;
-  for (int n = 0; n < NCOMBO; n++) if (c->x->cb[n][0] && (c->x->cb[n][0] == k || c->x->cb[n][1] == k)) return true;
-  return false;
-}
-void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now, const kc_t (*km)[NKEYS], const macro_t *macros, int nmacros) {
-  c->mac = macros; c->nmac = nmacros;
+void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now, const core_cfg_t *f) {
   if (c->mwait) c->mwait--;
-  if (c->tcons_ms && --c->tcons_ms == 0) c->tcons = 0;
+  if (c->mact && !c->mwait) {
+    const uint8_t *s = c->mac + 1 + c->mpos;
+    if (s[0] == 4 && c->mdelay && --c->mdelay == 0) { c->mpos += 3; m_fix(c); }
+  }
   // 1) chong doi
   bool rel[NKEYS] = {0}, prs[NKEYS] = {0};
   for (int i = 0; i < NKEYS; i++) {
     if (!!raw[i] == c->st[i]) c->cnt[i] = 0;
     else if (++c->cnt[i] >= DEBOUNCE_MS) { c->st[i] = !!raw[i]; c->cnt[i] = 0; (c->st[i] ? prs : rel)[i] = true; }
   }
-  // 2) phim LT dang cho: het TAP_TERM -> hold; phim tap giu du thoi gian -> nha
+  // 2) bo dinh thoi: LT hold, TD hold / het cho lan 2, phim cham nhanh, combo het han
   for (int i = 0; i < NKEYS; i++) {
     if (c->lts[i] == 1 && now - c->t0[i] >= TAP_TERM_MS) { c->lts[i] = 2; c->mol[i] = (c->act[i] >> 8) & 0xF; }
     if (c->lts[i] == 3 && c->tapcnt[i] && --c->tapcnt[i] == 0) { c->lts[i] = 0; c->act[i] = 0; }
+    if (c->tds[i] == 1 && now - c->t0[i] >= TAP_TERM_MS) { c->act[i] = 0; c->tds[i] = 4; do_press(c, i, f->td[c->tdn[i]][1], now, f); }
+    if (c->tds[i] == 2 && now - c->t1[i] >= TAP_TERM_MS) td_tap(c, i, now, f);
+    if (c->shot[i] && --c->shot[i] == 0) { c->act[i] = 0; c->mol[i] = -1; c->tds[i] = 0; }
+    if (c->cbp[i] && now - c->cbt[i] >= COMBO_MS) { c->cbp[i] = 0; do_press(c, i, resolve(c, i, f), now, f); }
   }
   // 3) nha phim
   for (int i = 0; i < NKEYS; i++) if (rel[i]) {
-    if (c->pend == i) { kc_t k = c->pkc; c->pend = -1; emit(c, k); }   // combo chua ghep duoc: coi nhu bam nhanh phim don
-    if (c->x) td_release(c, i);
-    if (c->lts[i] == 1) { c->lts[i] = 3; c->act[i] = c->act[i] & 0xFF; c->tapcnt[i] = 10; }   // tap
-    else if (c->lts[i] == 3) { /* dang giu tap, de tapcnt xu ly */ }
-    else { c->act[i] = 0; c->mol[i] = -1; c->lts[i] = 0; }
+    if (c->cbp[i]) {                                  // nha som khi dang cho combo -> thanh 1 lan cham
+      c->cbp[i] = 0; kc_t k = resolve(c, i, f); do_press(c, i, k, now, f);
+      if (IS_LT(k) || IS_TD(k)) do_release(c, i); else if (c->act[i]) c->shot[i] = 10;
+    } else if (c->tds[i] == 1) {
+      if (f->td[c->tdn[i]][2]) { c->tds[i] = 2; c->t1[i] = now; } else td_tap(c, i, now, f);
+    } else if (c->tds[i] == 2) { /* dang cho lan 2 */ }
+    else do_release(c, i);
   }
-  // 3b) tap dance het gio / combo het gio cho
-  if (c->x) td_task(c, now);
-  if (c->pend >= 0 && now - c->pt >= COMBO_TERM_MS) { int p = c->pend; c->pend = -1; fire(c, p, c->pkc, now); }
   // 4) nhan phim: phim khac bam luc LT dang cho -> chot hold ngay (permissive hold)
   for (int i = 0; i < NKEYS; i++) if (prs[i]) {
     for (int j = 0; j < NKEYS; j++) if (c->lts[j] == 1) { c->lts[j] = 2; c->mol[j] = (c->act[j] >> 8) & 0xF; }
-    kc_t k = resolve(c, i, km);
-    if (k == KC_NO) continue;
-    if (c->x && c->tds && !(c->tds == 3 && IS_TD(k) && (k & 0xFF) == c->tdn)) td_flush(c);
-    if (c->pend >= 0) {
-      int hit = -1;
-      for (int n = 0; n < NCOMBO; n++) {
-        kc_t a = c->x->cb[n][0], b = c->x->cb[n][1];
-        if (a && ((a == c->pkc && b == k) || (b == c->pkc && a == k))) hit = n;
-      }
-      if (hit >= 0) { c->pend = -1; emit(c, c->x->cb[hit][2]); continue; }
-      int p = c->pend; c->pend = -1; fire(c, p, c->pkc, now);
+    if (c->tds[i] == 5) { c->act[i] = 0; c->tds[i] = 0; c->shot[i] = 0; }
+    if (c->tds[i] == 2) { c->act[i] = 0; c->tds[i] = 4; do_press(c, i, f->td[c->tdn[i]][2], now, f); continue; }   // cham 2 lan
+    bool hit = false, cand = false;                   // combo theo vi tri phim
+    for (int n = 0; n < NCB && !hit; n++) {
+      uint8_t a = f->cb_a[n], b = f->cb_b[n];
+      if (a >= NKEYS || b >= NKEYS || !f->cb_r[n] || (i != a && i != b)) continue;
+      uint8_t p = i == a ? b : a;
+      if (c->cbp[p]) { c->cbp[p] = 0; do_press(c, i, f->cb_r[n], now, f); hit = true; } else cand = true;
     }
-    if (in_combo(c, k)) { c->pend = i; c->pkc = k; c->pt = now; }
-    else fire(c, i, k, now);
+    if (hit) continue;
+    if (cand) { c->cbp[i] = 1; c->cbt[i] = now; continue; }
+    do_press(c, i, resolve(c, i, f), now, f);
   }
-}
-static void add_key(kb_report_t *r, int *n, kc_t k) {
-  if (IS_COMBO(k)) { uint8_t m = k >> 8; r->mods |= (m & 1 ? 0x01 : 0) | (m & 2 ? 0x02 : 0) | (m & 4 ? 0x04 : 0) | (m & 8 ? 0x08 : 0); k &= 0xFF; }
-  if (k >= 0xE0 && k <= 0xE7) { r->mods |= 1u << (k - 0xE0); return; }
-  if (!IS_BASIC(k)) return;
-  for (int j = 0; j < *n; j++) if (r->keys[j] == k) return;
-  if (*n < 6) r->keys[(*n)++] = k; else memset(r->keys, 0x01, 6);   // tran: ErrorRollOver
 }
 bool core_kb(const core_t *c, kb_report_t *r) {
   memset(r, 0, sizeof *r);
   if (c->mact) {
     if (c->mwait) return false;
-    uint8_t md, k;
-    if (c->mphase == 0 && core_ascii(c->mtxt[c->mpos], &md, &k)) { r->mods = md; r->keys[0] = k; }
+    const uint8_t *s = c->mac + 1 + c->mpos; uint8_t op = s[0];
+    if (op == 4) return false;
+    *r = c->mh;
+    if (op == 5) { uint8_t md, k; if (c->mph == 0 && core_ascii((char)s[2 + c->mtp], &md, &k)) { r->mods |= md; kc_set(r, k, true); } }
+    else { kc_t k = s[1] | (s[2] << 8); if (op == 2 || (op == 1 && c->mph == 0)) kc_set(r, k, true); else if (op == 3) kc_set(r, k, false); }
     return true;
   }
-  bool qbusy = c->qh != c->qt;
-  if (qbusy && c->mwait) return false;
   int n = 0;
   for (int i = 0; i < NKEYS; i++) {
     kc_t k = c->act[i];
     if (!k || IS_CONS(k) || IS_MO(k)) continue;
     if (IS_LT(k)) { if (c->lts[i] != 3) continue; k &= 0xFF; }   // chi xuat khi dang o trang thai "da tap"
-    add_key(r, &n, k);
+    if (IS_COMBO(k)) { uint8_t m = k >> 8; r->mods |= (m & 1 ? 0x01 : 0) | (m & 2 ? 0x02 : 0) | (m & 4 ? 0x04 : 0) | (m & 8 ? 0x08 : 0); k &= 0xFF; }
+    if (k >= 0xE0 && k <= 0xE7) { r->mods |= 1u << (k - 0xE0); continue; }
+    if (!IS_BASIC(k)) continue;
+    bool dup = false; for (int j = 0; j < n; j++) if (r->keys[j] == k) dup = true;
+    if (dup) continue;
+    if (n < 6) r->keys[n++] = k; else { memset(r->keys, 0x01, 6); break; }   // tran: ErrorRollOver
   }
-  if (c->lat) add_key(r, &n, c->lat);
-  { static const uint8_t tgk[4] = {KC_SPACE, KC_LSFT, KC_LCTL, KC_LALT}; for (int b = 0; b < 4; b++) if (c->tg >> b & 1) add_key(r, &n, tgk[b]); }
-  if (qbusy && c->qph == 0) add_key(r, &n, c->q[c->qt & (QN - 1)]);
+  for (int j = 0; j < 6; j++) {                       // phim dang giu bang TK
+    uint8_t k = c->lat[j]; if (!k) continue;
+    if (k >= 0xE0) { r->mods |= 1u << (k - 0xE0); continue; }
+    bool dup = false; for (int m = 0; m < n; m++) if (r->keys[m] == k) dup = true;
+    if (!dup && n < 6) r->keys[n++] = k;
+  }
   return true;
 }
 uint16_t core_cons(const core_t *c) {
-  if (c->tcons_ms) return c->tcons;
   for (int i = 0; i < NKEYS; i++) if (c->act[i] && IS_CONS(c->act[i])) return c->act[i] & 0x7FFF;
   return 0;
 }
 void core_macro_ack(core_t *c) {
-  if (!c->mact) {
-    if (c->qh == c->qt) return;
-    if (c->qph == 0) c->qph = 1; else { c->qph = 0; c->qt++; }
-    c->mwait = QUEUE_GAP_MS;
-    return;
-  }
-  if (c->mphase == 0) c->mphase = 1;
-  else { c->mphase = 0; c->mpos++; macro_skip(c); }
+  if (!c->mact) return;
+  const uint8_t *s = c->mac + 1 + c->mpos; uint8_t op = s[0];
+  if (op == 4) return;
+  bool next = true;
+  if (op == 1 || op == 5) { if (c->mph == 0) { c->mph = 1; next = false; } else c->mph = 0; }
+  else kc_set(&c->mh, (kc_t)(s[1] | (s[2] << 8)), op == 2);
+  if (next) { if (op == 5) c->mtp++; else c->mpos += 3; m_fix(c); }
   c->mwait = MACRO_GAP_MS;
-  if (!c->mact) { c->mwait = 0; }
+  if (!c->mact) c->mwait = 0;
 }
 bool core_ascii(char ch, uint8_t *md, uint8_t *key) {
   static const char sh[] = "!@#$%^&*()";
@@ -346,14 +316,12 @@ void core_label(kc_t k, char *o, int n) {
   if (IS_CONS(k)) {
     switch (k & 0x7FFF) { case CN_MUTE: ADD("MUTE"); break; case CN_VOLU: ADD("VOL+"); break; case CN_VOLD: ADD("VOL-"); break;
       case CN_PLAY: ADD("PLAY"); break; case CN_NEXT: ADD("NEXT"); break; case CN_PREV: ADD("PREV"); break; default: ADD("MEDIA"); }
-  } else if (IS_MACRO(k)) { ADD("MACRO "); char d[2] = {'1' + (k & 0xF), 0}; ADD(d); }
-  else if (IS_TD(k)) { ADD("TAP DANCE "); char d[2] = {'1' + (k & 7), 0}; ADD(d); }
-  else if (k == KC_LATCH) ADD("LATCH");
-  else if (IS_LATCH(k)) { static const char *const ln[4] = {"LOCK SPACE", "LOCK SHIFT", "LOCK CTRL", "LOCK ALT"}; ADD(ln[k - KC_LATCH - 1]); }
-  else if (k == KC_MORSE_DOT) ADD("DOT");
-  else if (k == KC_MORSE_DASH) ADD("DASH");
-  else if (k == KC_MORSE_OK) ADD("OK");
-  else if (k == KC_MORSE_HINT) ADD("HINT");
+  } else if (IS_MACRO(k)) { ADD("MACRO "); int v = (k & 0xFFF) + 1; char d[3] = {0, 0, 0}; if (v >= 10) { d[0] = '1'; d[1] = '0' + (v - 10) % 10; } else d[0] = '0' + v; ADD(d); }
+  else if (IS_TK(k)) { ADD("TOG "); char s[12]; core_label(k & 0xFF, s, sizeof s); ADD(s); }
+  else if (IS_TD(k)) { ADD("TD "); char d[2] = {'1' + (k & 0x7), 0}; ADD(d); }
+  else if (k == KC_LED_TOG) ADD("LED");
+  else if (k == KC_LED_NEXT) ADD("LED+");
+  else if (k == KC_LED_PREV) ADD("LED-");
   else if (IS_MO(k) || IS_TG(k)) { ADD("LAYER "); char d[2] = {'0' + (k & 0xF), 0}; ADD(d); }
   else if (IS_LT(k)) { core_label(k & 0xFF, o, n); return; }
   else if (k == KC_BOOT) ADD("BOOT");

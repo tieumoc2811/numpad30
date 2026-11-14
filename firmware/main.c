@@ -8,6 +8,7 @@
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
 #include "hardware/flash.h"
+#include "hardware/pwm.h"
 #include "pico/flash.h"
 #include "ws2812.pio.h"
 #include "tusb.h"
@@ -21,10 +22,14 @@
 
 static const uint8_t row_pins[NROW] = ROW_PINS, col_pins[NCOL] = COL_PINS;
 static const char *const def_names[NLAYER] = NUM_LAYER_NAMES;
-static const uint8_t def_colors[NLAYER][3] = {{0, 60, 255}, {255, 110, 0}, {0, 255, 60}};   // NUM xanh duong, FN cam, MACRO xanh la
+static const uint8_t def_colors[NLAYER][3] = {{0, 60, 255}, {255, 110, 0}, {0, 255, 60}, {255, 0, 160}, {255, 230, 0}, {0, 220, 255}, {150, 60, 255}, {255, 255, 255}};
 static core_t core;
 static cfg_store_t cfg;                          // cau hinh dang chay (RAM), sua duoc qua Raw HID
-static macro_t macs[NMACROS];
+static core_cfg_t cf;                            // cau hinh dua cho core.h
+static const uint8_t ledch_pins[LED_N] = LEDCH_PINS;
+static uint8_t led_prev_mode;
+static bool greet_on; static uint32_t greet_t0, last_key;
+#define DEF_NMAC ((int)(sizeof macros / sizeof macros[0]))
 static int led_last = -2;
 static uint8_t host_leds;                       // bit0 NumLock, bit1 CapsLock (tu may tinh)
 static bool saver;                              // dang o che do tiet kiem (OLED + LED tat)
@@ -89,11 +94,17 @@ static void txt(int x, int y, int s, const char *t, bool on) {
     for (int c = 0; c < 5; c++) for (int r = 0; r < 7; r++) if (FD[i * 5 + c] >> r & 1) box(x + c * s, y + r * s, s, s, on);
   }
 }
+static void oled_greet(uint32_t now) {      // chu chay tu phai sang trai khi cam USB
+  const int sc = OLED_H == 32 ? 2 : 3; int w = tw(cfg.ext.greet, sc);
+  int x = 128 - (int)((now - greet_t0) / 10);
+  if (x + w < 0) { greet_on = false; return; }
+  txt(x, (OLED_H - 7 * sc) / 2, sc, cfg.ext.greet, true);
+}
 static void oled_render(void) {
   memset(fb, 0, sizeof fb);
+  if (greet_on) { oled_greet(ms()); if (greet_on) { opg = 0; return; } }
   char lab[24]; static char shown[24] = "READY";
-  if (core.note[0]) strncpy(shown, core.note, sizeof shown - 1);
-  else if (core.last_kc) core_label(core.last_kc, shown, sizeof shown);
+  if (core.last_kc) core_label(core.last_kc, shown, sizeof shown);
   strcpy(lab, shown);
   const char *ln = cfg.names[core_top_layer(&core)];
 #if OLED_H == 32
@@ -125,45 +136,87 @@ static void oled_init(void) {
   oled_try_init();
 }
 static void oled_task(uint32_t now) {     // goi moi ms: moi lan gui toi da 1 page de khong chan quet phim / USB
-  static uint32_t retry, seq, leds_seen = 0xFF; static int layer_seen = -1;
+  static uint32_t retry, seq, leds_seen = 0xFF, gtick; static int layer_seen = -1, logo_f = -1;
   if (!oled_ok) { if (now - retry >= 2000) { retry = now; oled_try_init(); } return; }
-  if (saver) return;
-  int layer = core_top_layer(&core);
-  if (core.press_seq != seq || layer != layer_seen || host_leds != leds_seen) { seq = core.press_seq; layer_seen = layer; leds_seen = host_leds; odirty = true; }
-  if (odirty) { odirty = false; oled_render(); }
+  bool logo = saver && cfg.ext.saver_mode == 1 && cfg.ext.lg_n;
+  if (saver && !logo) return;
+  if (logo) {                                  // man hinh cho: logo dong
+    int f = (int)((now / cfg.ext.lg_ms) % cfg.ext.lg_n);
+    if (f != logo_f || odirty) {
+      logo_f = f; odirty = false; memset(fb, 0, sizeof fb);
+      for (int y = 0; y < 32; y++) for (int x = 0; x < 128; x++) if (cfg.ext.logo[f][(y >> 3) * 128 + x] >> (y & 7) & 1) px(x, y + (OLED_H - 32) / 2, true);
+      opg = 0;
+    }
+  } else {
+    logo_f = -1;
+    int layer = core_top_layer(&core);
+    if (core.press_seq != seq || layer != layer_seen || host_leds != leds_seen) { seq = core.press_seq; layer_seen = layer; leds_seen = host_leds; odirty = true; }
+    if (greet_on && now - gtick >= 30) { gtick = now; odirty = true; }
+    if (odirty) { odirty = false; oled_render(); }
+  }
   if (opg < OLED_PAGES) {
     uint8_t c[] = {0x00, 0xB0 + opg, 0x00, 0x10}, d[129]; d[0] = 0x40; memcpy(d + 1, fb + opg * 128, 128);
     if (i2c_w(c, 4) && i2c_w(d, 129)) opg++; else { oled_ok = false; opg = OLED_PAGES; }
   }
 }
 
-// ---------------- USB HID ----------------
 // ---------------- cau hinh runtime + flash ----------------
 static void cfg_defaults(void) {
   memset(&cfg, 0, sizeof cfg);
-  memcpy(cfg.km, keymap, sizeof cfg.km);
-  for (int l = 0; l < NLAYER; l++) strncpy(cfg.names[l], def_names[l], HP_NAME_MAX);
+  for (int l = 0; l < NLAYER; l++) for (int i = 0; i < NKEYS; i++) cfg.km[l][i] = l < DEF_NLAYER ? keymap[l][i] : KC_TRNS;
+  for (int l = 0; l < NLAYER; l++) { if (l < DEF_NLAYER) strncpy(cfg.names[l], def_names[l], HP_NAME_MAX); else { cfg.names[l][0] = 'L'; cfg.names[l][1] = '0' + l; } }
   memcpy(cfg.colors, def_colors, sizeof cfg.colors);
-  cfg.ext = def_ext;
-  for (int i = 0; i < NMACROS; i++) strncpy(cfg.macs[i], macros[i].text, HP_MACRO_MAX);
+  for (int i = 0; i < DEF_NMAC && i < NMACROS; i++) core_macro_text(cfg.macs[i], macros[i].text);
   cfg.ss_ms = SCREENSAVER_MS; cfg.bright = LED_BRIGHT;
+  memset(cfg.ext.cb_a, 0xFF, NCB); memset(cfg.ext.cb_b, 0xFF, NCB);
+  cfg.ext.nlayer = DEF_NLAYER; cfg.ext.led_speed = 128; cfg.ext.led_bri = 200; cfg.ext.lg_ms = 150;
+  strcpy(cfg.ext.greet, "NUMPAD30");
 }
 static const uint8_t *flash_cfg(void) { return (const uint8_t *)(XIP_BASE + CFG_FLASH_OFFSET); }
-static uint8_t fbuf[FLASH_SECTOR_SIZE]; static size_t flen;
-static void flash_job(void *p) { (void)p; flash_range_erase(CFG_FLASH_OFFSET, FLASH_SECTOR_SIZE); flash_range_program(CFG_FLASH_OFFSET, fbuf, flen); }
+#define CFG_BYTES (CFG_FLASH_SECTORS * FLASH_SECTOR_SIZE)
+static uint8_t fbuf[CFG_BYTES]; static size_t flen;
+static void flash_job(void *p) {              // 1 sector moi lan de USB khong bi chan lau
+  uint32_t o = (uint32_t)(uintptr_t)p * FLASH_SECTOR_SIZE;
+  flash_range_erase(CFG_FLASH_OFFSET + o, FLASH_SECTOR_SIZE);
+  if (o < flen) { size_t n = flen - o; if (n > FLASH_SECTOR_SIZE) n = FLASH_SECTOR_SIZE; flash_range_program(CFG_FLASH_OFFSET + o, fbuf + o, n); }
+}
 static void cfg_save(void) {
   memset(fbuf, 0xFF, sizeof fbuf);
   size_t n = fs_pack(&cfg, fbuf, sizeof fbuf);
   if (!n) return;
   flen = (n + FLASH_PAGE_SIZE - 1) & ~(size_t)(FLASH_PAGE_SIZE - 1);
-  flash_safe_execute(flash_job, NULL, 1000);
+  for (int s = 0; s < CFG_FLASH_SECTORS; s++) flash_safe_execute(flash_job, (void *)(uintptr_t)s, 1000);
+}
+static void cfg_link(void) {
+  cf.km = (const kc_t (*)[NKEYS])cfg.km; cf.nlayer = cfg.ext.nlayer;
+  cf.td = (const uint16_t (*)[3])cfg.ext.td; cf.cb_a = cfg.ext.cb_a; cf.cb_b = cfg.ext.cb_b; cf.cb_r = cfg.ext.cb_r;
+  cf.macs = (const uint8_t (*)[MSLOT])cfg.macs; cf.nmacros = NMACROS;
 }
 static void cfg_load(void) {
   cfg_defaults();
-  cfg_store_t tmp = cfg;                         // hong/rong -> giu mac dinh
-  if (fs_unpack(&tmp, flash_cfg(), FLASH_SECTOR_SIZE)) cfg = tmp;
-  for (int i = 0; i < NMACROS; i++) macs[i].text = cfg.macs[i];
-  core_set_ext(&core, &cfg.ext);
+  static cfg_store_t tmp; tmp = cfg;            // hong/rong -> giu mac dinh
+  if (fs_unpack(&tmp, flash_cfg(), CFG_BYTES)) cfg = tmp;
+  cfg_link();
+}
+
+// ---------------- den LED ngoai: 6 kenh PWM ----------------
+static void ledch_init(void) {
+  for (int i = 0; i < LED_N; i++) {
+    gpio_set_function(ledch_pins[i], GPIO_FUNC_PWM);
+    uint sl = pwm_gpio_to_slice_num(ledch_pins[i]);
+    pwm_set_wrap(sl, 255); pwm_set_clkdiv(sl, 4.0f); pwm_set_enabled(sl, true);
+    pwm_set_gpio_level(ledch_pins[i], LEDCH_ACTIVE_HIGH ? 0 : 255);
+  }
+}
+static void ledch_task(uint32_t now) {
+  static uint32_t nxt;
+  if ((int32_t)(now - nxt) < 0) return;
+  nxt = now + 8;
+  uint8_t layer = (uint8_t)core_top_layer(&core);
+  for (int i = 0; i < LED_N; i++) {
+    uint32_t v = saver ? 0 : (uint32_t)ledfx(cfg.ext.led_mode, i, now, cfg.ext.led_speed, layer, now - last_key) * cfg.ext.led_bri / 255;
+    pwm_set_gpio_level(ledch_pins[i], LEDCH_ACTIVE_HIGH ? v : 255 - v);
+  }
 }
 
 // ---------------- USB HID ----------------
@@ -180,10 +233,14 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t id, hid_report_type_t t, uint8_t
 uint16_t tud_hid_get_report_cb(uint8_t i, uint8_t id, hid_report_type_t t, uint8_t *b, uint16_t n) { (void)i; (void)id; (void)t; (void)b; (void)n; return 0; }
 
 static void raw_task(void) {
-  if (raw_pending && !raw_reply) { hp_handle(&cfg, raw_req, raw_rep); raw_pending = false; raw_reply = true; led_last = -2; odirty = true; }
+  if (raw_pending && !raw_reply) {
+    hp_handle(&cfg, raw_req, raw_rep); raw_pending = false; raw_reply = true; led_last = -2; odirty = true;
+    core.toggled &= (uint8_t)((1u << cfg.ext.nlayer) - 1);
+  }
   if (raw_reply && tud_hid_n_ready(1) && tud_hid_n_report(1, 0, raw_rep, HP_PKT)) {
     raw_reply = false;
     if (cfg.save_req) { cfg.save_req = false; cfg_save(); }   // ghi flash sau khi da tra loi
+    if (cfg.defaults_req) { cfg_defaults(); cfg_link(); core.toggled = 0; }   // nap mac dinh vao RAM (chua ghi flash)
   }
 }
 static void hid_task(void) {
@@ -200,8 +257,10 @@ static void hid_task(void) {
 }
 
 int main(void) {
-  core_init(&core); cfg_load(); matrix_init();
-  tusb_init(); oled_init(); led_init();
+  cfg_load(); matrix_init(); core_init(&core);
+  greet_t0 = ms();
+  tusb_init(); oled_init(); led_init(); ledch_init();
+  greet_on = cfg.ext.greet[0] != 0; greet_t0 = ms();
   uint32_t last = 0, active = ms();
   while (1) {
     tud_task();
@@ -214,10 +273,17 @@ int main(void) {
         if (saver) { saver = false; oled_pwr(true); odirty = true; }
         if (tud_suspended()) tud_remote_wakeup();
       }
-      core_scan_update(&core, raw, now, (const kc_t (*)[NKEYS])cfg.km, macs, NMACROS);
+      cf.nlayer = cfg.ext.nlayer;
+      core_scan_update(&core, raw, now, &cf);
+      static uint32_t seq_seen; if (core.press_seq != seq_seen) { seq_seen = core.press_seq; last_key = now; }
+      if (core.ledreq) {
+        int8_t r = core.ledreq; core.ledreq = 0; uint8_t *m = &cfg.ext.led_mode;
+        if (r == 2) { if (*m == 1) *m = led_prev_mode; else { led_prev_mode = *m; *m = 1; } }
+        else *m = (uint8_t)((*m + (r > 0 ? 1 : LED_NMODES - 1)) % LED_NMODES);
+      }
       if (core.boot_req) { oled_pwr(false); reset_usb_boot(0, 0); }
-      if (cfg.ss_ms && !saver && now - active >= cfg.ss_ms) { saver = true; oled_pwr(false); }
-      oled_task(now); led_update();
+      if (cfg.ss_ms && !saver && now - active >= cfg.ss_ms) { saver = true; if (cfg.ext.saver_mode == 1 && cfg.ext.lg_n) odirty = true; else oled_pwr(false); }
+      oled_task(now); led_update(); ledch_task(now);
     }
     hid_task(); raw_task();
   }

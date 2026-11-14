@@ -35,27 +35,21 @@ Ma phim: `C_(k)`/`S_(k)`/`A_(k)`/`G_(k)` to hop modifier, `MO(n)` giu layer, `TG
 
 Chong doi 5 ms, 6KRO (tran -> ErrorRollOver), tap-hold co permissive hold, macro go chuoi, phim media, OLED hien layer + phim vua bam + NumLock/CapsLock cua may tinh, LED RGB theo layer (CapsLock = do), tiet kiem OLED/LED sau 60 s, remote wakeup.
 
-## Tap Dance, Combo, Latch, Morse (chuyen tu macropad15)
-
-- **Tap Dance** `TD(n)` (n = 0..7): moi o co 3 ket qua `{tap, giu, bam doi}`. Giu qua `TAP_TERM_MS` = ket qua "giu" (co the la `MO(n)`); phim khac bam xen vao se chot tap dance ngay theo thu tu bam.
-- **Combo** (toi da 4): `{phim A, phim B, ket qua}` — hai phim bam trong `COMBO_TERM_MS` (30 ms) chi go ket qua. A/B la ma phim dang gan o 2 phim vat ly. Phim thuoc combo tre toi da 30 ms de cho ghep cap.
-- **Latch** `KC_LATCH`: bam, roi bam phim X -> X duoc giu cho toi khi bam `KC_LATCH` lan nua. `KC_LATCH+1..+4` bat/tat giu Space/Shift/Ctrl/Alt.
-- **Morse 3 phim** `KC_MORSE_DOT/DASH/OK` (+ `KC_MORSE_HINT` bat/tat goi y): ky tu hien ngay tren may tinh va duoc sua dan (Backspace + ky tu moi) khi them cham/gach; `OK` hoac phim khac chot ky tu. Logic o `firmware/morse.h`. `MORSE_HINT_DEF` trong `config.h` dat mac dinh goi y.
-- Ket qua tap dance / combo / Morse di qua hang doi phim (`QN` = 64, `QUEUE_GAP_MS`) nen khong lam mat hoac dao thu tu phim.
-- Cau hinh tap dance + combo luu cung flash (`FS_VER` 2, `HP_VER` 2); chinh qua tab **Thong minh** trong Studio, hoac `def_ext` trong `keymap.h`. Firmware/flash cu (ver 1) se duoc bo qua va dung mac dinh bien dich san.
-
 ## App chinh phim (web, 1 tep)
 
 `numpad30-studio.html` — mo bang trinh duyet, khong can cai dat:
 
 - Sua 30 phim tren 3 layer, doi ten layer, mau LED, thong so `config.h`, xem truoc OLED 128x32 / 128x64.
 - Chon phim theo danh muc hoac tim kiem, bat modifier (Ctrl/Shift/Alt/Win), LT/MO/TG, hoac bam phim that de gan.
-- Tab **Thong minh**: sua 8 tap dance va 4 combo; danh muc phim "Chot & Morse" (Latch, Morse) va "Tap Dance".
 - Sua 9 macro (tu bo dau khi xuat), hoan tac / lam lai, tu luu nhap trong trinh duyet.
 - Xuat `keymap.h`, `config.h`, doan ma mau LED va ho so JSON.
-- **Ket noi truc tiep** (Chrome/Edge, WebHID): bam "Ket noi bang phim" -> app doc cau hinh tu ban phim; moi chinh sua (phim, ten layer, mau LED, macro, screensaver, do sang) ap dung ngay vao RAM; "Luu vao ban phim" ghi sector cuoi flash, tu nap lai khi cam USB. Debounce/tap-hold/OLED van doi trong `config.h` roi build lai.
+- **Ket noi truc tiep** (Chrome/Edge, WebHID): bam "Ket noi ban phim" -> app doc cau hinh tu ban phim; moi chinh sua ap dung ngay vao RAM; "Luu vao ban phim" (hoac Ctrl+S) ghi 2 sector cuoi flash, tu nap lai khi cam USB; "Ve mac dinh thiet bi" nap lai mac dinh.
+  - Layer dong (1-8), Tap Dance TD1-TD4 (cham / giu / cham 2 lan), Combo CB1-CB4 (2 phim theo vi tri -> 1 phim), 16 macro nhieu buoc, ten + mau layer, screensaver, do sang.
+  - Macro: chuoi ASCII va the buoc `{ctrl+c}` `{down:shift}` `{up:shift}` `{wait:200}` (`{{` = dau `{`). Toi da 254 byte sau bien dich. Xuat keymap.h chi giu phan chu (bo the buoc), va chi 3 layer dau lam mac dinh.
+  - 6 den LED don sac qua BJT (GP14 GP15 GP26-29, doi trong `LEDCH_PINS`): 12 hieu ung (`ledfx.h`, app xem truoc cung cong thuc), phim LED / LED+ / LED-.
+  - OLED: loi chao chu chay khi cam USB, man hinh cho (tat hoac logo dong toi da 4 khung 128x32, ve tay hoac nhap anh/GIF).
 
-Giao thuc Raw HID 32 byte (usage page 0xFF60, usage 0x61) mo ta trong `firmware/hid_proto.h`; cau hinh luu o `CFG_FLASH_OFFSET` (`config.h`, mac dinh sector cuoi cua flash 2 MB). Flash hong/rong -> dung keymap bien dich san trong `keymap.h`.
+Giao thuc Raw HID v2 (32 byte, usage page 0xFF60, usage 0x61) mo ta trong `firmware/hid_proto.h`; cau hinh luu o `CFG_FLASH_OFFSET` (`config.h`, 2 sector cuoi flash 2 MB). Flash hong/rong/phien ban cu -> dung keymap bien dich san trong `keymap.h`.
 
 ## Build
 
@@ -71,4 +65,4 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. `.github
 
 ## Kiem thu tren may tinh
 
-`sh test/run_tests.sh` (can gcc; them node + playwright thi chay ca test web Studio): test don vi cho `core.h` (chong doi, LT, layer, to hop, macro, 6KRO, nhan), `test_ext.c` (tap dance, combo, latch, Morse) va test web Studio (WebHID gia noi toi firmware mo phong) va mo phong end-to-end chinh `main.c` voi Pico SDK/TinyUSB gia. Chua thu tren phan cung that.
+`sh test/run_tests.sh` (chi can gcc): test don vi cho `core.h` (chong doi, LT, layer, to hop, macro, 6KRO, nhan) va mo phong end-to-end chinh `main.c` voi Pico SDK/TinyUSB gia. Chua thu tren phan cung that.

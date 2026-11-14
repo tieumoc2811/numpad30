@@ -38,9 +38,3 @@ static const macro_t macros[] = {
   { "user@example.com" }, { "https://example.com" }, { "git status\n" },
   { "git add -A\n" }, { "git commit -m \"\"" }, { "git push\n" },
 };
-#define NMACROS ((int)(sizeof macros / sizeof macros[0]))
-
-// Tap dance {tap, giu, bam doi} va combo {phim A, phim B, ket qua}: gia tri mac dinh, sua duoc qua Studio.
-static const core_ext_t def_ext = {
-  { { __, __, __ }, { __, __, __ }, { __, __, __ }, { __, __, __ }, { __, __, __ }, { __, __, __ }, { __, __, __ }, { __, __, __ } },
-  { { __, __, __ }, { __, __, __ }, { __, __, __ }, { __, __, __ } } };

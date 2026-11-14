@@ -359,17 +359,6 @@ html[data-theme="light"] .toast{background:rgba(255,255,255,.97)}
 @keyframes toastOut{to{opacity:0;transform:translateY(6px) scale(.98)}}
 
 /* ============ macro ============ */
-.smart-layout{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
-.slot-table{display:grid;gap:8px}
-.slot-row{display:grid;grid-template-columns:44px repeat(3,minmax(0,1fr)) 28px;gap:6px;align-items:stretch}
-.slot-row>b{align-self:center;font:700 11px var(--mono);color:var(--accent-2)}
-.slot-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--text-2);text-align:left;transition:.15s}
-.slot-btn small{font:600 9px var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.4px}
-.slot-btn span{font:600 12px var(--sans);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
-.slot-btn.empty span{color:var(--faint);font-weight:500}
-.slot-btn:hover{border-color:var(--line-2);background:var(--panel-2)}
-.slot-x{border:1px solid var(--line);border-radius:9px;background:none;color:var(--faint)}
-.slot-x:hover{color:var(--text);border-color:var(--line-2)}
 .macro-layout{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr);gap:18px;align-items:start}
 .mac-list{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
 .mac-chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--text-2);text-align:left;transition:.15s}
@@ -573,8 +562,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
   .key .kdot{top:4px;right:4px;width:3px;height:3px}
   .device-foot{font-size:7px;letter-spacing:.5px;margin-top:10px;padding-top:7px}
   .side-panels{grid-template-columns:1fr}
-  .macro-layout,.smart-layout{grid-template-columns:1fr}
-  .slot-row{grid-template-columns:36px repeat(3,minmax(0,1fr)) 24px}
+  .macro-layout{grid-template-columns:1fr}
   .mac-list{grid-template-columns:repeat(3,1fr)}
   .mac-fields{grid-template-columns:1fr 1fr}
   .adv-grid,.led-controls,.scr-grid,.tools-grid{grid-template-columns:1fr}
@@ -609,6 +597,17 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
+.xcard{margin-top:16px}.xbody{padding:14px 18px;display:grid;gap:12px}.xrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.xl{min-width:74px;color:var(--text-2);font-size:12.5px}.xerr{color:var(--danger)}.faint{color:var(--faint)}
+.xkey{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:78px;padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--input-bg);color:var(--text);cursor:pointer;font:600 13px var(--sans)}
+.xkey small{font-weight:500;color:var(--muted);font-size:10.5px}.xkey:hover{border-color:var(--accent)}
+.fx-leds{display:flex;gap:16px;justify-content:center;padding:12px 0}.fx-led{display:block;width:34px;height:34px;border-radius:50%;background:#ffd66b;opacity:.08}
+.fx-modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.xmode{padding:8px 10px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:var(--input-bg);color:var(--text);cursor:pointer;font:600 12.5px var(--sans)}
+.xmode.on{border-color:var(--accent);background:rgba(124,92,255,.2)}
+.xlogo{width:100%;max-width:640px;aspect-ratio:4/1;image-rendering:pixelated;border:1px solid var(--line-2);border-radius:8px;background:#0e1420;cursor:crosshair;touch-action:none}
+.tok{background:rgba(124,92,255,.22);border-radius:5px;padding:0 4px;font-family:var(--mono);font-size:.92em}
+.lay-ops{display:inline-flex;gap:6px;margin-left:8px;align-items:center}.btn[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -626,10 +625,6 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
       <button data-view="macro" title="Macro">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg>
         <span>Macro</span>
-      </button>
-      <button data-view="smart" title="Thông minh">
-        <svg viewBox="0 0 24 24"><path d="M5 18V8a2 2 0 0 1 4 0v6M9 14V6a2 2 0 0 1 4 0v8M13 14V8a2 2 0 0 1 4 0v8c0 3-2 5-5 5H9a4 4 0 0 1-4-3z"/></svg>
-        <span>Thông minh</span>
       </button>
       <button data-view="adv" title="Nâng cao">
         <svg viewBox="0 0 24 24"><path d="M4 6h9M18 6h2M4 12h2M11 12h9M4 18h9M18 18h2"/><circle cx="15" cy="6" r="2.2"/><circle cx="8" cy="12" r="2.2"/><circle cx="15" cy="18" r="2.2"/></svg>
@@ -654,6 +649,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
         <div class="conn-sub" id="hidSub">Sửa trực tiếp qua USB · Chrome/Edge</div>
         <button class="btn primary sm" id="hidBtn">Kết nối bàn phím</button>
         <button class="btn sm" id="hidSave" hidden>Lưu vào bàn phím</button>
+        <button class="btn sm" id="hidDef" hidden>Về mặc định thiết bị</button>
         <button class="btn sm" id="buildBtn">Xuất keymap.h</button>
       </div>
       <button class="theme-btn" id="themeBtn" title="Đổi giao diện sáng/tối"></button>
@@ -733,26 +729,6 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
           <b>Macro trên Numpad30 là một chuỗi ký tự ASCII.</b> Firmware gõ lần lượt từng ký tự, <span class="mono">\n</span> là Enter, <span class="mono">\t</span> là Tab.
           Để chạy macro, vào tab <b>Bàn phím</b>, chọn phím rồi gán <b>MACRO 1…9</b> (hoặc dùng layer MACRO có sẵn ở các phím M1–M9).
           Chữ có dấu tiếng Việt sẽ bị bỏ dấu khi xuất firmware; app hiển thị cảnh báo trước khi xuất. Nút <b>Gõ thử</b> mô phỏng đúng nhịp gõ và nội dung hiện trên OLED.
-        </div>
-      </section>
-
-      <section class="view" id="view-smart">
-        <div class="macro-layout smart-layout">
-          <div class="card">
-            <div class="card-hd"><h2>Tap Dance</h2><span class="sub">TD1 – TD8</span></div>
-            <div class="card-bd"><div class="slot-table" id="tdTable"></div></div>
-          </div>
-          <div class="card">
-            <div class="card-hd"><h2>Combo</h2><span class="sub">bấm đồng thời 2 phím (trong 30 ms)</span></div>
-            <div class="card-bd"><div class="slot-table" id="cbTable"></div></div>
-          </div>
-        </div>
-        <div class="hint-card">
-          <b>Tap Dance:</b> chạm 1 lần = ô <i>Chạm</i>, giữ quá TAP_TERM = ô <i>Giữ</i>, chạm 2 lần nhanh = ô <i>Đôi</i>. Một phím khác bấm xen vào sẽ chốt tap dance ngay theo thứ tự bấm.
-          Kết quả có thể là phím, tổ hợp, media, Morse, Latch, macro, TG; ô <i>Giữ</i> còn nhận MO (giữ để vào layer).<br>
-          <b>Combo:</b> Phím A/B là <i>mã phím</i> mà 2 phím vật lý đang gán (ví dụ J và K); bấm cả hai cùng lúc thì chỉ gõ <i>Kết quả</i>. Phím thuộc combo bị trễ tối đa 30 ms để chờ ghép cặp.<br>
-          <b>Latch:</b> gán <i>LATCH</i> cho 1 phím: bấm nó rồi bấm phím X → X được giữ cho tới khi bấm LATCH lần nữa. Các phím <i>Khoá Space/Shift/Ctrl/Alt</i> bật/tắt giữ riêng từng phím.<br>
-          <b>Morse 3 phím:</b> gán <i>chấm</i>, <i>gạch</i>, <i>xong</i> (tab Bàn phím → danh mục “Chốt &amp; Morse”). Ký tự hiện ngay trên máy tính và được sửa dần khi bạn thêm chấm/gạch; <i>xong</i> hoặc phím khác chốt ký tự.
         </div>
       </section>
 
@@ -953,6 +929,7 @@ html[data-theme="light"] .code-box{background:#0b1220;color:#bfe9ff}
       <span class="pk-sep"></span>
       <button type="button" class="mod-btn" id="pkLtBtn">LT</button>
       <select class="pk-sel" id="pkLtLayer"><option value="1">Layer 1</option><option value="2">Layer 2</option></select>
+      <button type="button" class="mod-btn" id="pkTogBtn" title="Bấm 1 lần giữ phím, bấm lần nữa nhả">Toggle</button>
       <span class="pk-result" id="pkResult">—</span>
     </div>
     <div class="modal-ft">
@@ -988,7 +965,8 @@ const rgbCss = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
 const clampByte = v => clamp(Math.round(+v) || 0, 0, 255);
 const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
 
-const NR = 5, NC = 7, NK = NR * NC, NL = 3, NM = 9;
+const NR = 5, NC = 7, NK = NR * NC, NM = 16;
+let NL = 3;   // so layer dang dung (1-8), cap nhat theo state.keymap.length
 const HOLES = new Set([2 * NC + 6, 3 * NC + 0, 3 * NC + 2, 4 * NC + 4, 4 * NC + 6]); // 20,21,23,32,34
 const KEYS = Array.from({ length: NK }, (_, i) => i).filter(i => !HOLES.has(i));
 const posLabel = i => 'R' + Math.floor(i / NC) + 'C' + (i % NC);
@@ -1013,12 +991,6 @@ const MACRO = n => 0x5000 | (n & 0xFFF);
 const LT = (n, k) => 0x6000 | ((n & 0xF) << 8) | (k & 0xFF);
 const CONS = u => 0x8000 | (u & 0x7FFF);
 const BOOT = 0x7F00;
-const NTD = 8, NCB = 4;
-const TD = n => 0x4200 | (n & 0xFF);
-const KC_LATCH = 0x7001, MORSE_DOT = 0x7060, MORSE_DASH = 0x7061, MORSE_OK = 0x7062, MORSE_HINT = 0x7063;
-const isTD = c => (c & 0xFF00) === 0x4200;
-const isLatch = c => c >= KC_LATCH && c <= KC_LATCH + 4;
-const isMorse = c => c >= MORSE_DOT && c <= MORSE_HINT;
 const C_ = k => 0x0100 | (k & 0xFF);
 const S_ = k => 0x0200 | (k & 0xFF);
 const A_ = k => 0x0400 | (k & 0xFF);
@@ -1037,7 +1009,7 @@ const CATS = [
   { id: 'basic', name: 'Cơ bản' }, { id: 'letters', name: 'Chữ cái' }, { id: 'digits', name: 'Số' },
   { id: 'nav', name: 'Điều hướng & Num' }, { id: 'fkeys', name: 'Phím F' }, { id: 'mods', name: 'Bổ trợ' },
   { id: 'media', name: 'Media' }, { id: 'combo', name: 'Tổ hợp' }, { id: 'layer', name: 'Layer' },
-  { id: 'macro', name: 'Macro' }, { id: 'td', name: 'Tap Dance' }, { id: 'smart', name: 'Chốt & Morse' }, { id: 'special', name: 'Đặc biệt' }
+  { id: 'macro', name: 'Macro' }, { id: 'special', name: 'Đặc biệt' }
 ];
 const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.name]));
 const DEFS = [];
@@ -1072,8 +1044,8 @@ for (let i = 0; i < 12; i++) A(0x3A + i, 'F' + (i + 1), 'fkeys');
   [0x221, 'WWW Search', 'Search'], [0x223, 'WWW Home', 'Home'], [0x224, 'WWW Back', 'Back'], [0x225, 'WWW Forward', 'Fwd'],
   [0x226, 'WWW Stop', 'Stop'], [0x227, 'WWW Refresh', 'Refresh'], [0x22A, 'WWW Favorites', 'Favs'], [0x22D, 'Sleep', 'Sleep']
 ].forEach(([u, n, s]) => A(CONS(u), n, 'media', s));
-for (let n = 1; n < NL; n++) A(MO(n), `MO(${n}) — giữ để dùng layer ${n}`, 'layer', `MO${n}`);
-for (let n = 1; n < NL; n++) A(TG(n), `TG(${n}) — bật/tắt layer ${n}`, 'layer', `TG${n}`);
+for (let n = 1; n < 8; n++) A(MO(n), `MO(${n}) — giữ để dùng layer ${n}`, 'layer', `MO${n}`);
+for (let n = 1; n < 8; n++) A(TG(n), `TG(${n}) — bật/tắt layer ${n}`, 'layer', `TG${n}`);
 [
   [LT(1, KC.NUMLOCK), 'LT(1, NumLock) — chạm NumLock, giữ vào FN', 'Num'],
   [LT(1, KC.SPACE), 'LT(1, Space) — chạm Space, giữ vào FN', 'Space'],
@@ -1090,15 +1062,12 @@ for (let n = 1; n < NL; n++) A(TG(n), `TG(${n}) — bật/tắt layer ${n}`, 'la
   [COMBO(3, KC.Z), 'Ctrl+Shift+Z — làm lại', 'CS+Z'], [COMBO(3, KC.ESC), 'Ctrl+Shift+Esc — Task Manager', 'CS+Esc']
 ].forEach(([c, n, s]) => A(c, n, 'combo', s));
 for (let i = 0; i < NM; i++) A(MACRO(i), `MACRO ${i + 1} — chạy macro ${i + 1}`, 'macro', `M${i + 1}`);
-for (let n = 0; n < NTD; n++) A(TD(n), `TD(${n + 1}) — tap dance ${n + 1} (chạm / giữ / bấm đôi, đặt ở tab Thông minh)`, 'td', `TD${n + 1}`);
-[
-  [KC_LATCH, 'LATCH — chốt phím kế tiếp (bấm lại để nhả)', 'Latch'],
-  [KC_LATCH + 1, 'Khoá Space (bật/tắt giữ Space)', 'LkSpc'], [KC_LATCH + 2, 'Khoá Shift (bật/tắt giữ Shift)', 'LkShf'],
-  [KC_LATCH + 3, 'Khoá Ctrl (bật/tắt giữ Ctrl)', 'LkCtl'], [KC_LATCH + 4, 'Khoá Alt (bật/tắt giữ Alt)', 'LkAlt'],
-  [MORSE_DOT, 'Morse · chấm (.)', '·'], [MORSE_DASH, 'Morse · gạch (-)', '—'],
-  [MORSE_OK, 'Morse · xong ký tự', 'OK'], [MORSE_HINT, 'Morse · bật/tắt gợi ý', 'Gợi ý']
-].forEach(([c, n, s]) => A(c, n, 'smart', s));
 A(BOOT, 'BOOTSEL — vào chế độ nạp firmware', 'special', 'BOOT');
+for (let i = 0; i < 4; i++) A(0x7000 | i, `TD${i + 1} — Tap Dance ${i + 1} (cấu hình ở mục Nâng cao)`, 'special', `TD${i + 1}`);
+for (const [k, n] of [[0xE1, 'Shift'], [0xE0, 'Ctrl'], [0xE2, 'Alt'], [0xE3, 'Win']]) A(0x7800 | k, `TK(${n}) — bấm 1 lần giữ ${n}, bấm lần nữa nhả`, 'special', `TK:${n}`);
+A(0x7E01, 'LED — bật/tắt đèn LED ngoài', 'special', 'LED');
+A(0x7E02, 'LED+ — hiệu ứng LED kế tiếp', 'special', 'LED+');
+A(0x7E03, 'LED− — hiệu ứng LED trước', 'special', 'LED−');
 const KMAP = new Map(DEFS.map(o => [o.c, o]));
 
 /* ---------- tên / nhãn ---------- */
@@ -1121,10 +1090,10 @@ function nameOf(c) {
   if (isMacro(c)) return macroName(c & 0xFFF);
   const d = KMAP.get(c);
   if (d) return d.n;
+  if ((c & 0xFF00) === 0x7800) return `TK(${baseName(c & 0xFF)}) — bấm 1 lần giữ ${baseShort(c & 0xFF)}, bấm lần nữa nhả`;
   if (isLT(c)) return `LT(${(c >> 8) & 0xF}, ${baseName(c & 0xFF)}) — chạm ${baseShort(c & 0xFF)}, giữ vào layer ${(c >> 8) & 0xF}`;
   if (isMO(c)) return `MO(${c & 0xF}) — giữ để dùng layer ${c & 0xF}`;
   if (isTG(c)) return `TG(${c & 0xF}) — bật/tắt layer ${c & 0xF}`;
-  if (isTD(c)) return `TD(${(c & 0xFF) + 1}) — tap dance ${(c & 0xFF) + 1}`;
   if (isCombo(c)) return comboName(c >> 8, c & 0xFF);
   return baseName(c);
 }
@@ -1132,10 +1101,10 @@ function shortOf(c) {
   if (isMacro(c)) return 'M' + ((c & 0xFFF) + 1);
   const d = KMAP.get(c);
   if (d) return d.s;
+  if ((c & 0xFF00) === 0x7800) return 'TK:' + baseShort(c & 0xFF);
   if (isLT(c)) return baseShort(c & 0xFF);
   if (isMO(c)) return 'MO' + (c & 0xF);
   if (isTG(c)) return 'TG' + (c & 0xF);
-  if (isTD(c)) return 'TD' + ((c & 0xFF) + 1);
   if (isCombo(c)) return comboShort(c >> 8, c & 0xFF);
   return baseShort(c);
 }
@@ -1150,7 +1119,7 @@ function catClass(c) {
   if (c === 1) return 'trns';
   if (isCons(c)) return 'media';
   if (isMO(c) || isTG(c) || isLT(c)) return 'layer';
-  if (isMacro(c) || c === BOOT || isTD(c) || isLatch(c) || isMorse(c)) return 'special';
+  if (isMacro(c) || c === BOOT) return 'special';
   if (isCombo(c) || (c >= 0xE0 && c <= 0xE7)) return 'mod';
   return 'std';
 }
@@ -1161,16 +1130,12 @@ const CONS_LABEL = { 0xE2: 'MUTE', 0xE9: 'VOL+', 0xEA: 'VOL-', 0xCD: 'PLAY', 0xB
 function coreLabel(c) {
   if (isCons(c)) return CONS_LABEL[c & 0x7FFF] || 'MEDIA';
   if (isMacro(c)) return 'MACRO ' + ((c & 0xFFF) + 1);
+  if ((c & 0xFF00) === 0x7000) return 'TD ' + ((c & 7) + 1);
+  if ((c & 0xFF00) === 0x7800) return 'TOG ' + coreLabel(c & 0xFF);
+  if (c === 0x7E01) return 'LED'; if (c === 0x7E02) return 'LED+'; if (c === 0x7E03) return 'LED-';
   if (isMO(c) || isTG(c)) return 'LAYER ' + (c & 0xF);
   if (isLT(c)) return coreLabel(c & 0xFF);
   if (c === BOOT) return 'BOOT';
-  if (isTD(c)) return 'TAP DANCE ' + ((c & 7) + 1);
-  if (c === KC_LATCH) return 'LATCH';
-  if (isLatch(c)) return ['LOCK SPACE', 'LOCK SHIFT', 'LOCK CTRL', 'LOCK ALT'][c - KC_LATCH - 1];
-  if (c === MORSE_DOT) return 'DOT';
-  if (c === MORSE_DASH) return 'DASH';
-  if (c === MORSE_OK) return 'OK';
-  if (c === MORSE_HINT) return 'HINT';
   let pre = '';
   if (isCombo(c)) {
     const m = c >> 8;
@@ -1216,8 +1181,8 @@ const FONT_INDEX = new Map(Array.from(FONT_CHARS, (ch, i) => [ch, i]));
 /* =====================================================================
    Trạng thái mặc định — lấy đúng từ firmware/keymap.h
    ===================================================================== */
-const LAYER_COLORS = [[0, 60, 255], [255, 110, 0], [0, 255, 60]];
-const DEFAULT_NAMES = ['NUM', 'FN', 'MACRO'];
+const LAYER_COLORS = [[0, 60, 255], [255, 110, 0], [0, 255, 60], [255, 0, 160], [255, 230, 0], [0, 220, 255], [150, 60, 255], [255, 255, 255]];
+const DEFAULT_NAMES = ['NUM', 'FN', 'MACRO', 'L3', 'L4', 'L5', 'L6', 'L7'];
 const DEFAULT_MACROS = [
   { name: 'Hello', text: 'Hello!' },
   { name: 'Chào', text: 'Xin chao' },
@@ -1250,17 +1215,36 @@ const MACRO_POS = [0, 1, 2, 7, 8, 9, 14, 15, 16];
 const LAYER2 = Array.from({ length: NK }, () => 1);
 MACRO_POS.forEach((idx, n) => { LAYER2[idx] = MACRO(n); });
 
+function emptyLayer() { return Array.from({ length: NK }, (_, i) => HOLES.has(i) ? 0 : 1); }
+function defaultExt() {
+  return { td: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], cb: [0, 1, 2, 3].map(() => ({ a: 255, b: 255, r: 0 })),
+    led: { mode: 0, speed: 128, bri: 200 }, oled: { greet: 'NUMPAD30', saver: 0, ms: 150, frames: [] } };
+}
+function sanitizeExt(r) {
+  const e = defaultExt();
+  if (!r || typeof r !== 'object') return e;
+  const u16 = v => Math.max(0, Math.min(0xFFFF, Math.round(+v) || 0)), u8 = (v, d) => Number.isFinite(+v) ? Math.max(0, Math.min(255, Math.round(+v))) : d;
+  if (Array.isArray(r.td)) for (let n = 0; n < 4; n++) for (let k = 0; k < 3; k++) if (Array.isArray(r.td[n])) e.td[n][k] = u16(r.td[n][k]);
+  if (Array.isArray(r.cb)) for (let n = 0; n < 4; n++) { const c = r.cb[n]; if (!c) continue; const pos = v => Number.isInteger(v) && v >= 0 && v < 35 ? v : 255; e.cb[n] = { a: pos(c.a), b: pos(c.b), r: u16(c.r) }; }
+  if (r.led) e.led = { mode: Math.min(11, u8(r.led.mode, 0)), speed: u8(r.led.speed, 128), bri: u8(r.led.bri, 200) };
+  if (r.oled) {
+    e.oled.greet = toAscii(String(r.oled.greet == null ? e.oled.greet : r.oled.greet)).toUpperCase().replace(/[^ !()*+,\-./0-9:=?A-Z]/g, '').slice(0, 27);
+    e.oled.saver = Number(r.oled.saver) === 1 ? 1 : 0;
+    e.oled.ms = Math.max(30, Math.min(5000, Math.round(+r.oled.ms) || 150));
+    if (Array.isArray(r.oled.frames)) e.oled.frames = r.oled.frames.filter(h => typeof h === 'string' && /^[0-9a-f]{1024}$/i.test(h)).slice(0, 4).map(h => h.toLowerCase());
+  }
+  return e;
+}
 function defaultState() {
   return {
     names: DEFAULT_NAMES.slice(),
     colors: LAYER_COLORS.map(c => c.slice()),
     keymap: [LAYER0.slice(), LAYER1.slice(), LAYER2.slice()],
-    macros: DEFAULT_MACROS.map(m => ({ name: m.name, text: m.text })),
-    td: Array.from({ length: NTD }, () => [0, 0, 0]),
-    cb: Array.from({ length: NCB }, () => [0, 0, 0]),
+    macros: DEFAULT_MACROS.map(m => ({ name: m.name, text: m.text })).concat(Array.from({ length: NM - DEFAULT_MACROS.length }, () => ({ name: '', text: '' }))),
+    ext: defaultExt(),
     cfg: {
       DEBOUNCE_MS: 5, TAP_TERM_MS: 200, MACRO_GAP_MS: 12,
-      SCREENSAVER_MS: 60000, LED_BRIGHT: 24, OLED_H: 32, OLED_ROTATE: 0
+      SCREENSAVER_MS: 60000, LED_BRIGHT: 24, OLED_H: 32, OLED_ROTATE: 1
     }
   };
 }
@@ -1271,7 +1255,7 @@ let state = defaultState();
 const ui = {
   view: 'keymap', layer: 0, sel: 3, test: false, pressed: -1,
   caps: false, num: true, saver: false, boot: false,
-  macSel: 0, codeSel: 0, pk: { cat: 'all', q: '', mods: 0, lt: false, ltLayer: 1, capturing: false, target: null },
+  macSel: 0, codeSel: 0, pk: { cat: 'all', q: '', mods: 0, lt: false, tog: false, ltLayer: 1, capturing: false },
   lastLabel: '', lastLabelLayer: 0
 };
 
@@ -1283,6 +1267,10 @@ const intIn = (v, lo, hi, def) => {
 function sanitize(raw) {
   const s = defaultState();
   if (!raw || typeof raw !== 'object') return s;
+  const nl = Array.isArray(raw.keymap) ? Math.max(1, Math.min(8, raw.keymap.length)) : 3;
+  for (let l = s.keymap.length; l < nl; l++) { s.keymap.push(emptyLayer()); s.names.push(DEFAULT_NAMES[l]); s.colors.push(LAYER_COLORS[l].slice()); }
+  s.keymap.length = nl; s.names.length = nl; s.colors.length = nl; NL = nl;
+  s.ext = sanitizeExt(raw.ext);
   if (Array.isArray(raw.names)) {
     for (let i = 0; i < NL; i++) {
       if (typeof raw.names[i] === 'string' && raw.names[i].trim()) {
@@ -1317,15 +1305,6 @@ function sanitize(raw) {
       };
     }
   }
-  const slots = (src, dst) => {
-    if (!Array.isArray(src)) return;
-    for (let n = 0; n < dst.length; n++) {
-      const r = src[n];
-      if (!Array.isArray(r)) continue;
-      for (let k = 0; k < 3; k++) { const v = r[k]; if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 0xFFFF) dst[n][k] = v | 0; }
-    }
-  };
-  slots(raw.td, s.td); slots(raw.cb, s.cb);
   if (raw.cfg && typeof raw.cfg === 'object') {
     const c = raw.cfg;
     s.cfg.DEBOUNCE_MS = intIn(c.DEBOUNCE_MS, 1, 50, s.cfg.DEBOUNCE_MS);
@@ -1451,7 +1430,7 @@ function clearLayer() {
   renderAll();
 }
 function resetLayer() {
-  const def = [LAYER0, LAYER1, LAYER2][ui.layer];
+  const def = [LAYER0, LAYER1, LAYER2][ui.layer] || emptyLayer();
   state.keymap[ui.layer] = def.slice();
   pushHist();
   markDirty();
@@ -1729,24 +1708,13 @@ function renderLayoutMini() {
    Macro
    ===================================================================== */
 function macPreviewHtml(t, caret) {
-  const safe = esc(t).replace(/\n/g, '<br>').replace(/\t/g, '    ');
+  const safe = esc(t).replace(/\n/g, '<br>').replace(/\t/g, '    ').replace(/\{\{/g, '{').replace(/\{[^{}]*\}/g, m => '<span class="tok">' + m + '</span>');
   return safe + (caret ? '<span class="caret"></span>' : '');
 }
 function macWarn(t) {
   let bad = 0;
   for (const ch of t) if (ch.codePointAt(0) > 127) bad++;
   return bad;
-}
-function renderSmart() {
-  const row = (kind, n, names) => {
-    const v = state[kind][n];
-    return `<div class="slot-row"><b>${kind === 'td' ? 'TD' : 'CB'}${n + 1}</b>` + v.map((c, s) =>
-      `<button class="slot-btn ${c ? '' : 'empty'}" data-slot="${kind},${n},${s}" title="${esc(c ? nameOf(c) : 'Chưa gán')}"><small>${names[s]}</small><span>${c ? esc(shortOf(c)) : 'Trống'}</span></button>`).join('') +
-      `<button class="slot-x" data-slotclr="${kind},${n}" title="Xoá">×</button></div>`;
-  };
-  const td = $('#tdTable'), cb = $('#cbTable');
-  if (td) td.innerHTML = state.td.map((_, n) => row('td', n, ['Chạm', 'Giữ', 'Đôi'])).join('');
-  if (cb) cb.innerHTML = state.cb.map((_, n) => row('cb', n, ['Phím A', 'Phím B', 'Kết quả'])).join('');
 }
 function renderMacro() {
   stopMacPlay();
@@ -1895,7 +1863,7 @@ function renderAdvanced() {
   }
   const pins = $('#mmPins');
   if (pins) {
-    pins.innerHTML = `<span>Hàng <b>R0–R4 → GP0–GP4</b></span><span>Cột <b>C0–C6 → GP5–GP11</b></span><span>OLED <b>SDA GP12 · SCL GP13</b></span><span>LED <b>GP16</b></span>`;
+    pins.innerHTML = `<span>Hàng <b>R0–R4 → GP0–GP4</b></span><span>Cột <b>C0–C6 → GP5–GP11</b></span><span>OLED <b>SDA GP12 · SCL GP13</b></span><span>LED <b>GP16</b></span><span>LED ngoài <b>GP14 GP15 GP26–GP29 (6 kênh BJT)</b></span>`;
   }
 }
 
@@ -1990,7 +1958,6 @@ function renderTools() {
 const VIEWS = {
   keymap: ['Bàn phím', 'Gán 30 phím · 3 layer · macro'],
   macro: ['Macro', '9 chuỗi ký tự gõ tự động'],
-  smart: ['Thông minh', 'Tap Dance · Combo · Latch · Morse'],
   adv: ['Nâng cao', 'Tên layer, thông số firmware, ma trận 5×7'],
   led: ['Đèn LED', 'Màu theo layer · CapsLock · độ sáng'],
   screen: ['Màn hình', 'Mô phỏng OLED SSD1306 128×32'],
@@ -2009,7 +1976,6 @@ function switchView(v) {
   if (v === 'led') renderLed();
   if (v === 'adv') renderAdvanced();
   if (v === 'macro') renderMacro();
-  if (v === 'smart') renderSmart();
   if (v === 'tools') renderTools();
 }
 function updateTopbar() {
@@ -2029,7 +1995,6 @@ function renderAll() {
   renderLayoutMini();
   renderOled();
   renderMacro();
-  renderSmart();
   renderAdvanced();
   renderLed();
   renderScreen();
@@ -2079,9 +2044,12 @@ function usedKeyNames() {
     const n = kcName(c);
     if (!CORE_KC.has(n) && !found.has(n)) found.set(n, c);
   };
-  const scan = c => { if (isCombo(c) || isLT(c)) add(c & 0xFF); else add(c); };
-  for (let l = 0; l < NL; l++) state.keymap[l].forEach(scan);
-  state.td.forEach(r => r.forEach(scan)); state.cb.forEach(r => r.forEach(scan));
+  for (let l = 0; l < NL; l++) {
+    for (const c of state.keymap[l]) {
+      if (isCombo(c) || isLT(c)) add(c & 0xFF);
+      else add(c);
+    }
+  }
   return Array.from(found.entries()).sort((a, b) => a[1] - b[1]);
 }
 
@@ -2091,10 +2059,9 @@ function cCode(c) {
   if (c === BOOT) return 'KC_BOOT';
   if (isCons(c)) return 'CONS(' + cnName(c & 0x7FFF) + ')';
   if (isMacro(c)) return 'MACRO(' + (c & 0xFFF) + ')';
-  if (isTD(c)) return 'TD(' + (c & 0xFF) + ')';
-  if (c === KC_LATCH) return 'KC_LATCH';
-  if (isLatch(c)) return '(KC_LATCH + ' + (c - KC_LATCH) + ')';
-  if (isMorse(c)) return ['KC_MORSE_DOT', 'KC_MORSE_DASH', 'KC_MORSE_OK', 'KC_MORSE_HINT'][c - MORSE_DOT];
+  if ((c & 0xFF00) === 0x7000) return 'TD(' + (c & 7) + ')';
+  if ((c & 0xFF00) === 0x7800) return 'TK(' + kcName(c & 0xFF) + ')';
+  if (c === 0x7E01) return 'KC_LED_TOG'; if (c === 0x7E02) return 'KC_LED_NEXT'; if (c === 0x7E03) return 'KC_LED_PREV';
   if (isMO(c)) return 'MO(' + (c & 0xF) + ')';
   if (isTG(c)) return 'TG(' + (c & 0xF) + ')';
   if (isLT(c)) return 'LT(' + ((c >> 8) & 0xF) + ', ' + kcName(c & 0xFF) + ')';
@@ -2161,15 +2128,10 @@ function genKeymap() {
   L.push('static const macro_t macros[] = {');
   for (let i = 0; i < NM; i++) {
     const m = state.macros[i];
-    L.push('  { ' + cStr(m.text) + ' },' + (m.name ? '  // ' + toAscii(m.name).replace(/\\/g, '/') : ''));
+    L.push('  { ' + cStr(macroPlain(m.text)) + ' },' + (m.name ? '  // ' + toAscii(m.name).replace(/\\/g, '/') : ''));
   }
   L.push('};');
   L.push('#define NMACROS ((int)(sizeof macros / sizeof macros[0]))');
-  L.push('');
-  L.push('// Tap dance {tap, giu, bam doi} va combo {phim A, phim B, ket qua}: gia tri mac dinh, sua duoc qua Studio.');
-  L.push('static const core_ext_t def_ext = {');
-  L.push('  { ' + state.td.map(r => '{ ' + r.map(cCode).join(', ') + ' }').join(', ') + ' },');
-  L.push('  { ' + state.cb.map(r => '{ ' + r.map(cCode).join(', ') + ' }').join(', ') + ' } };');
   L.push('');
   return L.join('\n');
 }
@@ -2285,12 +2247,12 @@ function applyTheme(t) {
    Hộp chọn phím
    ===================================================================== */
 function pkEffective(code) {
+  if (ui.pk.tog && isBasic(code)) return 0x7800 | code;
   if (ui.pk.lt && isBasic(code)) return LT(ui.pk.ltLayer, code);
   if (ui.pk.mods && isBasic(code)) return COMBO(ui.pk.mods, code);
   return code;
 }
-function openPicker(idx, target) {
-  ui.pk.target = target || null;
+function openPicker(idx) {
   if (idx != null && !HOLES.has(idx)) ui.pk.idx = idx;
   ui.pk.q = '';
   ui.pk.capturing = false;
@@ -2305,8 +2267,8 @@ function openPicker(idx, target) {
   setTimeout(() => { const i = $('#pkSearch'); if (i) i.focus(); }, 60);
 }
 function closePicker() {
+  ui.pkTarget = null;
   ui.pk.capturing = false;
-  ui.pk.target = null;
   const wrap = $('#pkWrap');
   if (wrap) { wrap.classList.remove('on'); wrap.setAttribute('aria-hidden', 'true'); }
   const strip = $('#capStrip');
@@ -2316,6 +2278,7 @@ function closePicker() {
 function pickerList() {
   const qs = norm(ui.pk.q.trim()).split(/\s+/).filter(Boolean);
   return DEFS.filter(o => {
+    if ((isMO(o.c) || isTG(o.c)) && (o.c & 0xF) >= NL) return false;
     if (ui.pk.cat !== 'all' && catOf(o.c) !== ui.pk.cat) return false;
     if (!qs.length) return true;
     const numpad = o.c >= 0x53 && o.c <= 0x63 ? ' numpad kp' : '';
@@ -2324,10 +2287,10 @@ function pickerList() {
   });
 }
 function renderPicker() {
-  const idx = ui.pk.idx, tg = ui.pk.target;
-  const cur = (tg ? state[tg.k][tg.n][tg.s] : state.keymap[ui.layer][idx]) || 0;
+  const idx = ui.pk.idx;
+  const cur = state.keymap[ui.layer][idx] || 0;
   const sub = $('#pkSub');
-  if (sub) sub.textContent = tg ? `${tgLabel(tg)} · ${shortOf(cur)}` : `Layer ${state.names[ui.layer]} · ${posLabel(idx)} · ${shortOf(cur)}`;
+  if (sub) sub.textContent = `Layer ${state.names[ui.layer]} · ${posLabel(idx)} · ${shortOf(cur)}`;
   const cats = $('#pkCats');
   if (cats) {
     const counts = {};
@@ -2358,26 +2321,19 @@ function renderPicker() {
   const res = $('#pkResult');
   if (res) {
     const base = isBasic(cur) ? cur : 0;
-    const preview = base && ui.pk.lt ? LT(ui.pk.ltLayer, base) : base && ui.pk.mods ? COMBO(ui.pk.mods, base) : cur;
+    const preview = base && ui.pk.tog ? 0x7800 | base : base && ui.pk.lt ? LT(ui.pk.ltLayer, base) : base && ui.pk.mods ? COMBO(ui.pk.mods, base) : cur;
     res.innerHTML = `Hiện tại <b>${esc(shortOf(cur))}</b>` + (preview !== cur ? ` → <b>${esc(shortOf(preview))}</b>` : '');
   }
   $$('.mod-btn[data-mod]').forEach(b => b.classList.toggle('on', !!(ui.pk.mods & (+b.dataset.mod))));
   const lt = $('#pkLtBtn');
   if (lt) lt.classList.toggle('on', ui.pk.lt);
+  const tg = $('#pkTogBtn');
+  if (tg) tg.classList.toggle('on', ui.pk.tog);
   const ltsel = $('#pkLtLayer');
   if (ltsel) { ltsel.value = String(ui.pk.ltLayer); ltsel.disabled = !ui.pk.lt; }
 }
-function tgLabel(t) {
-  return t.k === 'td' ? `Tap Dance ${t.n + 1} · ${['Chạm', 'Giữ', 'Bấm đôi'][t.s]}` : `Combo ${t.n + 1} · ${['Phím A', 'Phím B', 'Kết quả'][t.s]}`;
-}
 function applyPick(code) {
-  const tg = ui.pk.target;
-  if (tg) {
-    state[tg.k][tg.n][tg.s] = code;
-    closePicker(); pushHist(); markDirty(); renderSmart(); renderCode();
-    toast(`${tgLabel(tg)} → ${shortOf(code)}`, 'ok', 1600);
-    return;
-  }
+  if (ui.pkTarget) { const t = ui.pkTarget; ui.pkTarget = null; closePicker(); extPicked(t, code); return; }
   const idx = ui.pk.idx;
   ui.sel = idx;
   setKey(idx, code);
@@ -2479,16 +2435,6 @@ function simulatePress(idx) {
 }
 
 function bindEvents() {
-  const slotClick = e => {
-    const b = e.target.closest('[data-slot]');
-    if (b) { const [k, n, s] = b.dataset.slot.split(','); openPicker(null, { k, n: +n, s: +s }); return; }
-    const x = e.target.closest('[data-slotclr]');
-    if (x) {
-      const [k, n] = x.dataset.slotclr.split(',');
-      state[k][+n] = [0, 0, 0]; pushHist(); markDirty(); renderSmart(); renderCode();
-    }
-  };
-  on('#tdTable', 'click', slotClick); on('#cbTable', 'click', slotClick);
   /* --- điều hướng --- */
   on('#nav', 'click', e => {
     const b = e.target.closest('button[data-view]');
@@ -2718,12 +2664,17 @@ function bindPicker() {
   });
   $$('.mod-btn[data-mod]').forEach(b => b.addEventListener('click', () => {
     ui.pk.mods ^= +b.dataset.mod;
-    if (ui.pk.mods) ui.pk.lt = false;
+    if (ui.pk.mods) { ui.pk.lt = false; ui.pk.tog = false; }
     renderPicker();
   }));
   on('#pkLtBtn', 'click', () => {
     ui.pk.lt = !ui.pk.lt;
-    if (ui.pk.lt) ui.pk.mods = 0;
+    if (ui.pk.lt) { ui.pk.mods = 0; ui.pk.tog = false; }
+    renderPicker();
+  });
+  on('#pkTogBtn', 'click', () => {
+    ui.pk.tog = !ui.pk.tog;
+    if (ui.pk.tog) { ui.pk.mods = 0; ui.pk.lt = false; }
     renderPicker();
   });
   on('#pkLtLayer', 'change', e => { ui.pk.ltLayer = +e.target.value === 2 ? 2 : 1; renderPicker(); });
@@ -2788,7 +2739,7 @@ function bindGlobalKeys() {
     const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
     const k = (e.key || '').toLowerCase();
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {
-      if (k === 's') { e.preventDefault(); exportKeymap(); return; }
+      if (k === 's') { e.preventDefault(); if (typeof HID !== 'undefined' && HID.dev) hidSave(); else exportKeymap(); return; }
       if (typing) return;
       if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); redo(); return; }
@@ -2820,13 +2771,301 @@ function init() {
 init();
 
 /* =====================================================================
-   Kết nối trực tiếp qua WebHID (Raw HID 32 byte, giao thức firmware/hid_proto.h)
-   Sửa trong app -> áp dụng ngay vào RAM của bàn phím; "Lưu vào bàn phím" ghi flash.
+   Mở rộng v2: macro nhiều bước, Tap Dance, Combo, layer động, đèn LED 6 kênh, OLED lời chào + logo,
+   và kết nối trực tiếp qua WebHID (Raw HID 32 byte, giao thức firmware/hid_proto.h v2).
    ===================================================================== */
-const HID = { dev: null, chain: Promise.resolve(), synced: null, timer: 0, unsaved: false, busy: false };
-const HID_FILTER = [{ vendorId: 0xC1A0, productId: 0x0030, usagePage: 0xFF60, usage: 0x61 }];
-const HID_NK = 35, HID_NL = 3, HID_NM = 9, HID_MMAX = 255, HID_NAME = 12;
 
+/* ---------- macro nhiều bước: {ctrl+c} {down:shift} {up:shift} {wait:200}, {{ = dấu { ---------- */
+const MK_KEY = { enter: 0x28, esc: 0x29, bksp: 0x2A, tab: 0x2B, space: 0x2C, del: 0x4C, ins: 0x49, home: 0x4A, end: 0x4D, pgup: 0x4B, pgdn: 0x4E,
+  up: 0x52, down: 0x51, left: 0x50, right: 0x4F, numlock: 0x53, caps: 0x39, kpenter: 0x58, kpplus: 0x57, kpminus: 0x56, kpmul: 0x55, kpdiv: 0x54, kpdot: 0x63 };
+const MK_REV = Object.fromEntries(Object.entries(MK_KEY).map(([k, v]) => [v, k]));
+const MK_ALIAS = { escape: 'esc', backspace: 'bksp', delete: 'del', insert: 'ins', return: 'enter', pageup: 'pgup', pagedown: 'pgdn' };
+const MK_MOD = { ctrl: 1, shift: 2, alt: 4, win: 8, gui: 8 };
+const MK_MODN = ['ctrl', 'shift', 'alt', 'win'];
+function mkKey(w) {
+  w = MK_ALIAS[w] || w;
+  if (/^0x[0-9a-f]{1,4}$/.test(w)) return parseInt(w, 16);
+  if (/^[a-z]$/.test(w)) return 4 + w.charCodeAt(0) - 97;
+  if (/^[1-9]$/.test(w)) return 0x1D + Number(w);
+  if (w === '0') return 0x27;
+  if (/^f([1-9]|1[0-2])$/.test(w)) return 0x39 + Number(w.slice(1));
+  if (/^kp[0-9]$/.test(w)) return w === 'kp0' ? 0x62 : 0x58 + Number(w[2]);
+  return MK_KEY[w] != null ? MK_KEY[w] : null;
+}
+function mkSpec(spec) {
+  let mods = 0, key = null;
+  for (const p of spec.toLowerCase().replace(/\s+/g, '').split('+')) {
+    if (!p) return null;
+    if (MK_MOD[p]) { mods |= MK_MOD[p]; continue; }
+    if (key !== null) return null;
+    key = mkKey(p);
+    if (key == null) return null;
+  }
+  if (key === null) return mods ? [0, 1, 2, 3].filter(b => mods >> b & 1).map(b => 0xE0 + b) : null;
+  return [key < 0x100 ? (mods << 8) | key : key];
+}
+function mkName(c) {
+  const mods = c >> 8 & 15, k = c & 255;
+  if (!mods && k >= 0xE0 && k <= 0xE3) return MK_MODN[k - 0xE0];
+  let n = null;
+  if (k >= 4 && k <= 0x1D) n = String.fromCharCode(97 + k - 4);
+  else if (k >= 0x1E && k <= 0x26) n = String(k - 0x1D);
+  else if (k === 0x27) n = '0';
+  else if (k >= 0x3A && k <= 0x45) n = 'f' + (k - 0x39);
+  else if (k >= 0x59 && k <= 0x61) n = 'kp' + (k - 0x58);
+  else if (k === 0x62) n = 'kp0';
+  else n = MK_REV[k];
+  return n ? MK_MODN.filter((_, b) => mods >> b & 1).concat(n).join('+') : '0x' + c.toString(16);
+}
+function compileMacro(text) {
+  const out = [], err = []; let buf = '';
+  const flush = () => { while (buf.length) { const part = buf.slice(0, 200); buf = buf.slice(200); out.push(5, part.length); for (const ch of part) out.push(ch.charCodeAt(0)); } };
+  const t = toAscii(text || '');
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (ch !== '{') { buf += ch; continue; }
+    if (t[i + 1] === '{') { buf += '{'; i++; continue; }
+    const j = t.indexOf('}', i);
+    if (j < 0) { err.push('thiếu dấu }'); break; }
+    const tok = t.slice(i + 1, j).trim(); i = j; flush();
+    const m = /^(down|up|tap|wait)\s*:(.*)$/i.exec(tok);
+    if (m && m[1].toLowerCase() === 'wait') {
+      const ms = parseInt(m[2], 10);
+      if (!(ms >= 0 && ms <= 60000)) err.push('{wait:ms} chỉ nhận 0–60000'); else out.push(4, ms & 255, ms >> 8);
+      continue;
+    }
+    const kind = m ? m[1].toLowerCase() : 'tap', codes = mkSpec(m ? m[2] : tok);
+    if (!codes) { err.push('không hiểu {' + tok + '}'); continue; }
+    for (const c of codes) out.push(kind === 'down' ? 2 : kind === 'up' ? 3 : 1, c & 255, c >> 8);
+  }
+  flush();
+  if (out.length > 254) err.push(`quá dài (${out.length}/254 byte)`);
+  return { bytes: out.slice(0, 254), err };
+}
+function decompileMacro(b) {
+  let t = '', i = 0;
+  while (i < b.length) {
+    const op = b[i];
+    if (op === 5) { const n = b[i + 1]; for (let j = 0; j < n; j++) { const ch = String.fromCharCode(b[i + 2 + j]); t += ch === '{' ? '{{' : ch; } i += 2 + n; }
+    else if (op >= 1 && op <= 3) { t += '{' + (op === 2 ? 'down:' : op === 3 ? 'up:' : '') + mkName(b[i + 1] | b[i + 2] << 8) + '}'; i += 3; }
+    else if (op === 4) { t += '{wait:' + (b[i + 1] | b[i + 2] << 8) + '}'; i += 3; }
+    else break;
+  }
+  return t;
+}
+function macroPlain(t) { return (t || '').replace(/\{\{|\{[^{}]*\}/g, m => m === '{{' ? '{' : ''); }
+function updMacBytes() {
+  const el = $('#macBytes'), ta = $('#macText');
+  if (!el || !ta) return;
+  const r = compileMacro(ta.value);
+  el.innerHTML = `Biên dịch: <b>${r.bytes.length + 1}</b>/255 byte` + (r.err.length ? ` · <span class="xerr">${esc(r.err.join('; '))}</span>` : '');
+}
+function extMacroBar() {
+  const ed = $('#macEditor'), tb = ed && ed.querySelector('.mac-toolbar');
+  if (!tb || $('#macBytes')) return;
+  tb.insertAdjacentHTML('afterend', `<div class="mac-toolbar"><span class="xl">Bước:</span>
+    <button class="btn xs" data-tok="{ctrl+c}">Phím / tổ hợp</button><button class="btn xs" data-tok="{down:shift}">Giữ phím</button>
+    <button class="btn xs" data-tok="{up:shift}">Nhả phím</button><button class="btn xs" data-tok="{wait:200}">Chờ ms</button></div>
+    <div class="mac-sum" id="macBytes"></div>`);
+  updMacBytes();
+}
+
+/* ---------- khối ext <-> byte (bảng offset giống hid_proto.h) ---------- */
+const HID_NK = 35, EXT_HDR = 76, EXT_LEN = 76 + 4 * 512;
+const hexOf = u8 => Array.from(u8, v => v.toString(16).padStart(2, '0')).join('');
+function extBytes() {
+  const e = state.ext, b = new Uint8Array(EXT_LEN), dv = new DataView(b.buffer);
+  for (let n = 0; n < 4; n++) for (let k = 0; k < 3; k++) dv.setUint16((n * 3 + k) * 2, e.td[n][k], true);
+  for (let n = 0; n < 4; n++) { dv.setUint16(24 + n * 2, e.cb[n].r, true); b[34 + n] = e.cb[n].a; b[38 + n] = e.cb[n].b; }
+  dv.setUint16(32, e.oled.ms, true);
+  b[42] = NL; b[43] = e.led.mode; b[44] = e.led.speed; b[45] = e.led.bri; b[46] = e.oled.saver; b[47] = e.oled.frames.length;
+  for (let i = 0; i < e.oled.greet.length && i < 27; i++) b[48 + i] = e.oled.greet.charCodeAt(i);
+  e.oled.frames.forEach((h, f) => { for (let i = 0; i < 512; i++) b[EXT_HDR + f * 512 + i] = parseInt(h.substr(i * 2, 2), 16); });
+  return b;
+}
+function extFromBytes(b) {
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength), e = defaultExt();
+  for (let n = 0; n < 4; n++) for (let k = 0; k < 3; k++) e.td[n][k] = dv.getUint16((n * 3 + k) * 2, true);
+  for (let n = 0; n < 4; n++) e.cb[n] = { a: b[34 + n] < HID_NK ? b[34 + n] : 255, b: b[38 + n] < HID_NK ? b[38 + n] : 255, r: dv.getUint16(24 + n * 2, true) };
+  e.oled.ms = Math.max(30, dv.getUint16(32, true)); e.oled.saver = b[46] === 1 ? 1 : 0;
+  e.led = { mode: Math.min(b[43], 11), speed: b[44], bri: b[45] };
+  let g = ''; for (let i = 48; i < 75 && b[i]; i++) g += String.fromCharCode(b[i]);
+  e.oled.greet = g;
+  for (let f = 0; f < Math.min(b[47], 4); f++) e.oled.frames.push(hexOf(b.subarray(EXT_HDR + f * 512, EXT_HDR + (f + 1) * 512)));
+  return e;
+}
+
+/* ---------- layer động (tối đa 8) ---------- */
+function layerOp(op) {
+  if ((op === 'add' || op === 'dup') && NL >= 8) { toast('Tối đa 8 layer', 'warn'); return; }
+  if (op === 'del' && NL <= 1) { toast('Cần giữ ít nhất 1 layer', 'warn'); return; }
+  if (op === 'add') { state.keymap.push(emptyLayer()); state.names.push(DEFAULT_NAMES[NL]); state.colors.push(LAYER_COLORS[NL].slice()); NL++; ui.layer = NL - 1; }
+  else if (op === 'dup') { state.keymap.push(state.keymap[ui.layer].slice()); state.names.push(('C' + state.names[ui.layer]).slice(0, 12)); state.colors.push(state.colors[ui.layer].slice()); NL++; ui.layer = NL - 1; }
+  else { state.keymap.pop(); state.names.pop(); state.colors.pop(); NL--; ui.layer = Math.min(ui.layer, NL - 1); }
+  pushHist(); markDirty(); renderAll();
+}
+const _renderLayers = renderLayers;
+renderLayers = function () {
+  _renderLayers();
+  const box = $('#layers');
+  if (box) box.insertAdjacentHTML('beforeend', `<span class="lay-ops"><button class="btn xs" data-lop="add" ${NL >= 8 ? 'disabled' : ''}>＋ Layer</button><button class="btn xs" data-lop="dup" ${NL >= 8 ? 'disabled' : ''}>Nhân đôi</button><button class="btn xs" data-lop="del" ${NL <= 1 ? 'disabled' : ''}>Xoá layer cuối</button></span>`);
+  const lc = $('#layerCount');
+  if (lc) lc.textContent = `${NL} / 8 layer · sửa trực tiếp được`;
+};
+
+/* ---------- Tap Dance + Combo ---------- */
+function extPick(target) { ui.pkTarget = target; openPicker(); }
+function extPicked(t, code) {
+  if (t.t === 'td') state.ext.td[t.n][t.k] = code; else state.ext.cb[t.n].r = code;
+  pushHist(); markDirty(); renderExtAdv(); toast('Đã gán ' + shortOf(code), 'ok', 1400);
+}
+function renderExtAdv() {
+  const v = $('#view-adv');
+  if (!v) return;
+  let box = $('#extAdv');
+  if (!box) { box = document.createElement('div'); box.id = 'extAdv'; v.appendChild(box); }
+  const key = c => `<span class="${c ? '' : 'faint'}">${c ? esc(shortOf(c)) : '—'}</span>`;
+  const posOpts = sel => '<option value="255">— tắt —</option>' + KEYS.map(i => `<option value="${i}" ${i === sel ? 'selected' : ''}>${posLabel(i)} · ${esc(shortOf(state.keymap[0][i]))}</option>`).join('');
+  const td = state.ext.td.map((r, n) => `<div class="xrow"><b class="xl">TD${n + 1}</b>` +
+    ['Chạm', 'Giữ', 'Chạm 2 lần'].map((nm, k) => `<button class="xkey" data-xpick="td:${n}:${k}"><small>${nm}</small>${key(r[k])}</button>`).join('') +
+    `<button class="btn xs" data-xclr="td:${n}">Xoá</button></div>`).join('');
+  const cb = state.ext.cb.map((c, n) => `<div class="xrow"><b class="xl">CB${n + 1}</b>
+    <select class="cfg-in" data-cbsel="${n}:a">${posOpts(c.a)}</select><span>+</span><select class="cfg-in" data-cbsel="${n}:b">${posOpts(c.b)}</select><span>→</span>
+    <button class="xkey" data-xpick="cb:${n}"><small>Ra</small>${key(c.r)}</button><button class="btn xs" data-xclr="cb:${n}">Xoá</button></div>`).join('');
+  box.innerHTML = `<div class="card xcard"><div class="card-hd"><b>Tap Dance</b><small class="muted">Gán phím TD1–TD4 (mục Đặc biệt) vào ô phím. Chạm / giữ / chạm 2 lần cho 3 hành động khác nhau.</small></div><div class="xbody">${td}</div></div>
+    <div class="card xcard"><div class="card-hd"><b>Combo</b><small class="muted">Bấm 2 phím cùng lúc (trong 30 ms) ra 1 phím khác. Chọn theo vị trí, không phụ thuộc layer.</small></div><div class="xbody">${cb}</div></div>`;
+}
+
+/* ---------- đèn LED ngoài: 6 kênh đơn sắc (cùng công thức với firmware/ledfx.h) ---------- */
+const LED_MODES = ['Theo layer', 'Tắt', 'Sáng tĩnh', 'Thở', 'Quét qua lại', 'Sóng', 'Nhấp nháy', 'Long lanh', 'Phản ứng phím', 'Xen kẽ', 'Đầy dần', 'Gợn sóng'];
+const fxTri = (t, p) => { const ph = Math.floor((t % p) * 512 / p); return ph < 256 ? ph : 511 - ph; };
+const fxGam = v => Math.floor(v * v / 255);
+const fxHash = x => Math.imul(x >>> 0, 2654435761) >>> 24;
+function ledFx(mode, ch, t, speed, layer, kt) {
+  const P = 3200 - speed * 10, H = Math.floor(P / 2);
+  switch (mode) {
+    case 0: return kt < 150 ? 255 : (ch <= layer ? 255 : 0);
+    case 1: return 0;
+    case 2: return 255;
+    case 3: return fxGam(fxTri(t, P));
+    case 4: { let d = ch * 255 - fxTri(t, P) * 5; if (d < 0) d = -d; return d >= 255 ? 0 : 255 - d; }
+    case 5: return fxGam(fxTri(t + Math.floor(ch * P / 6), P));
+    case 6: return (t % P) < H ? 255 : 0;
+    case 7: { const h = fxHash(ch * 7919 + Math.floor(t / 180)); return h > 160 ? 255 : (h > 110 ? 70 : 0); }
+    case 8: return kt >= 600 ? 18 : 255 - Math.floor(kt * 237 / 600);
+    case 9: return (((t % P) < H ? 1 : 0) ^ (ch & 1)) ? 255 : 0;
+    case 10: return ch < Math.floor((t % P) * 8 / P) ? 255 : 0;
+    case 11: { if (kt > 900) return 0; const d = kt - ch * 90; if (d < 0 || d >= 270) return 0; return 255 - Math.floor(d * 255 / 270); }
+  }
+  return 0;
+}
+let ledPress = -1e6, ledRaf = 0;
+function ledTick() {
+  ledRaf = 0;
+  const box = $('#fxLeds');
+  if (!box || ui.view !== 'led') return;
+  const t = Math.floor(performance.now()), L = state.ext.led;
+  box.querySelectorAll('.fx-led').forEach((el, ch) => {
+    const v = ledFx(L.mode, ch, t, L.speed, ui.layer, Math.floor(t - ledPress)) * L.bri / 255 / 255;
+    el.style.opacity = (0.07 + 0.93 * v).toFixed(3); el.style.boxShadow = `0 0 ${Math.round(26 * v)}px ${Math.round(6 * v)}px rgba(255,214,107,${(0.7 * v).toFixed(2)})`;
+  });
+  ledRaf = requestAnimationFrame(ledTick);
+}
+function renderExtLed() {
+  const v = $('#view-led');
+  if (!v) return;
+  let box = $('#extLed');
+  if (!box) { box = document.createElement('div'); box.id = 'extLed'; v.appendChild(box); }
+  const L = state.ext.led;
+  box.innerHTML = `<div class="card xcard"><div class="card-hd"><b>6 đèn LED ngoài (qua BJT)</b><small class="muted">GP14 · GP15 · GP26 · GP27 · GP28 · GP29 — PWM, đổi chân trong config.h</small></div><div class="xbody">
+    <div class="fx-leds" id="fxLeds">${'<i class="fx-led"></i>'.repeat(6)}</div>
+    <div class="fx-modes">${LED_MODES.map((n, i) => `<button class="xmode ${i === L.mode ? 'on' : ''}" data-fxmode="${i}">${n}</button>`).join('')}</div>
+    <label class="xrow"><span class="xl">Tốc độ</span><input type="range" min="0" max="255" value="${L.speed}" data-fxr="speed"><code id="fxSpeedV">${L.speed}</code></label>
+    <label class="xrow"><span class="xl">Độ sáng</span><input type="range" min="0" max="255" value="${L.bri}" data-fxr="bri"><code id="fxBriV">${L.bri}</code></label>
+    <div class="xrow"><button class="btn xs" id="fxPress">Bấm thử phím</button><small class="muted">Phím LED+ / LED− / LED (mục Đặc biệt) đổi hiệu ứng ngay trên bàn phím.</small></div></div></div>`;
+  if (!ledRaf) ledRaf = requestAnimationFrame(ledTick);
+}
+const _simulatePress = simulatePress;
+simulatePress = function (idx) { ledPress = performance.now(); _simulatePress(idx); };
+
+/* ---------- OLED: lời chào, màn hình chờ, logo động ---------- */
+const LG = { f: 0, play: 0, timer: 0, drag: null, bits: new Uint8Array(512) };
+const bitsOf = h => { const b = new Uint8Array(512); for (let i = 0; i < 512; i++) b[i] = parseInt(h.substr(i * 2, 2), 16); return b; };
+function lgDraw(bits) {
+  const cv = $('#xLogo');
+  if (!cv) return;
+  const c = cv.getContext('2d'), im = c.createImageData(128, 32);
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 128; x++) {
+    const on = bits[(y >> 3) * 128 + x] >> (y & 7) & 1, o = (y * 128 + x) * 4, col = on ? 245 : 14;
+    im.data[o] = col; im.data[o + 1] = on ? 250 : 20; im.data[o + 2] = on ? 255 : 30; im.data[o + 3] = 255;
+  }
+  c.putImageData(im, 0, 0);
+}
+function lgLoad() { const fr = state.ext.oled.frames; LG.f = Math.min(LG.f, Math.max(0, fr.length - 1)); LG.bits = fr.length ? bitsOf(fr[LG.f]) : new Uint8Array(512); lgDraw(LG.bits); }
+function lgCommit(hist) {
+  if (!state.ext.oled.frames.length) return;
+  state.ext.oled.frames[LG.f] = hexOf(LG.bits);
+  if (hist) pushHist();
+  markDirty();
+}
+function lgStop() { clearInterval(LG.timer); LG.timer = 0; LG.play = 0; const b = $('#xPlay'); if (b) b.textContent = '▶ Phát'; lgLoad(); }
+function lgFromCanvas(src, w, h, invert) {          // ảnh -> 128x32 (vừa khung, ngưỡng sáng)
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 32;
+  const c = cv.getContext('2d', { willReadFrequently: true }); c.fillStyle = '#000'; c.fillRect(0, 0, 128, 32);
+  const k = Math.min(128 / w, 32 / h), dw = w * k, dh = h * k;
+  c.drawImage(src, (128 - dw) / 2, (32 - dh) / 2, dw, dh);
+  const d = c.getImageData(0, 0, 128, 32).data, bits = new Uint8Array(512);
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 128; x++) {
+    const o = (y * 128 + x) * 4, lum = (0.3 * d[o] + 0.59 * d[o + 1] + 0.11 * d[o + 2]) * d[o + 3] / 255;
+    if ((lum > 110) !== !!invert) bits[(y >> 3) * 128 + x] |= 1 << (y & 7);
+  }
+  return hexOf(bits);
+}
+async function lgImport(file) {
+  try {
+    const frames = []; let ms = 0;
+    if (file.type === 'image/gif' && 'ImageDecoder' in window) {
+      const dec = new ImageDecoder({ data: await file.arrayBuffer(), type: 'image/gif' });
+      await dec.tracks.ready;
+      const n = dec.tracks.selectedTrack.frameCount, take = Math.min(4, n);
+      for (let i = 0; i < take; i++) {
+        const { image } = await dec.decode({ frameIndex: Math.floor(i * n / take) });
+        if (!ms && image.duration) ms = Math.round(image.duration / 1000) * Math.max(1, Math.floor(n / take));
+        frames.push(lgFromCanvas(image, image.displayWidth, image.displayHeight, false)); image.close();
+      }
+    } else {
+      const bmp = await createImageBitmap(file);
+      frames.push(lgFromCanvas(bmp, bmp.width, bmp.height, false));
+    }
+    state.ext.oled.frames = frames; if (ms) state.ext.oled.ms = Math.max(30, Math.min(5000, ms));
+    LG.f = 0; pushHist(); markDirty(); renderExtScr();
+    toast(`Đã nhập ${frames.length} khung` + (frames.length === 1 && file.type === 'image/gif' ? ' (trình duyệt không đọc GIF động)' : ''), 'ok');
+  } catch (e) { toast('Không nhập được ảnh: ' + e.message, 'err', 4000); }
+}
+function renderExtScr() {
+  const v = $('#view-screen');
+  if (!v) return;
+  let box = $('#extScr');
+  if (!box) { box = document.createElement('div'); box.id = 'extScr'; v.appendChild(box); }
+  const o = state.ext.oled, n = o.frames.length;
+  box.innerHTML = `<div class="card xcard"><div class="card-hd"><b>Lời chào & màn hình chờ</b><small class="muted">Chỉ dùng chữ in hoa, số và ký tự có trong font OLED</small></div><div class="xbody">
+    <label class="xrow"><span class="xl">Lời chào khi cắm USB</span><input class="cfg-in" style="text-align:left;width:260px" id="xGreet" maxlength="27" value="${esc(o.greet)}" placeholder="(trống = không hiện)"></label>
+    <label class="xrow"><span class="xl">Màn hình chờ</span><select class="cfg-in" id="xSaver"><option value="0" ${o.saver ? '' : 'selected'}>Tắt OLED và LED</option><option value="1" ${o.saver ? 'selected' : ''}>Phát logo động (tắt LED)</option></select></label>
+    <label class="xrow"><span class="xl">Thời gian mỗi khung (ms)</span><input class="cfg-in" type="number" min="30" max="5000" id="xLgMs" value="${o.ms}"></label></div></div>
+    <div class="card xcard"><div class="card-hd"><b>Logo động 128×32</b><small class="muted">${n} / 4 khung · chuột trái vẽ, chuột phải tẩy</small></div><div class="xbody">
+    <div class="xrow">${o.frames.map((_, i) => `<button class="xmode ${i === LG.f ? 'on' : ''}" data-lgf="${i}">Khung ${i + 1}</button>`).join('')}
+      <button class="btn xs" id="xAdd" ${n >= 4 ? 'disabled' : ''}>＋ Khung</button></div>
+    <canvas id="xLogo" class="xlogo" width="128" height="32"></canvas>
+    <div class="xrow"><button class="btn xs" id="xPlay" ${n ? '' : 'disabled'}>▶ Phát</button><button class="btn xs" id="xClear" ${n ? '' : 'disabled'}>Xoá khung</button>
+      <button class="btn xs" id="xInv" ${n ? '' : 'disabled'}>Đảo màu</button><button class="btn xs" id="xDup" ${n && n < 4 ? '' : 'disabled'}>Nhân đôi</button>
+      <button class="btn xs" id="xDel" ${n ? '' : 'disabled'}>Bỏ khung</button><label class="btn xs" for="xFile">Nhập ảnh / GIF…</label><input type="file" id="xFile" accept="image/*" hidden></div>
+    <small class="muted">Không có khung nào = màn hình chờ chỉ tắt OLED. Ảnh được thu về 128×32 đen trắng (ngưỡng sáng).</small></div></div>`;
+  lgLoad();
+}
+
+/* ---------- WebHID v2 ---------- */
+const HID = { dev: null, chain: Promise.resolve(), synced: null, timer: 0, unsaved: false, busy: false, info: null };
+const HID_FILTER = [{ vendorId: 0xC1A0, productId: 0x0030, usagePage: 0xFF60, usage: 0x61 }];
 function hidReq(bytes) {
   const run = () => new Promise((res, rej) => {
     const d = HID.dev;
@@ -2839,7 +3078,7 @@ function hidReq(bytes) {
         if (v[0] === 0xEE) rej(new Error('Thiết bị báo lỗi ' + v[2] + ' (lệnh ' + v[1] + ')')); else res(v.slice());
       }
     };
-    const t = setTimeout(() => { d.removeEventListener('inputreport', h); rej(new Error('Bàn phím không trả lời')); }, 2500);
+    const t = setTimeout(() => { d.removeEventListener('inputreport', h); rej(new Error('Bàn phím không trả lời')); }, 3000);
     d.addEventListener('inputreport', h);
     d.sendReport(0, pkt).catch(err => { clearTimeout(t); d.removeEventListener('inputreport', h); rej(err); });
   });
@@ -2847,117 +3086,101 @@ function hidReq(bytes) {
   HID.chain = p.catch(() => {});
   return p;
 }
-
 function hidSnap() {
-  const keys = [];
-  for (let l = 0; l < HID_NL; l++) {
-    const row = [];
-    for (let i = 0; i < HID_NK; i++) row.push(state.keymap[l][i] | 0);
-    keys.push(row);
-  }
+  const colors = [];
+  for (let l = 0; l < 8; l++) colors.push(...(state.colors[l] || LAYER_COLORS[l]).slice(0, 3));
   return {
-    keys,
-    names: state.names.map(n => toAscii(n).replace(/[\n\t]/g, '').slice(0, HID_NAME)),
-    colors: state.colors.map(c => c.slice(0, 3)),
-    macs: state.macros.slice(0, HID_NM).map(m => toAscii(m.text || '').slice(0, HID_MMAX)),
-    ss: state.cfg.SCREENSAVER_MS >>> 0,
-    br: state.cfg.LED_BRIGHT & 255,
-    td: state.td.map(r => r.slice()),
-    cb: state.cb.map(r => r.slice())
+    keys: state.keymap.map(r => r.map(k => k | 0)),
+    names: state.names.map(n => toAscii(n).replace(/[\n\t]/g, '').slice(0, 12)),
+    colors,
+    macs: state.macros.slice(0, NM).map(m => { const r = compileMacro(m.text); return [r.bytes.length, ...r.bytes]; }),
+    ext: extBytes(),
+    ss: state.cfg.SCREENSAVER_MS >>> 0, br: state.cfg.LED_BRIGHT & 255
   };
 }
-
 async function hidPull() {
   const info = await hidReq([1]);
-  if (info[1] !== 2 || info[2] !== HID_NL || info[3] !== HID_NK || info[4] !== HID_NM || info[8] !== NTD || info[9] !== NCB)
-    throw new Error('Firmware không khớp app (ver ' + info[1] + ', ' + info[2] + ' layer, ' + info[3] + ' phím). Hãy nạp firmware mới.');
-  const n = JSON.parse(JSON.stringify(state));
-  for (let l = 0; l < HID_NL; l++) for (let off = 0; off < HID_NK; off += 14) {
-    const c = Math.min(14, HID_NK - off), v = await hidReq([2, l, off, c]);
-    for (let i = 0; i < c; i++) n.keymap[l][off + i] = v[4 + 2 * i] | (v[5 + 2 * i] << 8);
-  }
-  for (let l = 0; l < HID_NL; l++) {
-    const v = await hidReq([4, l]);
-    n.names[l] = String.fromCharCode(...v.slice(3, 3 + v[2]));
-  }
+  if (info[1] !== 2 || info[3] !== HID_NK) throw new Error('Firmware không khớp app (giao thức ' + info[1] + '). Hãy nạp firmware mới.');
+  HID.info = info;
+  const n = JSON.parse(JSON.stringify(state)), eb = new Uint8Array(EXT_LEN);
+  const rdExt = async (off, len) => { for (let o = 0; o < len; o += 28) { const c = Math.min(28, len - o), v = await hidReq([14, (off + o) & 255, (off + o) >> 8, c]); eb.set(v.slice(4, 4 + c), off + o); } };
+  await rdExt(0, EXT_HDR);
+  const nl = Math.max(1, Math.min(info[2], eb[42])), lgn = Math.min(eb[47], 4);
+  await rdExt(EXT_HDR, lgn * 512);
+  n.ext = extFromBytes(eb);
+  n.keymap = []; n.names = []; n.colors = [];
   const col = await hidReq([6]);
-  for (let l = 0; l < HID_NL; l++) n.colors[l] = [col[1 + 3 * l], col[2 + 3 * l], col[3 + 3 * l]];
-  for (let i = 0; i < HID_NM; i++) {
-    let text = '';
-    for (let off = 0; off <= HID_MMAX; off += 28) {
-      const c = Math.min(28, HID_MMAX + 1 - off), v = await hidReq([8, i, off, c]);
-      let end = -1;
-      for (let j = 0; j < c; j++) if (v[4 + j] === 0) { end = j; break; }
-      text += String.fromCharCode(...v.slice(4, 4 + (end < 0 ? c : end)));
-      if (end >= 0) break;
+  for (let l = 0; l < nl; l++) {
+    const row = [];
+    for (let off = 0; off < HID_NK; off += 14) {
+      const c = Math.min(14, HID_NK - off), v = await hidReq([2, l, off, c]);
+      for (let i = 0; i < c; i++) row.push(v[4 + 2 * i] | (v[5 + 2 * i] << 8));
     }
-    n.macros[i].text = text;
+    n.keymap.push(row);
+    const nm = await hidReq([4, l]);
+    n.names.push(String.fromCharCode(...nm.slice(3, 3 + nm[2])) || DEFAULT_NAMES[l]);
+    n.colors.push([col[1 + 3 * l], col[2 + 3 * l], col[3 + 3 * l]]);
+  }
+  for (let i = 0; i < NM; i++) {
+    const v = await hidReq([8, i, 0, 28]), len = v[4], b = [...v.slice(4, 32)];
+    for (let off = 28; off < len + 1; off += 28) { const c = Math.min(28, 256 - off), w = await hidReq([8, i, off, c]); b.push(...w.slice(4, 4 + c)); }
+    n.macros[i].text = len ? decompileMacro(b.slice(1, len + 1)) : '';
   }
   const cf = await hidReq([11]);
   n.cfg.SCREENSAVER_MS = (cf[1] | (cf[2] << 8) | (cf[3] << 16) | (cf[4] << 24)) >>> 0;
   n.cfg.LED_BRIGHT = cf[5];
-  for (let i = 0; i < NTD; i++) { const v = await hidReq([13, i]); for (let k = 0; k < 3; k++) n.td[i][k] = v[2 + 2 * k] | (v[3 + 2 * k] << 8); }
-  for (let i = 0; i < NCB; i++) { const v = await hidReq([15, i]); for (let k = 0; k < 3; k++) n.cb[i][k] = v[2 + 2 * k] | (v[3 + 2 * k] << 8); }
   state = sanitize(n);
+  ui.layer = Math.min(ui.layer, NL - 1); LG.f = 0;
   pushHist(); dirty = false; saveDraft();
   const p = $('#dirtyPill'); if (p) p.hidden = true;
   HID.synced = hidSnap(); HID.unsaved = false;
   renderAll();
 }
-
 async function hidPush(all) {
   if (!HID.dev || HID.busy) return;
   HID.busy = true; hidUi();
   try {
-    const cur = hidSnap(), old = all || !HID.synced ? null : HID.synced, sendQ = [];
-    const diff = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
-    for (let l = 0; l < HID_NL; l++) for (let off = 0; off < HID_NK; off += 14) {
-      const c = Math.min(14, HID_NK - off), seg = cur.keys[l].slice(off, off + c);
-      if (old && !diff(seg, old.keys[l].slice(off, off + c))) continue;
-      const q = [3, l, off, c]; seg.forEach(k => q.push(k & 255, k >> 8)); sendQ.push(q);
+    const cur = hidSnap(), old = all || !HID.synced ? null : HID.synced, q = [];
+    const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+    const elen = EXT_HDR + cur.ext[47] * 512;
+    for (let off = 0; off < elen; off += 28) {
+      const c = Math.min(28, elen - off), seg = Array.from(cur.ext.subarray(off, off + c));
+      if (!old || !same(seg, Array.from(old.ext.subarray(off, off + c)))) q.push([15, off & 255, off >> 8, c, ...seg]);
     }
-    cur.names.forEach((nm, l) => { if (!old || nm !== old.names[l]) sendQ.push([5, l, nm.length, ...Array.from(nm, ch => ch.charCodeAt(0))]); });
-    if (!old || diff(cur.colors, old.colors)) sendQ.push([7, ...cur.colors.flat()]);
-    cur.macs.forEach((tx, i) => {
-      if (old && tx === old.macs[i]) return;
-      if (!tx.length) { sendQ.push([9, i, 0, 0]); return; }
-      for (let off = 0; off < tx.length; off += 28) {
-        const part = tx.slice(off, off + 28);
-        sendQ.push([9, i, off, part.length, ...Array.from(part, ch => ch.charCodeAt(0))]);
-      }
+    cur.keys.forEach((row, l) => { for (let off = 0; off < HID_NK; off += 14) {
+      const c = Math.min(14, HID_NK - off), seg = row.slice(off, off + c);
+      if (old && old.keys[l] && same(seg, old.keys[l].slice(off, off + c))) continue;
+      const m = [3, l, off, c]; seg.forEach(k => m.push(k & 255, k >> 8)); q.push(m);
+    } });
+    cur.names.forEach((nm, l) => { if (!old || nm !== old.names[l]) q.push([5, l, nm.length, ...Array.from(nm, ch => ch.charCodeAt(0))]); });
+    if (!old || !same(cur.colors, old.colors)) q.push([7, ...cur.colors]);
+    cur.macs.forEach((mb, i) => {
+      if (old && same(mb, old.macs[i])) return;
+      for (let off = 0; off < mb.length; off += 28) { const part = mb.slice(off, off + 28); q.push([9, i, off, part.length, ...part]); }
     });
-    if (!old || cur.ss !== old.ss || cur.br !== old.br)
-      sendQ.push([12, cur.ss & 255, (cur.ss >> 8) & 255, (cur.ss >> 16) & 255, (cur.ss >>> 24) & 255, cur.br]);
-    const pk = (cmd, i, r) => { const q = [cmd, i]; r.forEach(k => q.push(k & 255, k >> 8)); return q; };
-    cur.td.forEach((r, i) => { if (!old || diff(r, old.td[i])) sendQ.push(pk(14, i, r)); });
-    cur.cb.forEach((r, i) => { if (!old || diff(r, old.cb[i])) sendQ.push(pk(16, i, r)); });
-    for (const q of sendQ) await hidReq(q);
+    if (!old || cur.ss !== old.ss || cur.br !== old.br) q.push([12, cur.ss & 255, (cur.ss >> 8) & 255, (cur.ss >> 16) & 255, (cur.ss >>> 24) & 255, cur.br]);
+    for (const m of q) await hidReq(m);
     HID.synced = cur;
-    if (sendQ.length) HID.unsaved = true;
+    if (q.length) HID.unsaved = true;
   } catch (e) {
     toast('Gửi xuống bàn phím lỗi: ' + e.message, 'err', 4000);
   } finally { HID.busy = false; hidUi(); }
 }
-
 function hidSchedule() {
   if (!HID.dev) return;
   clearTimeout(HID.timer);
-  HID.timer = setTimeout(async () => {
-    if (HID.busy) return hidSchedule();
-    await hidPush(false);
-  }, 250);
+  HID.timer = setTimeout(async () => { if (HID.busy) return hidSchedule(); await hidPush(false); }, 250);
 }
-
 async function hidSave() {
   if (!HID.dev) return;
-  try {
-    await hidPush(false);
-    await hidReq([10]);
-    HID.unsaved = false; hidUi();
-    toast('Đã lưu cấu hình vào flash của bàn phím', 'ok');
-  } catch (e) { toast('Lưu lỗi: ' + e.message, 'err', 4000); }
+  try { await hidPush(false); await hidReq([10]); HID.unsaved = false; hidUi(); toast('Đã lưu cấu hình vào flash của bàn phím', 'ok'); }
+  catch (e) { toast('Lưu lỗi: ' + e.message, 'err', 4000); }
 }
-
+async function hidDefaults() {
+  if (!HID.dev || !confirm('Đưa bàn phím về cấu hình mặc định (RAM)?\nBấm “Lưu vào bàn phím” sau đó nếu muốn ghi vĩnh viễn.')) return;
+  try { await hidReq([13]); await hidPull(); HID.unsaved = true; hidUi(); toast('Đã nạp mặc định', 'ok'); }
+  catch (e) { toast('Lỗi: ' + e.message, 'err', 4000); }
+}
 async function hidOpen(dev, interactive) {
   try {
     if (!dev.opened) await dev.open();
@@ -2965,10 +3188,8 @@ async function hidOpen(dev, interactive) {
     if (interactive && dirty && confirm('App đang có bản sửa chưa xuất.\nOK = đẩy bản đang sửa xuống bàn phím\nHuỷ = lấy cấu hình từ bàn phím (bỏ bản đang sửa)')) {
       const info = await hidReq([1]);
       if (info[1] !== 2) throw new Error('Firmware không khớp app. Hãy nạp firmware mới.');
-      await hidPush(true);
-    } else {
-      await hidPull();
-    }
+      HID.info = info; await hidPush(true);
+    } else await hidPull();
     toast('Đã kết nối ' + (dev.productName || 'Numpad30') + ' — sửa là áp dụng ngay', 'ok');
   } catch (e) {
     toast('Kết nối lỗi: ' + e.message, 'err', 5000);
@@ -2977,19 +3198,12 @@ async function hidOpen(dev, interactive) {
   }
   hidUi();
 }
-
 async function hidConnect() {
-  if (HID.dev) {
-    try { await HID.dev.close(); } catch (e) {}
-    HID.dev = null; hidUi(); toast('Đã ngắt kết nối', 'ok'); return;
-  }
+  if (HID.dev) { try { await HID.dev.close(); } catch (e) {} HID.dev = null; hidUi(); toast('Đã ngắt kết nối', 'ok'); return; }
   if (!('hid' in navigator)) { toast('Trình duyệt không hỗ trợ WebHID. Dùng Chrome hoặc Edge.', 'err', 5000); return; }
-  try {
-    const list = await navigator.hid.requestDevice({ filters: HID_FILTER });
-    if (list.length) await hidOpen(list[0], true);
-  } catch (e) { toast('Không mở được thiết bị: ' + e.message, 'err', 5000); }
+  try { const list = await navigator.hid.requestDevice({ filters: HID_FILTER }); if (list.length) await hidOpen(list[0], true); }
+  catch (e) { toast('Không mở được thiết bị: ' + e.message, 'err', 5000); }
 }
-
 function hidUi() {
   const on = !!HID.dev, card = $('#buildCard');
   if (card) card.classList.toggle('on', on);
@@ -2997,19 +3211,77 @@ function hidUi() {
   set('#hidTitle', on ? (HID.unsaved ? 'Đã kết nối · chưa lưu flash' : 'Đã kết nối · đã lưu') : 'Chưa kết nối');
   set('#hidSub', on ? 'Sửa là áp dụng ngay vào bàn phím (RAM)' : 'Sửa trực tiếp qua USB · Chrome/Edge');
   set('#hidBtn', on ? 'Ngắt kết nối' : 'Kết nối bàn phím');
-  set('#hidInfo', on ? 'Có — WebHID' : 'Chưa kết nối');
+  set('#hidInfo', on ? 'Có — WebHID · giao thức v2' : 'Chưa kết nối');
   const sv = $('#hidSave'); if (sv) { sv.hidden = !on; sv.disabled = HID.busy; sv.classList.toggle('primary', HID.unsaved); }
+  const df = $('#hidDef'); if (df) df.hidden = !on;
 }
 
-(function hidInit() {
+/* ---------- gắn các thành phần mới vào giao diện ---------- */
+const _renderAdvanced = renderAdvanced; renderAdvanced = function () { _renderAdvanced(); renderExtAdv(); };
+const _renderLed = renderLed; renderLed = function () { _renderLed(); renderExtLed(); };
+const _renderScreen = renderScreen; renderScreen = function () { _renderScreen(); renderExtScr(); };
+const _renderMacro = renderMacro; renderMacro = function () { _renderMacro(); extMacroBar(); };
+
+(function extInit() {
   on('#hidBtn', 'click', hidConnect);
   on('#hidSave', 'click', hidSave);
+  on('#hidDef', 'click', hidDefaults);
+  document.addEventListener('click', e => {
+    const t = e.target, q = s => t.closest && t.closest(s);
+    let b;
+    if ((b = q('[data-lop]'))) layerOp(b.dataset.lop);
+    else if ((b = q('[data-tok]'))) { const ta = $('#macText'); if (ta) insertAt(ta, b.dataset.tok); }
+    else if ((b = q('[data-xpick]'))) { const p = b.dataset.xpick.split(':'); extPick(p[0] === 'td' ? { t: 'td', n: +p[1], k: +p[2] } : { t: 'cb', n: +p[1] }); }
+    else if ((b = q('[data-xclr]'))) { const p = b.dataset.xclr.split(':'), n = +p[1]; if (p[0] === 'td') state.ext.td[n] = [0, 0, 0]; else state.ext.cb[n] = { a: 255, b: 255, r: 0 }; pushHist(); markDirty(); renderExtAdv(); }
+    else if ((b = q('[data-fxmode]'))) { state.ext.led.mode = +b.dataset.fxmode; pushHist(); markDirty(); renderExtLed(); }
+    else if (q('#fxPress')) ledPress = performance.now();
+    else if ((b = q('[data-lgf]'))) { lgStop(); LG.f = +b.dataset.lgf; renderExtScr(); }
+    else if (q('#xAdd')) { state.ext.oled.frames.push(hexOf(new Uint8Array(512))); LG.f = state.ext.oled.frames.length - 1; pushHist(); markDirty(); renderExtScr(); }
+    else if (q('#xDup')) { const fr = state.ext.oled.frames; fr.splice(LG.f + 1, 0, fr[LG.f]); LG.f++; pushHist(); markDirty(); renderExtScr(); }
+    else if (q('#xDel')) { state.ext.oled.frames.splice(LG.f, 1); LG.f = Math.max(0, LG.f - 1); pushHist(); markDirty(); renderExtScr(); }
+    else if (q('#xClear')) { LG.bits.fill(0); lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xInv')) { for (let y = 0; y < 32; y++) for (let x = 0; x < 128; x++) LG.bits[(y >> 3) * 128 + x] ^= 1 << (y & 7); lgCommit(true); lgDraw(LG.bits); }
+    else if (q('#xPlay')) {
+      if (LG.play) { lgStop(); return; }
+      const fr = state.ext.oled.frames; if (!fr.length) return;
+      LG.play = 1; $('#xPlay').textContent = '■ Dừng'; let i = 0;
+      LG.timer = setInterval(() => { lgDraw(bitsOf(fr[i % fr.length])); i++; }, Math.max(30, state.ext.oled.ms));
+    }
+  });
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.id === 'macText') updMacBytes();
+    else if (t.dataset && t.dataset.fxr) { state.ext.led[t.dataset.fxr] = +t.value; const o = $(t.dataset.fxr === 'speed' ? '#fxSpeedV' : '#fxBriV'); if (o) o.textContent = t.value; markDirty(); }
+    else if (t.id === 'xGreet') { state.ext.oled.greet = toAscii(t.value).toUpperCase().replace(/[^ !()*+,\-./0-9:=?A-Z]/g, '').slice(0, 27); markDirty(); }
+    else if (t.id === 'xLgMs') { state.ext.oled.ms = Math.max(30, Math.min(5000, Math.round(+t.value) || 150)); markDirty(); }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.fxr) pushHist();
+    else if (t.id === 'xGreet' || t.id === 'xLgMs') { pushHist(); renderExtScr(); }
+    else if (t.id === 'xSaver') { state.ext.oled.saver = +t.value; pushHist(); markDirty(); }
+    else if (t.dataset && t.dataset.cbsel) { const [n, k] = t.dataset.cbsel.split(':'); state.ext.cb[+n][k] = +t.value; pushHist(); markDirty(); }
+    else if (t.id === 'xFile' && t.files[0]) { lgImport(t.files[0]); t.value = ''; }
+  });
+  document.addEventListener('pointerdown', e => {
+    if (e.target.id !== 'xLogo' || !state.ext.oled.frames.length) return;
+    e.preventDefault(); LG.drag = e.button === 2 || e.shiftKey ? 0 : 1; e.target.setPointerCapture(e.pointerId); lgPaint(e);
+  });
+  document.addEventListener('pointermove', e => { if (LG.drag !== null && e.target.id === 'xLogo') lgPaint(e); });
+  document.addEventListener('pointerup', () => { if (LG.drag !== null) { LG.drag = null; lgCommit(true); } });
+  document.addEventListener('contextmenu', e => { if (e.target.id === 'xLogo') e.preventDefault(); });
+  function lgPaint(e) {
+    const r = e.target.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * 128), y = Math.floor((e.clientY - r.top) / r.height * 32);
+    if (x < 0 || x > 127 || y < 0 || y > 31) return;
+    const i = (y >> 3) * 128 + x, m = 1 << (y & 7);
+    if (LG.drag) LG.bits[i] |= m; else LG.bits[i] &= ~m;
+    lgDraw(LG.bits);
+  }
   hidUi();
+  renderAll();
   if (!('hid' in navigator)) return;
   const mine = d => d.vendorId === 0xC1A0 && d.productId === 0x0030 && d.collections.some(c => c.usagePage === 0xFF60);
-  navigator.hid.addEventListener('disconnect', e => {
-    if (e.device === HID.dev) { HID.dev = null; hidUi(); toast('Bàn phím đã rút ra', 'warn'); }
-  });
+  navigator.hid.addEventListener('disconnect', e => { if (e.device === HID.dev) { HID.dev = null; hidUi(); toast('Bàn phím đã rút ra', 'warn'); } });
   navigator.hid.addEventListener('connect', e => { if (!HID.dev && !dirty && mine(e.device)) hidOpen(e.device, false); });
   navigator.hid.getDevices().then(l => { const d = l.find(mine); if (d && !dirty) hidOpen(d, false); }).catch(() => {});
 })();
