@@ -9,7 +9,9 @@
 #define OLED_SCL 13                          // I2C0 SCL
 #define OLED_ADDR 0x3C
 #define OLED_H 32                            // 32 = 128x32 (0.91"), 64 = 128x64 (0.96")
-#define OLED_ROTATE 0                        // 1 = xoay 180 do neu man hinh lap nguoc
+#ifndef OLED_ROTATE
+#define OLED_ROTATE 1                        // 1 = OLED lap nguoc: tu xoay 180 do o moi huong (app "Ngang 0 do" = huong da bu nay). Test PC dung -DOLED_ROTATE=0
+#endif
 #define LED_PIN 16                           // WS2812 onboard cua RP2350-Zero
 #define LED_BRIGHT 24                        // do sang den (0-255), giu thap de khong qua dong USB
 #define DEBOUNCE_MS 5                        // so lan quet 1 ms giong nhau lien tiep de chot trang thai phim

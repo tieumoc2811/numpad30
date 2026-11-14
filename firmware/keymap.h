@@ -62,7 +62,7 @@ static void cfg_defaults(cfg_t *g) {
     g->w[W_KM + l * NKEYS + i] = !slot_valid(i) ? KC_NO : l < NUM_DEFAULT_LAYERS ? def_layers[l][i] : KC_TRNS;
   g->w[W_BT + 0] = KC_SPACE; g->w[W_BT + 1] = KC_LSFT; g->w[W_BT + 2] = KC_ENTER;   // TD0: cham = Space, giu = Shift, cham 2 lan = Enter
   g->w[W_NLI] = NUM_DEFAULT_LAYERS;
-  static const uint16_t ld[W_NLD] = {0, 128, 200, 210, 255, 1, 0, 24, 2};   // [mode, toc do, sang, hue, sat, over, obMode, obSang, huong OLED]
+  static const uint16_t ld[W_NLD] = {0, 128, 200, 210, 255, 1, 0, 24, 0};   // [mode, toc do, sang, hue, sat, over, obMode, obSang, huong OLED]
   for (int i = 0; i < W_NLD; i++) g->w[W_LDB + i] = ld[i];
   for (int l = 0; l < NLAYER; l++) g->w[W_LRB + l] = 4;
   static const uint16_t os[W_NOS] = {300, 5, 1, 0, 1, 0, 120, 0};
