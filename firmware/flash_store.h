@@ -7,9 +7,9 @@
 #include <string.h>
 #include "hid_proto.h"
 
-#define FS_VER 1
+#define FS_VER 2
 #define FS_HDR 12
-#define FS_BODY (NLAYER * NKEYS * 2 + NLAYER * (HP_NAME_MAX + 1) + NLAYER * 3 + NMACROS * (HP_MACRO_MAX + 1) + 5)
+#define FS_BODY (NLAYER * NKEYS * 2 + NLAYER * (HP_NAME_MAX + 1) + NLAYER * 3 + NMACROS * (HP_MACRO_MAX + 1) + 6)
 
 size_t fs_pack(const cfg_store_t *s, uint8_t *out, size_t cap);
 bool fs_unpack(cfg_store_t *s, const uint8_t *in, size_t cap);
@@ -40,6 +40,7 @@ size_t fs_pack(const cfg_store_t *s, uint8_t *o, size_t cap) {
   memcpy(o + p, s->macs, sizeof s->macs); p += sizeof s->macs;
   fs_put32(o + p, s->ss_ms); p += 4;
   o[p++] = s->bright;
+  o[p++] = s->nl;
   fs_put32(o + 8, fs_crc32(o + FS_HDR, FS_BODY));
   return p;
 }
@@ -54,7 +55,9 @@ bool fs_unpack(cfg_store_t *s, const uint8_t *in, size_t cap) {
   memcpy(s->colors, in + p, sizeof s->colors); p += sizeof s->colors;
   memcpy(s->macs, in + p, sizeof s->macs); p += sizeof s->macs;
   s->ss_ms = fs_get32(in + p); p += 4;
-  s->bright = in[p];
+  s->bright = in[p++];
+  if (in[p] < 1 || in[p] > NLAYER) return false;
+  s->nl = in[p];
   for (int i = 0; i < NLAYER; i++) s->names[i][HP_NAME_MAX] = 0;
   for (int i = 0; i < NMACROS; i++) s->macs[i][HP_MACRO_MAX] = 0;
   s->save_req = false;

@@ -7,7 +7,10 @@
 #include "config.h"
 
 #define NKEYS (NROW * NCOL)
-#define NLAYER 3
+#define NLAYER 16                      // so layer toi da (kich thuoc mang)
+#ifndef NLAYER_DEF
+#define NLAYER_DEF 3                   // so layer mac dinh (keymap.h co the khai bao truoc khi include)
+#endif
 typedef uint16_t kc_t;
 
 // ---- ma phim ----
@@ -56,7 +59,8 @@ typedef struct {
   uint32_t t0[NKEYS];                   // thoi diem nhan (cho LT)
   uint8_t tapcnt[NKEYS];                // LT tap: so ms con phai giu phim
   int8_t mol[NKEYS];                    // layer ma phim nay dang giu (MO / LT hold), -1 neu khong
-  uint8_t toggled;                      // layer bat bang TG
+  uint16_t toggled;                     // layer bat bang TG
+  uint8_t nl;                           // so layer dang dung (1..NLAYER); layer >= nl bi bo qua
   bool boot_req;
   uint16_t last_kc;                     // phim vua bam (de hien OLED)
   uint32_t press_seq;                   // tang moi lan bam
@@ -72,6 +76,7 @@ bool core_kb(const core_t *c, kb_report_t *r);        // true = co bao cao can g
 uint16_t core_cons(const core_t *c);
 void core_macro_ack(core_t *c);                       // goi sau moi lan gui bao cao khi macro dang chay
 int core_top_layer(const core_t *c);
+void core_set_layers(core_t *c, int n);
 void core_label(kc_t kc, char *o, int n);
 bool core_ascii(char ch, uint8_t *mods, uint8_t *key);
 
@@ -81,11 +86,18 @@ static inline bool core_macro_active(const core_t *c) { return c->mact; }
 void core_init(core_t *c) {
   memset(c, 0, sizeof *c);
   for (int i = 0; i < NKEYS; i++) c->mol[i] = -1;
+  c->nl = NLAYER_DEF;
+}
+void core_set_layers(core_t *c, int n) {      // doi so layer luc chay: bo cac layer vuot qua (TG / MO / LT tro toi do)
+  if (n < 1) n = 1;
+  if (n > NLAYER) n = NLAYER;
+  c->nl = (uint8_t)n;
+  c->toggled &= (uint16_t)((1u << n) - 1u);
 }
 int core_top_layer(const core_t *c) {
-  uint8_t m = 1 | c->toggled;
+  uint32_t m = 1u | c->toggled;
   for (int i = 0; i < NKEYS; i++) if (c->mol[i] >= 0) m |= 1u << c->mol[i];
-  for (int l = NLAYER - 1; l > 0; l--) if (m >> l & 1) return l;
+  for (int l = c->nl - 1; l > 0; l--) if (m >> l & 1) return l;
   return 0;
 }
 static kc_t resolve(const core_t *c, int i, const kc_t (*km)[NKEYS]) {
@@ -128,7 +140,7 @@ void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now, const kc_t (*
     if (k == KC_NO) continue;
     c->press_seq++; c->last_kc = k;
     if (IS_MO(k)) { c->act[i] = k; c->mol[i] = k & 0xF; }
-    else if (IS_TG(k)) c->toggled ^= 1u << (k & 0xF);
+    else if (IS_TG(k)) c->toggled ^= (uint16_t)(1u << (k & 0xF));
     else if (IS_MACRO(k)) macro_begin(c, macros, nmacros, k & 0xFFF);
     else if (IS_LT(k)) { c->act[i] = k; c->lts[i] = 1; c->t0[i] = now; }
     else if (k == KC_BOOT) c->boot_req = true;
@@ -200,7 +212,7 @@ void core_label(kc_t k, char *o, int n) {
     switch (k & 0x7FFF) { case CN_MUTE: ADD("MUTE"); break; case CN_VOLU: ADD("VOL+"); break; case CN_VOLD: ADD("VOL-"); break;
       case CN_PLAY: ADD("PLAY"); break; case CN_NEXT: ADD("NEXT"); break; case CN_PREV: ADD("PREV"); break; default: ADD("MEDIA"); }
   } else if (IS_MACRO(k)) { ADD("MACRO "); char d[2] = {'1' + (k & 0xF), 0}; ADD(d); }
-  else if (IS_MO(k) || IS_TG(k)) { ADD("LAYER "); char d[2] = {'0' + (k & 0xF), 0}; ADD(d); }
+  else if (IS_MO(k) || IS_TG(k)) { ADD("LAYER "); int n = k & 0xF; char d[3] = {0, 0, 0}; if (n >= 10) { d[0] = '1'; d[1] = '0' + n - 10; } else d[0] = '0' + n; ADD(d); }
   else if (IS_LT(k)) { core_label(k & 0xFF, o, n); return; }
   else if (k == KC_BOOT) ADD("BOOT");
   else {

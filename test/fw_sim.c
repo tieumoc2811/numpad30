@@ -65,7 +65,8 @@ static int scenario_saver(void) {   // LED NumLock/Caps tu may tinh, man hinh ch
   uint8_t l2[] = {1, 0x02}; tud_hid_set_report_cb(0, 0, 2, l2, 2); CHECK(host_leds == 2);
   endt = 500; run(); CHECK(sim_led == (((uint32_t)0 << 16 | (uint32_t)(255 * LED_BRIGHT / 255) << 8 | 0) << 8));   // CapsLock -> do
   host_leds = 0;
-  endt = SCREENSAVER_MS + 1000; run();
+  { uint8_t q[6] = {HP_SET_CFG, 0x10, 0x27, 0, 0, LED_BRIGHT}; if (nrq < 32) { memset(rq[nrq], 0, 32); memcpy(rq[nrq], q, 6); nrq++; } }   // man hinh cho sau 10 s
+  endt += 11000; run();
   CHECK(sim_i2c_cmd[1] == 0xAE); CHECK(sim_led == 0);
   sim_suspended = true; sim_down[1][3] = 1; endt += 20; run();
   CHECK(sim_i2c_cmd[1] == 0xAF); CHECK(sim_wakeups > 0);
@@ -79,19 +80,27 @@ static int scenario_raw(void) {     // Raw HID: doc/sua phim, ten, mau, macro, l
   rawq((uint8_t[]){HP_GET_KEYS, 0, 0, 2}, 4);                                 // 1
   rawq((uint8_t[]){HP_SET_KEYS, 0, 5, 1, (uint8_t)KC_Y, (uint8_t)(KC_Y >> 8)}, 6);   // 2
   rawq((uint8_t[]){HP_SET_NAME, 1, 3, 'A', 'B', 'C'}, 6);                     // 3
-  rawq((uint8_t[]){HP_SET_COLORS, 1, 2, 3, 4, 5, 6, 7, 8, 9}, 10);           // 4
+  rawq((uint8_t[]){HP_SET_COLORS, 0, 3, 1, 2, 3, 4, 5, 6, 7, 8, 9}, 12);        // 4 mau layer 0..2
   rawq((uint8_t[]){HP_SET_MACRO, 0, 0, 2, 'h', 'i'}, 6);                      // 5
-  rawq((uint8_t[]){HP_GET_KEYS, 9, 0, 1}, 4);                                 // 6 loi layer
+  rawq((uint8_t[]){HP_GET_KEYS, NLAYER, 0, 1}, 4);                            // 6 loi layer (vuot toi da)
   rawq((uint8_t[]){HP_SET_CFG, 0x10, 0x27, 0, 0, 77}, 6);                     // 7 ss = 10000 ms, sang 77
-  rawq((uint8_t[]){HP_SAVE}, 1);                                              // 8
+  rawq((uint8_t[]){HP_SET_NLAYERS, 5}, 2);                                    // 8 con 5 layer
+  rawq((uint8_t[]){HP_SET_NLAYERS, NLAYER + 1}, 2);                           // 9 loi
+  rawq((uint8_t[]){HP_SET_NLAYERS, 0}, 2);                                    // 10 loi
+  rawq((uint8_t[]){HP_SET_KEYS, 12, 0, 1, (uint8_t)KC_Z, (uint8_t)(KC_Z >> 8)}, 6);   // 11 layer 12 (du lieu luon co san)
+  rawq((uint8_t[]){HP_GET_COLORS, 0, 3}, 3);                                  // 12
+  rawq((uint8_t[]){HP_SAVE}, 1);                                              // 13
   endt = 100; run();
-  CHECK(sim_raw_n == 9);
-  CHECK(sim_rep[0][0] == HP_INFO && sim_rep[0][2] == NLAYER && sim_rep[0][3] == NKEYS && sim_rep[0][4] == NMACROS);
+  CHECK(sim_raw_n == 14);
+  CHECK(sim_rep[0][0] == HP_INFO && sim_rep[0][1] == HP_VER && sim_rep[0][2] == NLAYER_DEF && sim_rep[0][3] == NKEYS && sim_rep[0][4] == NMACROS && sim_rep[0][8] == NLAYER);
   CHECK(sim_rep[1][0] == HP_GET_KEYS && (sim_rep[1][4] | sim_rep[1][5] << 8) == C_(KC_C));
-  CHECK(sim_rep[2][0] == HP_SET_KEYS && sim_rep[6][0] == HP_ERR && sim_rep[8][0] == HP_SAVE);
+  CHECK(sim_rep[2][0] == HP_SET_KEYS && sim_rep[6][0] == HP_ERR && sim_rep[13][0] == HP_SAVE);
+  CHECK(sim_rep[8][0] == HP_SET_NLAYERS && sim_rep[8][1] == 5 && core.nl == 5 && cfg.nl == 5);
+  CHECK(sim_rep[9][0] == HP_ERR && sim_rep[10][0] == HP_ERR && sim_rep[11][0] == HP_SET_KEYS);
+  CHECK(sim_rep[12][0] == HP_GET_COLORS && sim_rep[12][2] == 3 && sim_rep[12][3] == 1 && sim_rep[12][11] == 9);
   CHECK(sim_flash_writes == 1 && !memcmp(sim_flash, "NP30", 4));
   cfg_store_t before = cfg; memset(&cfg, 0, sizeof cfg); cfg_load();            // gia lap khoi dong lai tu flash
-  CHECK(cfg.km[0][5] == KC_Y && !strcmp(cfg.names[1], "ABC") && !strcmp(cfg.macs[0], "hi") && cfg.colors[2][2] == 9);
+  CHECK(cfg.nl == 5 && cfg.km[12][0] == KC_Z && cfg.km[0][5] == KC_Y && !strcmp(cfg.names[1], "ABC") && !strcmp(cfg.macs[0], "hi") && cfg.colors[2][2] == 9);
   CHECK(cfg.ss_ms == 10000 && cfg.bright == 77 && !memcmp(cfg.km, before.km, sizeof cfg.km) && macs[0].text == cfg.macs[0]);
   sim_flash[100] ^= 0xFF; cfg_load(); CHECK(cfg.km[0][5] != KC_Y && cfg.bright == LED_BRIGHT);   // CRC hong -> ve mac dinh
   return fails;

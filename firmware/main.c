@@ -1,5 +1,5 @@
 // Numpad30 RP2350-Zero: ma tran 5x7 co diode (hang GP0-4, cot GP5-11), HID ban phim + media, OLED SSD1306 (I2C0 SDA=GP12 SCL=GP13),
-// 3 layer (NUM / FN / MACRO), tap-hold, macro go chuoi, den RGB onboard (GP16) theo layer. Logic phim nam trong core.h (kiem thu tren PC).
+// toi da 16 layer (mac dinh NUM / FN / MACRO, them/xoa bang Studio), tap-hold, macro go chuoi, den RGB onboard (GP16) theo layer. Logic phim nam trong core.h (kiem thu tren PC).
 #include <string.h>
 #include <stdio.h>
 #include "pico/stdlib.h"
@@ -20,8 +20,10 @@
 #include "flash_store.h"
 
 static const uint8_t row_pins[NROW] = ROW_PINS, col_pins[NCOL] = COL_PINS;
-static const char *const def_names[NLAYER] = NUM_LAYER_NAMES;
-static const uint8_t def_colors[NLAYER][3] = {{0, 60, 255}, {255, 110, 0}, {0, 255, 60}};   // NUM xanh duong, FN cam, MACRO xanh la
+static const char *const def_names[NLAYER_DEF] = NUM_LAYER_NAMES;
+static const uint8_t def_colors[NLAYER][3] = {   // NUM xanh duong, FN cam, MACRO xanh la, con lai cho layer them
+  {0, 60, 255}, {255, 110, 0}, {0, 255, 60}, {255, 0, 160}, {0, 220, 220}, {255, 230, 0}, {160, 60, 255}, {255, 60, 60},
+  {60, 160, 255}, {160, 255, 60}, {255, 140, 140}, {0, 160, 120}, {200, 120, 0}, {120, 120, 255}, {255, 255, 255}, {120, 255, 200}};
 static core_t core;
 static cfg_store_t cfg;                          // cau hinh dang chay (RAM), sua duoc qua Raw HID
 static macro_t macs[NMACROS];
@@ -140,8 +142,11 @@ static void oled_task(uint32_t now) {     // goi moi ms: moi lan gui toi da 1 pa
 // ---------------- cau hinh runtime + flash ----------------
 static void cfg_defaults(void) {
   memset(&cfg, 0, sizeof cfg);
-  memcpy(cfg.km, keymap, sizeof cfg.km);
-  for (int l = 0; l < NLAYER; l++) strncpy(cfg.names[l], def_names[l], HP_NAME_MAX);
+  cfg.nl = NLAYER_DEF;
+  for (int l = 0; l < NLAYER; l++) {
+    if (l < NLAYER_DEF) { memcpy(cfg.km[l], keymap[l], sizeof cfg.km[l]); strncpy(cfg.names[l], def_names[l], HP_NAME_MAX); }
+    else { for (int i = 0; i < NKEYS; i++) cfg.km[l][i] = KC_TRNS; snprintf(cfg.names[l], sizeof cfg.names[l], "L%d", l); }
+  }
   memcpy(cfg.colors, def_colors, sizeof cfg.colors);
   for (int i = 0; i < NMACROS; i++) strncpy(cfg.macs[i], macros[i].text, HP_MACRO_MAX);
   cfg.ss_ms = SCREENSAVER_MS; cfg.bright = LED_BRIGHT;
@@ -177,7 +182,7 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t id, hid_report_type_t t, uint8_t
 uint16_t tud_hid_get_report_cb(uint8_t i, uint8_t id, hid_report_type_t t, uint8_t *b, uint16_t n) { (void)i; (void)id; (void)t; (void)b; (void)n; return 0; }
 
 static void raw_task(void) {
-  if (raw_pending && !raw_reply) { hp_handle(&cfg, raw_req, raw_rep); raw_pending = false; raw_reply = true; led_last = -2; odirty = true; }
+  if (raw_pending && !raw_reply) { hp_handle(&cfg, raw_req, raw_rep); core_set_layers(&core, cfg.nl); raw_pending = false; raw_reply = true; led_last = -2; odirty = true; }
   if (raw_reply && tud_hid_n_ready(1) && tud_hid_n_report(1, 0, raw_rep, HP_PKT)) {
     raw_reply = false;
     if (cfg.save_req) { cfg.save_req = false; cfg_save(); }   // ghi flash sau khi da tra loi
@@ -197,7 +202,7 @@ static void hid_task(void) {
 }
 
 int main(void) {
-  cfg_load(); matrix_init(); core_init(&core);
+  cfg_load(); matrix_init(); core_init(&core); core_set_layers(&core, cfg.nl);
   tusb_init(); oled_init(); led_init();
   uint32_t last = 0, active = ms();
   while (1) {

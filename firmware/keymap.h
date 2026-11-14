@@ -6,12 +6,13 @@
 //   R3: -   Up   -     1    2   3  Enter
 //   R4: Left Down Right 0   -   .  -
 // Phim "Num": tap = NumLock, giu = vao layer FN (LT).
+#define NLAYER_DEF 3
 #include "core.h"
 #define __ KC_NO
 #define ___ KC_TRNS
 #define NUM_LAYER_NAMES { "NUM", "FN", "MACRO" }
 
-static const kc_t keymap[NLAYER][NKEYS] = {
+static const kc_t keymap[NLAYER_DEF][NKEYS] = {
   // ---- Layer 0: NUM (numpad + phim tat) ----
   { C_(KC_C), C_(KC_V), C_(KC_X), LT(1, KC_NUMLOCK), KC_PSLS, KC_PAST, KC_PMNS,
     C_(KC_Z), C_(KC_Y), C_(KC_A), KC_P7, KC_P8, KC_P9, KC_PPLS,

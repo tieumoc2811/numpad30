@@ -25,6 +25,8 @@ R4: Left Down Right 0    .   .  .      (. = o trong; 0 o C3, dau cham o C5)
 
 ## Layer (`firmware/keymap.h`)
 
+Toi da 16 layer (`NLAYER`); `keymap.h` chi khai bao so layer mac dinh (`NLAYER_DEF`, hien 3). Them / xoa layer luc chay bang Studio (ket noi truc tiep, roi "Luu vao ban phim"). Layer moi mac dinh xuyen xuong layer duoi (`___`).
+
 - **NUM** (mac dinh): numpad day du, 9 phim tat (Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D), mui ten.
 - **FN** (giu phim `Num`; nha ngan = NumLock): F1-F9, tat tieng / am luong / bai truoc-tiep-dung, Home/End/PgUp/PgDn/Ins/Del, Esc, Tab, Space, Enter, Backspace. Phim `0` bat/tat layer MACRO, phim `.` vao bootloader (BOOT).
 - **MACRO** (bat/tat bang phim `0` o layer FN): M1-M9 go chuoi ky tu (sua trong `macros[]`, chi ASCII).
@@ -33,13 +35,13 @@ Ma phim: `C_(k)`/`S_(k)`/`A_(k)`/`G_(k)` to hop modifier, `MO(n)` giu layer, `TG
 
 ## Tinh nang
 
-Chong doi 5 ms, 6KRO (tran -> ErrorRollOver), tap-hold co permissive hold, macro go chuoi, phim media, OLED hien layer + phim vua bam + NumLock/CapsLock cua may tinh, LED RGB theo layer (CapsLock = do), tiet kiem OLED/LED sau 60 s, remote wakeup.
+Chong doi 5 ms, 6KRO (tran -> ErrorRollOver), tap-hold co permissive hold, macro go chuoi, phim media, OLED hien layer + phim vua bam + NumLock/CapsLock cua may tinh, LED RGB theo layer (CapsLock = do), tiet kiem OLED/LED sau so ms dat trong `SCREENSAVER_MS` (mac dinh 0 = tat), remote wakeup.
 
 ## App chinh phim (web, 1 tep)
 
 `numpad30-studio.html` — mo bang trinh duyet, khong can cai dat:
 
-- Sua 30 phim tren 3 layer, doi ten layer, mau LED, thong so `config.h`, xem truoc OLED 128x32 / 128x64.
+- Sua 30 phim tren toi da 16 layer (them / xoa layer), doi ten layer, mau LED, thong so `config.h`, xem truoc OLED 128x32 / 128x64.
 - Chon phim theo danh muc hoac tim kiem, bat modifier (Ctrl/Shift/Alt/Win), LT/MO/TG, hoac bam phim that de gan.
 - Sua 9 macro (tu bo dau khi xuat), hoan tac / lam lai, tu luu nhap trong trinh duyet.
 - Xuat `keymap.h`, `config.h`, doan ma mau LED va ho so JSON.
