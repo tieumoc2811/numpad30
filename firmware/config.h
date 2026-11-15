@@ -27,7 +27,7 @@
 #define TAP_HOLD_MS 10                       // phim "tap" tao ra (LT/TD) duoc giu it nhat so ms nay
 #define STORE_OFFSET (1024 * 1024)           // vi tri vung cau hinh trong flash (RP2350-Zero 2 MB)
 #define STORE_SECTORS 14                     // 14 x 4 KB = 56 KB cho cau hinh + macro + du lieu OLED
-#define FW_VER 14                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I), >=9 lenh 11 doc gyro truc tiep, >=10 lenh 12 thu HID chuot, >=11 lenh 13/14 doc/ghi ten layer + phim cuon chuot, >=12 coi bao Morse (khoi W_BZB, lenh 15 nghe thu, info[15]), >=13 nhac cu (ma phim 0x74xx / 0x75xx, layer PIANO + TUNES; khong doi khoi cau hinh), >=14 bai khoi dong (word OSB+7: 0 tat, 1..9 = bai)
+#define FW_VER 15                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I), >=9 lenh 11 doc gyro truc tiep, >=10 lenh 12 thu HID chuot, >=11 lenh 13/14 doc/ghi ten layer + phim cuon chuot, >=12 coi bao Morse (khoi W_BZB, lenh 15 nghe thu, info[15]), >=13 nhac cu (ma phim 0x74xx / 0x75xx, layer PIANO + TUNES; khong doi khoi cau hinh), >=14 bai khoi dong (word OSB+7: 0 tat, 1..9 = bai), >=15 sua chuot bay: khong cong don chuyen dong khi USB ngu + hieu chuan khong ket khi bi lac
 // ===== Coi bao (buzzer) cho che do Morse =====
 // Module coi 3 chan: GND -> GND, VCC -> 3V3 (hoac 5V/VBUS neu module can 5V), I/O -> BUZ_PIN. Phat tieng khi bam Cham / Gach / OK.
 #ifndef BUZ_PIN

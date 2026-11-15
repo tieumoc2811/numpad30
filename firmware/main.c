@@ -161,8 +161,10 @@ static void imu_task(uint32_t now) {      // goi moi ms; doc moi IMU_POLL_MS
   if (!imu_rd(0x43, b, 6)) { core.imu_ok = 0; return; }
   int16_t gx = (int16_t)(b[0] << 8 | b[1]), gy = (int16_t)(b[2] << 8 | b[3]), gz = (int16_t)(b[4] << 8 | b[5]);
   air_g[0] = gx; air_g[1] = gy; air_g[2] = gz;
-  int dx, dy; air_update(&air, &core.cfg.w[W_AMB], gx, gy, gz, dt, core_air_on(&core), &dx, &dy);
-  air_px += dx; air_py += dy;
+  // v15: host ngu (suspend) hoac chua mount -> khong gui duoc bao cao chuot. Truoc day air_px / air_py cu cong don mai, luc may thuc day xa het mot lan lam con tro van sang mep man hinh.
+  bool usb_ok = tud_mounted() && !tud_suspended();
+  int dx, dy; air_update(&air, &core.cfg.w[W_AMB], gx, gy, gz, dt, usb_ok && core_air_on(&core), &dx, &dy);
+  if (usb_ok) { air_px += dx; air_py += dy; } else air_px = air_py = 0;
 }
 static void oled_task(uint32_t now) {     // goi moi ms: moi lan gui toi da 1 page de khong chan quet phim / USB
   static uint32_t retry;
@@ -204,6 +206,9 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t id, hid_report_type_t t, uint8_t
   host_leds = (id == 0 && sz >= 2) ? b[1] : b[0];     // LED output report: bit0 Num, bit1 Caps
 }
 uint16_t tud_hid_get_report_cb(uint8_t i, uint8_t id, hid_report_type_t t, uint8_t *b, uint16_t n) { (void)i; (void)id; (void)t; (void)b; (void)n; return 0; }
+
+void tud_suspend_cb(bool remote_wakeup_en) { (void)remote_wakeup_en; air_px = air_py = 0; }   // v15: host di ngu -> bo chuyen dong con cho gui
+void tud_resume_cb(void) { air_px = air_py = 0; air.ex = air.ey = air.rx = air.ry = 0; }   // host thuc day -> con tro khong nhay
 
 static void hid_task(void) {
   static kb_report_t sent; static uint16_t cons_sent;

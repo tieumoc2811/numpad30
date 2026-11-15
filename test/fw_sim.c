@@ -15,7 +15,7 @@ uint32_t sim_buz_log[64]; int sim_buz_n, sim_buz_on; float sim_pwm_div; uint16_t
 uint32_t sim_led, fake_ms; uint8_t sim_down[NROW][NCOL]; int sim_rowhi[32]; int sim_i2c_writes, sim_boot, sim_wakeups; uint8_t sim_i2c_cmd[2]; bool sim_suspended;
 typedef struct { uint32_t t; uint8_t mods, k[6]; } kbl_t; static kbl_t kbl[4096]; static int nkb;
 typedef struct { uint32_t t; uint16_t u; } cnl_t; static cnl_t cnl[1024]; static int ncn;
-bool tud_hid_n_ready(uint8_t i) { (void)i; return true; }
+bool sim_busy, sim_shake; bool tud_hid_n_ready(uint8_t i) { return i == 1 ? true : !sim_busy; }
 bool tud_hid_keyboard_report(uint8_t id, uint8_t mod, const uint8_t k[6]) { (void)id; kbl_t *e = &kbl[nkb++]; e->t = fake_ms; e->mods = mod; memcpy(e->k, k, 6); return true; }
 bool tud_hid_mouse_report(uint8_t id, uint8_t b, int8_t x, int8_t y, int8_t v, int8_t h) { (void)id; (void)h; if (v) { sim_wheel += v; sim_wrep++; } sim_mb |= b; sim_mdx += x; sim_mdy += y; sim_mrep++; return true; }
 bool tud_hid_report(uint8_t id, const void *r, uint16_t n) { (void)n; if (id == 2) { cnl[ncn].t = fake_ms; cnl[ncn++].u = *(const uint16_t *)r; } return true; }
@@ -24,7 +24,7 @@ typedef struct { uint32_t t; int r, c, d; } ev_t; static ev_t evs[256]; static i
 static void ev(uint32_t t, int r, int c, int d) { evs[nev++] = (ev_t){t, r, c, d}; }
 static void tap(uint32_t t, int r, int c, int len) { ev(t, r, c, 1); ev(t + len, r, c, 0); }
 void tud_task(void) {
-  fake_ms++;
+  fake_ms++; if (sim_shake) sim_gyro[2] = (int16_t)(((fake_ms / 7) & 1) ? 3000 : 0);
   for (int i = 0; i < nacts; i++) if (acts[i].t == fake_ms) acts[i].f();
   for (int i = 0; i < nev; i++) if (evs[i].t == fake_ms) sim_down[evs[i].r][evs[i].c] = evs[i].d;
   if (fake_ms >= endt) longjmp(jb, 1);
@@ -191,11 +191,41 @@ static int scenario_piano(void) {   // nhac cu: Num giu + Enter bat PIANO, C5 / 
   CHECK(find_key(KC_NUMLOCK, 0) < 0);                       // khong lo NumLock / phim HID nao ra ngoai
   return fails;
 }
+
+static int sS[4][3]; static int sI;
+static void a_s(void) { int i = sI++; sS[i][0] = sim_mrep; sS[i][1] = sim_mdx; sS[i][2] = sim_mdy; }
+static void a_susp_on(void) { sim_busy = true; sim_suspended = true; }
+static void a_susp_off(void) { sim_busy = false; sim_suspended = false; }
+static void a_airt(void) { core.cfg.w[W_KM + POS_(1, 3)] = KC_AIRT; }
+static int scenario_susp(void) {   // v15: may ngu 3 s khi AIR dang bat -> luc day con tro khong duoc nhay
+  nacts = 0; nev = 0; sim_mdx = sim_mdy = sim_mrep = 0; sim_gyro[0] = sim_gyro[1] = sim_gyro[2] = 40;
+  act_at(50, a_airt); act_at(1500, a_gyro_hold); tap(1700, 1, 3, 30);
+  act_at(1900, a_s); act_at(2000, a_s);
+  act_at(2001, a_susp_on); act_at(5000, a_s);
+  act_at(5001, a_susp_off); act_at(5100, a_s);
+  endt = 5200; run();
+  int norm = sS[1][1] - sS[0][1], woke = sS[3][1] - sS[2][1];
+  printf("  binh thuong 100 ms: dx=%d | trong luc ngu: %d bao cao | 100 ms sau khi day: dx=%d\n", norm, sS[2][0] - sS[1][0], woke);
+  CHECK(norm < -100 && norm > -300);                  // chuot bay dang chay dung
+  CHECK(sS[2][0] - sS[1][0] <= 1);                    // ngu: khong bao cao nao (toi da 1 cai dang bay)
+  CHECK(woke < 0 && woke > -400);                     // day: chi nhu toc do binh thuong, khong xa ~5000 px
+  return fails;
+}
+static void a_shake_on(void) { sim_shake = true; }
+static void a_shake_off(void) { sim_shake = false; sim_gyro[2] = 40; }
+static int scenario_cal(void) {   // v15: cam tay lac luc hieu chuan -> van xong, chuot bay chay duoc
+  nacts = 0; nev = 0; sim_mdx = sim_mdy = sim_mrep = 0; sim_gyro[0] = sim_gyro[1] = sim_gyro[2] = 40;
+  act_at(50, a_airt); act_at(100, a_shake_on); act_at(3000, a_shake_off); tap(3500, 1, 3, 30);
+  endt = 5000; run();
+  printf("  sau 5 s: dang hieu chuan = %d, bao cao chuot = %d\n", (int)air_calibrating(&air), sim_mrep);
+  CHECK(!air_calibrating(&air) && sim_mrep > 5);
+  return fails;
+}
 int main(int argc, char **argv) {
   (void)argv; int rc = 0;
-  for (int s = 0; s < 6; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
+  for (int s = 0; s < 8; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
     fflush(stdout); pid_t p = fork();
-    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : s == 4 ? "coi bao Morse" : "nhac cu (PIANO)"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : s == 4 ? scenario_buz() : scenario_piano()); }
+    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : s == 4 ? "coi bao Morse" : s == 5 ? "nhac cu (PIANO)" : s == 6 ? "chuot bay: may ngu / thuc day" : "chuot bay: hieu chuan bi lac"); fflush(stdout); exit(s == 6 ? scenario_susp() : s == 7 ? scenario_cal() : s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : s == 4 ? scenario_buz() : scenario_piano()); }
     int st; waitpid(p, &st, 0); if (!WIFEXITED(st) || WEXITSTATUS(st)) rc = 1;
   }
   if (argc > 5) return 2;

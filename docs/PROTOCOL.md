@@ -13,7 +13,7 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | 2 | Ghi `n<=14` word (`[3+2i]`), co hieu luc ngay |
 | 3 | Luu toan bo cau hinh vao flash. Tra loi sau khi ghi xong (~0,3 s); `[0]=0xFF` neu ghi that bai |
 | 4 | Ve mac dinh trong RAM (phim, macro, du lieu OLED, ten layer); chua luu flash |
-| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1270), `[4]`=FW_VER (14), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien, `[15]`=coi bao (v12): bit0 = co coi (`BUZ_PIN >= 0`), bit1 = coi chu dong (`BUZ_ACTIVE`, tan so / am luong khong co tac dung) |
+| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1270), `[4]`=FW_VER (15), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien, `[15]`=coi bao (v12): bit0 = co coi (`BUZ_PIN >= 0`), bit1 = coi chu dong (`BUZ_ACTIVE`, tan so / am luong khong co tac dung) |
 | 6 / 7 | Doc / ghi `n<=28` byte macro, offset = `o*1020 + vi tri` (0..32639) |
 | 8 / 9 | Doc / ghi `n<=28` byte du lieu OLED, offset 0..8447 |
 | 10 | Xem thu OLED: `out[1]` = 0 dung, 1 loi chao, 2 screensaver, 4 logo |

@@ -405,6 +405,11 @@ int main(void) {
     sx = 0; for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, (int16_t)(10 + 65.5 * 50), 5, false, &dx, &dy); sx += dx | dy; } CHECK(sx == 0);   // khong bay
     sx = 0; for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, (int16_t)(10 + 65.5 * 1), 5, true, &dx, &dy); sx += dx; } CHECK(sx == 0);        // duoi vung chet
     air_recal(&a); CHECK(air_calibrating(&a));
+    // v15: cam tay lac manh luc hieu chuan -> khong ket mai o che do hieu chuan (truoc day khong bao gio xong)
+    { air_t b; air_init(&b); int n = 0; for (; n < 3000 && air_calibrating(&b); n++) air_update(&b, am, (int16_t)(((n / 7) & 1) ? 3000 : 0), 0, 0, 5, true, &dx, &dy);
+      CHECK(!air_calibrating(&b) && b.cal_fail == AIR_CAL_MAXFAIL && n < 600);
+      for (int i = 0; i < 200; i++) air_update(&b, am, 100, 0, 0, 5, true, &dx, &dy); }          // roi chay binh thuong, khong crash
+    { air_t b; air_init(&b); for (int i = 0; i < AIR_CAL_N; i++) air_update(&b, am, 30, -20, 10, 5, true, &dx, &dy); CHECK(!air_calibrating(&b) && b.cal_fail == 0); }   // yen -> xong ngay, khong tinh la that bai
   }
   { // luu flash: ban cu (khong co khoi chuot bay) van nap duoc, khoi chuot bay = mac dinh
     static uint8_t buf[STORE_SIZE]; static cfg_t g, o; cfg_defaults(&g); g.w[W_KM + 5] = KC_Z; g.mac[2][3] = 9;

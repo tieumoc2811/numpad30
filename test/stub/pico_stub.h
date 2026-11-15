@@ -72,6 +72,7 @@ bool tud_hid_keyboard_report(uint8_t id, uint8_t mod, const uint8_t k[6]);
 bool tud_hid_report(uint8_t id, const void *r, uint16_t n);
 bool tud_hid_mouse_report(uint8_t id, uint8_t b, int8_t x, int8_t y, int8_t v, int8_t h);
 static inline bool tud_suspended(void) { return sim_suspended; }
+static inline bool tud_mounted(void) { return true; }
 static inline bool tud_remote_wakeup(void) { sim_wakeups++; return true; }
 static inline void tusb_init(void) {}
 void tud_task(void);
