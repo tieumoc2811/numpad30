@@ -47,7 +47,7 @@ typedef uint16_t kc_t;
 // 0x2000|(n<<8)|kc LT | 0x4000|n MO | 0x4100|n TL | 0x4200/0x4201 LY+/LY- | 0x5000|n TD | 0x6000|i Nokia
 // 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro | 0x7076/77 cuon len/xuong (giu = lap lai)
 // 0x7001 LATCH | 0x7002..5 TG Space/Shift/Ctrl/Alt | 0x7010..16 LED (bo qua) | 0x7020 RENAME | 0x7060..63 Morse
-// 0x7400|midi NOTE (v13) | 0x7480..89 dieu khien nhac cu | 0x7500|n bai nhac | 0x7510/11 tempo -/+
+// 0x7400|midi NOTE (v13) | 0x7480..89 dieu khien nhac cu | 0x7500|n bai nhac n=0..15 | 0x7600|n bai nhac n=16..255 (v16) | 0x7510/11 tempo -/+
 // 0x7800|kc TK (bam 1 lan giu phim kc, bam lan nua nha; toi da NTK phim cung luc) | 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
 #define KC_NO 0x0000
 #define KC_TRNS 0x0001
@@ -96,8 +96,8 @@ typedef uint16_t kc_t;
 #define KC_PTIM 0x7486                      // am sac: xung 50% / 25% / 12%
 #define KC_PVIB 0x7487                      // rung bat / tat
 #define KC_PVOL 0x7488                      // am luong 100% / 50% / 25%
-#define KC_DEMO 0x7489                      // phat bai ke tiep (vong 9 bai)
-#define TUNE(n) (0x7500 | (n))              // phat bai n (0..8); bam lai khi dang phat = dung
+#define KC_DEMO 0x7489                      // phat bai ke tiep (vong qua tat ca NTUNE bai)
+#define TUNE(n) ((n) < 16 ? (0x7500 | (n)) : (0x7600 | (n)))   // phat bai n (0..NTUNE-1): n < 16 -> 0x7500|n (giu nguyen tu v13), n >= 16 -> 0x7600|n (v16); bam lai khi dang phat = dung
 #define KC_TMPD 0x7510                      // cham lai (5 muc)
 #define KC_TMPU 0x7511
 #define TK(k) (0x7800 | (k))
@@ -114,7 +114,8 @@ typedef uint16_t kc_t;
 #define IS_MOUSE(k) ((k) >= KC_AIR && (k) <= KC_WHDN)
 #define IS_NOTE(k) (((k) & 0xFF80) == 0x7400)
 #define IS_PCTL(k) ((k) >= KC_OCTU && (k) <= KC_DEMO)
-#define IS_TUNE(k) (((k) & 0xFFF0) == 0x7500 && ((k) & 15) < NTUNE)
+#define IS_TUNE(k) ((((k) & 0xFFF0) == 0x7500 && ((k) & 15) < NTUNE) || (((k) & 0xFF00) == 0x7600 && ((k) & 0xFF) >= 16 && ((k) & 0xFF) < NTUNE))
+#define TUNE_IDX(k) (((k) & 0xFF00) == 0x7600 ? ((k) & 0xFF) : ((k) & 15))   // chi so bai trong TUNE_TAB
 #define IS_TEMPO(k) ((k) == KC_TMPD || (k) == KC_TMPU)
 #define IS_PIANO(k) (IS_NOTE(k) || IS_PCTL(k) || IS_TUNE(k) || IS_TEMPO(k))
 #define IS_MACRO(k) (((k) & 0xFF00) == 0x7100 && ((k) & 0xFF) < NMAC)
@@ -437,7 +438,7 @@ static void piano_press(core_t *c, int i, kc_t k) {
     int m = (int)(k & 0x7F) + 12 * c->pn_oct + c->pn_tr; if (m < 24) m = 24; if (m > 108) m = 108;
     c->ntk[i] = (uint8_t)m; nt_push(c, (uint8_t)m);
   }
-  else if (IS_TUNE(k)) { int n = k & 15; if (c->tn_cur == n + 1) tune_stop(c); else tune_start(c, n); }
+  else if (IS_TUNE(k)) { int n = TUNE_IDX(k); if (c->tn_cur == n + 1) tune_stop(c); else tune_start(c, n); }
   else switch (k) {
     case KC_OCTU: if (c->pn_oct < 3) c->pn_oct++; break;
     case KC_OCTD: if (c->pn_oct > -3) c->pn_oct--; break;
@@ -688,7 +689,7 @@ static void core_label(const core_t *c, kc_t k, char *o, int n) {
     int m = (int)(k & 0x7F) + 12 * c->pn_oct + c->pn_tr; if (m < 24) m = 24; if (m > 108) m = 108;
     ADD(nn[m % 12]); if (sh[m % 12]) ADD("+"); d[0] = (char)('0' + m / 12 - 1); ADD(d);   // dau + = thang (font OLED khong co #)
   }
-  else if (IS_TUNE(k)) ADD(TUNE_TAB[k & 15].name);
+  else if (IS_TUNE(k)) ADD(TUNE_TAB[TUNE_IDX(k)].name);
   else if (IS_PCTL(k) || IS_TEMPO(k)) {
     char b[16];
     switch (k) {

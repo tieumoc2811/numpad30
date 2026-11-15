@@ -10,7 +10,7 @@
 #include "core.h"
 #define __ KC_NO
 #define ___ KC_TRNS
-#define NUM_DEFAULT_LAYERS 5
+#define NUM_DEFAULT_LAYERS 6
 
 static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
   // ---- Layer 0: NUM (numpad + phim tat) ----
@@ -40,12 +40,19 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     NOTE(84), NOTE(86), NOTE(88), NOTE(89), NOTE(91), NOTE(93), __,
     __, KC_OCTU, __, KC_PENV, KC_PVIB, KC_PVOL, ___,
     KC_TRD, KC_OCTD, KC_TRU, KC_PTIM, __, TL(4), __ },
-  // ---- Layer 4: TUNES (R4C5 o layer PIANO): M1..M9 = 9 bai, phim - / + = cham / nhanh, R3C5 = dung, R4C5 = quay lai PIANO ----
+  // ---- Layer 4: TUNES trang 1 (R4C5 o layer PIANO): M1..M9 = 9 bai goc, phim - / + = cham / nhanh, R3C5 = dung, R4C2 (mui ten phai) = trang 2, R4C5 = quay lai PIANO ----
   { TUNE(0), TUNE(1), TUNE(2), LT(1, 0), __, __, KC_TMPD,
     TUNE(3), TUNE(4), TUNE(5), __, __, __, KC_TMPU,
     TUNE(6), TUNE(7), TUNE(8), __, __, __, __,
     __, __, __, __, __, KC_PSTOP, ___,
-    __, __, __, __, __, TL(4), __ },
+    __, __, TL(5), __, __, TL(4), __ },
+  // ---- Layer 5: TUNES trang 2 (xep len tren trang 1): 11 bai thieu nhi / dan ca (bai 10..20). M1..M9 = bai 10..18, R1C3 / R1C4 = bai 19 / 20 ----
+  // R4C0 (mui ten trai) = ve trang 1 (TL(5) tat chinh no), - / + = cham / nhanh, R3C5 = dung. Muon them trang 3: gan TL(6) vao R4C2 cua trang nay va them 1 layer
+  { TUNE(9), TUNE(10), TUNE(11), LT(1, 0), __, __, KC_TMPD,
+    TUNE(12), TUNE(13), TUNE(14), TUNE(18), TUNE(19), __, KC_TMPU,
+    TUNE(15), TUNE(16), TUNE(17), __, __, __, __,
+    __, __, __, __, __, KC_PSTOP, ___,
+    TL(5), __, __, __, __, __, __ },
 };
 #undef __
 #undef ___
@@ -95,5 +102,5 @@ static void cfg_defaults(cfg_t *g) {
   const char *gr = "HELLO NUMPAD30", *sv = "NUMPAD30";
   g->od[16] = (uint8_t)strlen(gr); memcpy(g->od + 17, gr, strlen(gr));
   g->od[80] = (uint8_t)strlen(sv); memcpy(g->od + 81, sv, strlen(sv));
-  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "PIANO"); strcpy(g->lname[4], "TUNES");
+  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "PIANO"); strcpy(g->lname[4], "TUNES"); strcpy(g->lname[5], "TUNES 2");
 }

@@ -68,7 +68,7 @@ Dung chinh coi Morse tren GP14 (xem muc tren) lam dan: **moi phim = 1 nốt** (l
 
 - **Can coi THU DONG** (passive) de doi cao do. Coi chu dong chi co 1 tong co dinh, layer dan se khong ra dung nốt.
 - Bat: giu `Num` + bam `Enter` (R3C6, o layer FN). Tat: lai giu `Num` + `Enter`. Giu `Num` o PIANO / TUNES van vao FN (bam nhanh khong lam gi, khong bat NumLock).
-- Cau hinh luu flash cu van la 3 layer: layer PIANO / TUNES chi xuat hien sau lenh "ve mac dinh" (app Studio) roi luu, hoac tu gan phim bang ma o `docs/PROTOCOL.md`.
+- Cau hinh luu flash cu van la 3 layer: layer PIANO / TUNES / TUNES 2 chi xuat hien sau lenh "ve mac dinh" (app Studio) roi luu, hoac tu gan phim bang ma o `docs/PROTOCOL.md`. Layer mac dinh hien la 6 (v16, truoc la 5): sau khi nap firmware moi, can "ve mac dinh" + luu de co trang TUNES 2 va phim mui ten R4C2 o trang 1.
 
 ```
         C0     C1     C2     C3     C4     C5     C6
@@ -82,11 +82,15 @@ R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
 
 - **Oct+ / Oct-**: +-3 quang tam. **Trans-/+**: chuyen giong +-11 nua cung. **Giu / Tat dan**: nốt keu deu khi giu, hoac tat dan ~0,7 s nhu gay dan. **Rung**: +-1,5 % ~6 Hz. **Am luong**: 100 / 50 / 25 % (nhan voi am luong chung trong app). **Am sac**: xung 50 / 25 / 12 %. Cac cai dat nay nam trong RAM, mat khi rut dien.
 - Mac dinh bat dau tu C5 (524 Hz) vi coi 12 mm yeu duoi ~400 Hz. Nốt thap nhat 32 Hz / cao nhat ~4,2 kHz (gioi han 24..108 MIDI); coi thuong chi nghe ro ~400 Hz - 5 kHz.
-- **TUNES** (R4C5 o PIANO): M1..M9 phat 9 bai (Ode to Joy, Twinkle, Jingle Bells, Fur Elise, Happy Birthday, Frere Jacques, Greensleeves, Mary Had a Little Lamb, Canon in D), phim `-` / `+` cham / nhanh (5 muc), R3C5 dung. Bam lai bai dang phat hoac bat ky phim nao khac = dung. Sua bai trong `firmware/tunes.h` (`{midi, do dai 1/16}`).
+- **TUNES** (R4C5 o PIANO): 20 bai chia 2 trang, phim `-` / `+` cham / nhanh (5 muc), R3C5 dung. Bam lai bai dang phat hoac bat ky phim nao khac = dung. Sua / them bai trong `firmware/tunes.h` (`{midi, do dai 1/16}`).
+  - **Trang 1 (TUNES)**: M1..M9 = Ode to Joy, Twinkle, Jingle Bells, Fur Elise, Happy Birthday, Frere Jacques, Greensleeves, Mary Had a Little Lamb, Canon in D. Phim mui ten phai `R4C2` sang trang 2, `R4C5` ve PIANO.
+  - **Trang 2 (TUNES 2, v16)**: M1..M9 = Old MacDonald, Row Your Boat, London Bridge, Cross Buns (Hot Cross Buns), Yankee Doodle, Lightly Row, Au Clair de la Lune, Surprise Symphony (Haydn), Silent Night; `R1C3` = Deck the Halls, `R1C4` = We Wish You a Merry Christmas. Phim mui ten trai `R4C0` ve trang 1.
+  - Tat ca la ban nhac dan gian / co truyen (het ban quyen). Nhac thieu nhi Viet Nam hien dai (vd. Chu ech con, Chau len ba...) con ban quyen tac gia nen khong dua vao san; muon them thi tu nhap nốt vao `tunes.h`.
+  - Moi bai dung 1 phim; muon them bai thu 21 tro len: them mang nốt + 1 dong `TUNE_OF(...)` vao `TUNE_TAB`, doi `NTUNE`, roi gan phim `TUNE(n)` (xem `firmware/keymap.h`).
 - OLED hien ten nốt (`C+5` = Do thang quang tam 5, font khong co dau #) hoac ten bai.
 - Sua o v13: tan so PWM duoi ~570 Hz truoc day tran thanh ghi wrap 16 bit (bo chia xung co dinh /4); gio chia xung tu dong, nốt 32 Hz van dung.
 
-- **Bai khoi dong (v14)**: chon 1 trong 9 bai de coi phat khi cap dien (app Studio, tab Coi bao -> "Bai khoi dong", nho "Luu vao thiet bi"). Mac dinh tat. Bam phim bat ky de dung. Word `OSB+7`, xem `docs/PROTOCOL.md`.
+- **Bai khoi dong (v14, v16: 1..20)**: chon 1 trong 20 bai de coi phat khi cap dien (app Studio, tab Coi bao -> "Bai khoi dong", nho "Luu vao thiet bi"). Mac dinh tat. Bam phim bat ky de dung. Word `OSB+7`, xem `docs/PROTOCOL.md`.
 
 ## Chuot bay (MPU-6515)
 
