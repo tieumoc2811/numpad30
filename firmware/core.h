@@ -33,7 +33,9 @@
 #define W_NBZ 4
 #define W_NKB (W_BZB + W_NBZ)               // 1270: phim Nokia keu nốt (v17), 12 word: [bat 0/1, nốt MIDI cua 11 phim: 1..9, 0, '.'; ngoai 48..108 -> mac dinh]
 #define W_NNK 12
-#define NW (W_NKB + W_NNK)                  // 1282
+#define W_KNB (W_NKB + W_NNK)               // 1282: v18 nốt kêu theo tung phim / layer: [bat 0/1, do dai ms 20..300] + 560 word, moi word 2 byte (nốt MIDI 24..108, 0 = im); phim n = l*NKEYS+p nam o byte (n&1) cua word W_KNB+2+n/2
+#define W_NKN (2 + (NLAYER * NKEYS + 1) / 2)   // 562
+#define NW (W_KNB + W_NKN)                  // 1844
 #define LDB_ROT 8
 // ---- du lieu OLED (lenh 8/9): [0..143] header, [256 + i*512] khung i ----
 #define OD_NF 16
@@ -49,7 +51,7 @@ typedef uint16_t kc_t;
 // 0x2000|(n<<8)|kc LT | 0x4000|n MO | 0x4100|n TL | 0x4200/0x4201 LY+/LY- | 0x5000|n TD | 0x6000|i Nokia
 // 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro | 0x7076/77 cuon len/xuong (giu = lap lai)
 // 0x7001 LATCH | 0x7002..5 TG Space/Shift/Ctrl/Alt | 0x7010..16 LED (bo qua) | 0x7020 RENAME | 0x7060..63 Morse
-// 0x7400|midi NOTE (v13) | 0x7480..89 dieu khien nhac cu | 0x7500|n bai nhac n=0..15 | 0x7600|n bai nhac n=16..255 (v16) | 0x7510/11 tempo -/+
+// 0x7490 tat/bat loa | 0x7491/92 am luong loa +/- (v18) | 0x7400|midi NOTE (v13) | 0x7480..89 dieu khien nhac cu | 0x7500|n bai nhac n=0..15 | 0x7600|n bai nhac n=16..255 (v16) | 0x7510/11 tempo -/+
 // 0x7800|kc TK (bam 1 lan giu phim kc, bam lan nua nha; toi da NTK phim cung luc) | 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
 #define KC_NO 0x0000
 #define KC_TRNS 0x0001
@@ -115,11 +117,15 @@ typedef uint16_t kc_t;
 #define IS_MORSE(k) ((k) >= KC_MDOT && (k) <= KC_MHINT)
 #define IS_MOUSE(k) ((k) >= KC_AIR && (k) <= KC_WHDN)
 #define IS_NOTE(k) (((k) & 0xFF80) == 0x7400)
+#define KC_BZMUTE 0x7490                    // v18: tat / bat tieng loa (moi am: Morse, Nokia, nhac, bip phim)
+#define KC_BZVU 0x7491                      // v18: am luong loa tang 1 muc (100 / 75 / 50 / 25 / 10 %)
+#define KC_BZVD 0x7492                      // v18: am luong loa giam 1 muc
+#define IS_BZCTL(k) ((k) >= KC_BZMUTE && (k) <= KC_BZVD)
 #define IS_PCTL(k) ((k) >= KC_OCTU && (k) <= KC_DEMO)
 #define IS_TUNE(k) ((((k) & 0xFFF0) == 0x7500 && ((k) & 15) < NTUNE) || (((k) & 0xFF00) == 0x7600 && ((k) & 0xFF) >= 16 && ((k) & 0xFF) < NTUNE))
 #define TUNE_IDX(k) (((k) & 0xFF00) == 0x7600 ? ((k) & 0xFF) : ((k) & 15))   // chi so bai trong TUNE_TAB
 #define IS_TEMPO(k) ((k) == KC_TMPD || (k) == KC_TMPU)
-#define IS_PIANO(k) (IS_NOTE(k) || IS_PCTL(k) || IS_TUNE(k) || IS_TEMPO(k))
+#define IS_PIANO(k) (IS_NOTE(k) || IS_PCTL(k) || IS_BZCTL(k) || IS_TUNE(k) || IS_TEMPO(k))
 #define IS_MACRO(k) (((k) & 0xFF00) == 0x7100 && ((k) & 0xFF) < NMAC)
 #define IS_SEQ(k) ((((k) & 0xFFF8) == SEQ_F) || (((k) & 0xFFF8) == SEQ_B) || (((k) & 0xFFF8) == SEQ_R))
 #define IS_TK(k) (((k) & 0xFF00) == 0x7800 && IS_BASIC((k) & 0xFF))
@@ -187,6 +193,7 @@ typedef struct {
   uint8_t nt_stk[8], nt_n;                // cac nốt (MIDI) dang giu; nốt cuoi = nốt dang keu (am don, uu tien nốt moi)
   uint8_t ntk[NKEYS];                     // nốt dang giu cua phim i (0 = khong)
   int8_t pn_oct, pn_tr;                   // dich quang tam -3..3, chuyen giong -11..11
+  uint8_t bz_mute, bz_lvl;               // v18: tat tieng loa 0/1; muc am luong loa 0..4 (100 / 75 / 50 / 25 / 10 %)
   uint8_t pn_env, pn_tim, pn_vib, pn_vol; // 0 giu / 1 tat dan; am sac 0..2; rung 0/1; am luong 0..2 (100 / 50 / 25 %)
   uint8_t tn_cur, tn_note, tn_tempo, pn_demo;   // bai dang phat (n + 1, 0 = khong), nốt dang phat (0 = nghi), muc tempo 0..4, bai demo ke tiep
   uint16_t tn_i, tn_left, tn_gap;         // vi tri nốt, ms con lai, ms nghi them sau nốt
@@ -315,6 +322,19 @@ static const char *const NK_TAB[11] = {"1abc", "2def", "3ghi", "4jkl", "5mno", "
 static const uint8_t NK_DEF[11] = {84, 86, 88, 89, 91, 93, 95, 96, 98, 81, 100};   // mac dinh: thang C truong C6 D6 E6 F6 G6 A6 B6 C7 D7 | 0 = A5 | . = E7
 static inline bool nk_beep_on(const cfg_t *g) { return g->w[W_NKB] != 0; }
 static inline uint8_t nk_note(const cfg_t *g, int k) { uint16_t v = g->w[W_NKB + 1 + k]; return v < 48 || v > 108 ? NK_DEF[k] : (uint8_t)v; }
+// v18: nốt kêu theo tung phim (moi layer, moi phim); phim giu chuc nang cu, chi them tieng bip nốt khi bam. Nốt 0 = im.
+static inline bool kn_on(const cfg_t *g) { return g->w[W_KNB] != 0; }
+static inline uint16_t kn_ms(const cfg_t *g) { uint16_t v = g->w[W_KNB + 1]; return v < 20 || v > 300 ? NK_BEEP_MS : v; }
+static inline uint8_t kn_note(const cfg_t *g, int l, int p) { int n = l * NKEYS + p; uint16_t v = (uint16_t)(g->w[W_KNB + 2 + n / 2] >> ((n & 1) * 8) & 0xFF); return v < 24 || v > 108 ? 0 : (uint8_t)v; }
+static void key_beep(core_t *c, int i) {   // goi khi bam phim vat ly i: nốt cua layer dang cho ra ma phim
+  if (!kn_on(&c->cfg)) return;
+  uint32_t m = core_active(c);
+  for (int l = NLAYER - 1; l >= 0; l--) if (m >> l & 1) {
+    if (c->cfg.w[W_KM + l * NKEYS + i] == KC_TRNS) continue;
+    uint8_t n = kn_note(&c->cfg, l, i); if (n) { c->buz_mid = n; c->buz_ms = kn_ms(&c->cfg); }
+    return;
+  }
+}
 static void nokia_beep(core_t *c, int g) { if (nk_beep_on(&c->cfg)) { c->buz_mid = nk_note(&c->cfg, g); c->buz_ms = NK_BEEP_MS; } }
 static void nokia_press(core_t *c, int g, uint32_t now) {
   nokia_beep(c, g);
@@ -418,6 +438,7 @@ static uint32_t note_hz(int m) {
   int sh = m / 12 - 5; uint32_t f = NOTE_HZ12[m % 12];
   return sh >= 0 ? f << sh : f >> -sh;
 }
+static const uint8_t BZ_LVL[5] = {100, 75, 50, 25, 10};   // v18: muc am luong loa (%)
 static void nt_push(core_t *c, uint8_t n) {
   if (c->nt_n >= 8) { memmove(c->nt_stk, c->nt_stk + 1, 7); c->nt_n = 7; }
   c->nt_stk[c->nt_n++] = n; c->nt_age = 0;
@@ -459,11 +480,15 @@ static void piano_press(core_t *c, int i, kc_t k) {
     case KC_PTIM: c->pn_tim = (uint8_t)((c->pn_tim + 1) % 3); break;
     case KC_PVIB: c->pn_vib ^= 1; break;
     case KC_PVOL: c->pn_vol = (uint8_t)((c->pn_vol + 1) % 3); break;
+    case KC_BZMUTE: c->bz_mute ^= 1; break;
+    case KC_BZVU: if (c->bz_lvl > 0) c->bz_lvl--; break;
+    case KC_BZVD: if (c->bz_lvl < 4) c->bz_lvl++; break;
     case KC_DEMO: { int n = c->pn_demo; c->pn_demo = (uint8_t)((n + 1) % NTUNE); tune_start(c, n); } break;
     case KC_TMPD: if (c->tn_tempo > 0) c->tn_tempo--; break;
     case KC_TMPU: if (c->tn_tempo < 4) c->tn_tempo++; break;
     default: break;
   }
+  if (IS_BZCTL(k) && !c->bz_mute) { c->buz_mid = 84; c->buz_ms = NK_BEEP_MS; }   // bip thu de nghe muc am luong moi
 }
 static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (!k || k == KC_TRNS) return;
@@ -552,6 +577,7 @@ static void on_press(core_t *c, int i, uint32_t now) {
   if (c->pend[i] == P_TD2) { dispatch_press(c, i, (kc_t)(0x5000 | (c->pcode[i] & 3)), now); return; }   // lan bam thu hai cua tap dance: bo qua lop va combo
   kc_t k = resolve(c, i);
   if (k == KC_NO) return;
+  key_beep(c, i);
   if (ft) { c->dfi = i; c->dfk = k; c->dfw = TAP_HOLD_MS + 1; return; }   // di sau phim tap vua chot, o bao cao rieng
   if (c->cbi >= 0) {
     int a = c->cbi;
@@ -648,7 +674,7 @@ static uint32_t core_buz_hz(const core_t *c) {
   }
   return hz;
 }
-static uint32_t core_buz_amp(const core_t *c) {
+static uint32_t core_buz_amp_raw(const core_t *c) {
   uint32_t vol = buz_vol(&c->cfg);
   if (!core_note(c)) return vol * 256 / 100;
   static const uint8_t volm[3] = {100, 50, 25}, tim[3] = {100, 50, 25};
@@ -659,6 +685,7 @@ static uint32_t core_buz_amp(const core_t *c) {
   }
   return a;
 }
+static uint32_t core_buz_amp(const core_t *c) { return c->bz_mute ? 0 : core_buz_amp_raw(c) * BZ_LVL[c->bz_lvl % 5] / 100; }   // v18: tat tieng / muc am luong loa ap dung cho moi am
 static inline bool core_buz(const core_t *c) { return core_buz_hz(c) != 0 && core_buz_amp(c) != 0; }   // true = coi dang phai keu
 static inline bool core_out_busy(const core_t *c) { return c->qn != 0; }
 static void core_out_ack(core_t *c) {   // goi sau moi bao cao da gui khi hang doi co muc
@@ -715,6 +742,7 @@ static void core_label(const core_t *c, kc_t k, char *o, int n) {
     }
     ADD(b);
   }
+  else if (IS_BZCTL(k)) { char b[16]; if (k == KC_BZMUTE) strcpy(b, c->bz_mute ? "MUTE ON" : "MUTE OFF"); else snprintf(b, sizeof b, "BZ VOL %d", BZ_LVL[c->bz_lvl % 5]); ADD(b); }
   else if (k == KC_BOOT) ADD("BOOT");
   else if (k == 1) ADD("-");
   else {

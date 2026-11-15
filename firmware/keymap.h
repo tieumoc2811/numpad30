@@ -98,6 +98,10 @@ static void cfg_nk_defaults(cfg_t *g) {    // phim Nokia keu nốt: [bat, 11 n�
   g->w[W_NKB] = 1;
   for (int i = 0; i < 11; i++) g->w[W_NKB + 1 + i] = NK_DEF[i];
 }
+static void cfg_kn_defaults(cfg_t *g) {    // v18 nốt kêu theo phim: [bat, do dai ms], moi phim im
+  g->w[W_KNB] = 1; g->w[W_KNB + 1] = NK_BEEP_MS;
+  for (int i = 2; i < W_NKN; i++) g->w[W_KNB + i] = 0;
+}
 static void cfg_defaults(cfg_t *g) {
   memset(g, 0, sizeof *g);
   for (int l = 0; l < NLAYER; l++) for (int i = 0; i < NKEYS; i++)
@@ -107,7 +111,7 @@ static void cfg_defaults(cfg_t *g) {
   static const uint16_t ld[W_NLD] = {0, 128, 200, 210, 255, 1, 0, 24, 0};   // [mode, toc do, sang, hue, sat, over, obMode, obSang, huong OLED]
   for (int i = 0; i < W_NLD; i++) g->w[W_LDB + i] = ld[i];
   for (int l = 0; l < NLAYER; l++) g->w[W_LRB + l] = 4;
-  cfg_air_defaults(g); cfg_buz_defaults(g); cfg_nk_defaults(g);
+  cfg_air_defaults(g); cfg_buz_defaults(g); cfg_nk_defaults(g); cfg_kn_defaults(g);
   static const uint16_t os[W_NOS] = {300, 5, 1, 0, 1, 0, 120, 0};
   for (int i = 0; i < W_NOS; i++) g->w[W_OSB + i] = os[i];
   for (int m = 0; m < (int)(sizeof def_macros / sizeof def_macros[0]); m++) macro_slot_set(g->mac[m], def_macros[m].name, def_macros[m].text, def_macros[m].enter);

@@ -56,6 +56,11 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 - Man doc (90/270) va OLED 64 hang: chi hien nhan ngan (ma Morse + ky tu, hoac ky tu Nokia dang chon).
 
 
+## Nốt kêu theo phím + loa (v18)
+
+- **Nốt cho phím bất kỳ ở layer bất kỳ**: trong Studio chọn phím, mục "Nốt kêu khi bấm" gán nốt MIDI 24..108 (hoặc "Im"). Phím giữ chức năng cũ, chỉ thêm tiếng bíp nốt (mặc định 70 ms, chỉnh 20..300 ms, có công tắc chung). Nốt tính theo layer đang cho ra mã phím; ô trong suốt (TRNS) lấy nốt của layer bên dưới.
+- **Phím điều khiển loa** (nhóm "Nhạc cụ" trong Studio): `Tắt/Bật loa` (mute mọi âm: Morse, Nokia, nhạc, bíp phím), `Loa +` / `Loa -` (5 mức 100, 75, 50, 25, 10 %). Trạng thái chỉ giữ trong RAM, cấp điện lại về 100 % và có tiếng. Đổi mức hoặc bật lại loa sẽ bíp thử 1 nốt.
+
 ## Coi bao Morse
 
 - v17: phim Nokia keu 1 nốt ngan (70 ms, `NK_BEEP_MS`) moi lan bam. Cong tac rieng + nốt tung phim (khoi `W_NKB`) chinh trong Studio; mac dinh thang Do truong: 1..9 = C6..D7, 0 = A5, `.` = E7. Chi dung chung chan coi va am luong (`W_BZB`) voi Morse.

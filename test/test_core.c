@@ -55,7 +55,7 @@ int main(void) {
   CHECK(W(0,3,6) == KC_PENT); CHECK(W(0,1,6) == KC_PPLS); CHECK(W(0,4,3) == KC_P0); CHECK(W(0,3,1) == KC_UP);
   CHECK(W(0,0,3) == 0x2153); CHECK(W(1,4,3) == TL(2)); CHECK(W(2,0,0) == MACRO(0)); CHECK(W(1,4,5) == KC_BOOT);
   CHECK(C.cfg.w[W_NLI] == NUM_DEFAULT_LAYERS && NUM_DEFAULT_LAYERS == 7); CHECK(W(7,0,0) == KC_TRNS); CHECK(W(31,1,3) == KC_TRNS);
-  CHECK(NW == 1282 && W_NKB == 1270 && W_AMB == 1258 && W_BZB == 1266 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
+  CHECK(NW == 1844 && W_KNB == 1282 && W_NKN == 562 && W_NKB == 1270 && W_AMB == 1258 && W_BZB == 1266 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
 
   // ===== 2) chong doi =====
   reset(); down(1, 3); step(4); CHECK(!has(kb(), KC_P7)); step(1); CHECK(has(kb(), KC_P7));
@@ -188,6 +188,47 @@ int main(void) {
   CHECK(C.mo_len == MORSE_MAX && !strcmp(txt(), "$"));
   press(1, 4, 6); drain(); CHECK(C.mo_len == 1 && !strcmp(txt(), "t"));   // ky tu "$" bi thay bang "t"
 
+
+  // ===== v18: nốt kêu theo tung phim o moi layer + tat/bat loa + am luong loa =====
+  {
+#define KN_SET(l, p, m) do { int n_ = (l) * NKEYS + (p); uint16_t *w_ = &C.cfg.w[W_KNB + 2 + n_ / 2]; *w_ = (uint16_t)((n_ & 1) ? ((*w_ & 0x00FF) | ((m) << 8)) : ((*w_ & 0xFF00) | (m))); } while (0)
+    reset(); setk(0, 1, 3, 0x04); setk(0, 1, 4, 0x05);
+    down(1, 3); step(DEBOUNCE_MS + 1); CHECK(!core_buz(&C)); up(1, 3); step(30); drain(); CHECK(!strcmp(txt(), "a"));      // mac dinh: phim im
+    KN_SET(0, POS(1, 3), 84); KN_SET(0, POS(1, 4), 96);
+    CHECK(kn_note(&C.cfg, 0, POS(1, 3)) == 84 && kn_note(&C.cfg, 0, POS(1, 4)) == 96 && kn_note(&C.cfg, 1, POS(1, 3)) == 0);   // 2 nốt nam chung 1 word, khong de nhau
+    reset(); setk(0, 1, 3, 0x04); setk(0, 1, 4, 0x05); KN_SET(0, POS(1, 3), 84); KN_SET(0, POS(1, 4), 96);
+    down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == note_hz(84)); step(NK_BEEP_MS + 5); CHECK(!core_buz(&C)); up(1, 3); step(30); drain(); CHECK(!strcmp(txt(), "a"));   // van go chu a
+    down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) == note_hz(96)); up(1, 4); step(NK_BEEP_MS + 20);
+    // layer khac: nốt cua layer dang cho ra ma phim; o TRNS roi xuong layer duoi
+    setk(1, 1, 3, 0x06); KN_SET(1, POS(1, 3), 72); setk(1, 1, 4, KC_TRNS);
+    C.toggled = 1u << 1; down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) == note_hz(72)); up(1, 3); step(NK_BEEP_MS + 20);
+    down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) == note_hz(96)); up(1, 4); step(NK_BEEP_MS + 20);            // TRNS -> nốt layer 0
+    C.toggled = 0; down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) == note_hz(84)); up(1, 3); step(NK_BEEP_MS + 20);
+    // cong tac chung + do dai
+    C.cfg.w[W_KNB + 1] = 200; down(1, 3); step(150); CHECK(core_buz(&C)); step(80); CHECK(!core_buz(&C)); up(1, 3); step(30);
+    C.cfg.w[W_KNB + 1] = 5; down(1, 3); step(DEBOUNCE_MS + 1); step(NK_BEEP_MS + 5); CHECK(!core_buz(&C)); up(1, 3); step(30);   // ngoai khoang -> mac dinh 70 ms
+    C.cfg.w[W_KNB] = 0; down(1, 3); step(DEBOUNCE_MS + 1); CHECK(!core_buz(&C)); up(1, 3); step(30); C.cfg.w[W_KNB] = 1;
+    KN_SET(0, POS(1, 3), 5); down(1, 3); step(DEBOUNCE_MS + 1); CHECK(!core_buz(&C)); up(1, 3); step(30); KN_SET(0, POS(1, 3), 84);   // nốt hong = im
+    // tat / bat tieng loa + am luong
+    setk(0, 1, 5, KC_BZMUTE); setk(0, 1, 6, KC_BZVD); setk(0, 2, 3, KC_BZVU);
+    CHECK(IS_PIANO(KC_BZMUTE) && IS_BZCTL(KC_BZVD) && !IS_PCTL(KC_BZMUTE) && !IS_BZCTL(0x748F) && !IS_BZCTL(0x7493));
+    press(1, 5, 6); CHECK(C.bz_mute == 1); step(200);
+    down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) != 0 && core_buz_amp(&C) == 0 && !core_buz(&C)); up(1, 3); step(NK_BEEP_MS + 20);   // tat tieng: im
+    press(1, 5, 6); CHECK(C.bz_mute == 0); step(200);
+    down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_amp(&C) == 256); up(1, 3); step(NK_BEEP_MS + 20);
+    for (int i = 0; i < 6; i++) { press(1, 6, 6); step(100); } CHECK(C.bz_lvl == 4);                                   // giam toi da muc 4 (10 %)
+    down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_amp(&C) == 25); up(1, 3); step(NK_BEEP_MS + 20);
+    press(2, 3, 6); step(100); press(2, 3, 6); step(100); CHECK(C.bz_lvl == 2);
+    down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz_amp(&C) == 128); up(1, 3); step(NK_BEEP_MS + 20);                // 50 %
+    for (int i = 0; i < 5; i++) { press(2, 3, 6); step(100); } CHECK(C.bz_lvl == 0);
+    { char lb[16]; core_label(&C, KC_BZMUTE, lb, sizeof lb); CHECK(!strcmp(lb, "MUTE OFF")); core_label(&C, KC_BZVU, lb, sizeof lb); CHECK(!strcmp(lb, "BZ VOL 100")); }
+    // am luong ap dung ca cho nốt nhac (PIANO) va Morse
+    reset(); setk(0, 1, 3, NOTE(72)); setk(0, 1, 5, KC_BZMUTE); setk(0, 1, 6, KC_BZVD);
+    press(1, 6, 6); step(100); CHECK(C.bz_lvl == 1); down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_amp(&C) == 256 * 75 / 100); up(1, 3); step(20);
+    press(1, 5, 6); down(1, 3); step(DEBOUNCE_MS + 1); CHECK(!core_buz(&C)); up(1, 3); step(20);
+    reset(); CHECK(C.bz_mute == 0 && C.bz_lvl == 0);
+  }
+
   // ===== 12) doi ten layer =====
   reset(); setk(0, 1, 3, KC_RENAME); setk(0, 1, 4, NKK(3)); setk(0, 1, 5, KC_BSPC); setk(0, 1, 6, KC_ENTER);
   press(1, 3, 6); CHECK(C.rn_on);
@@ -232,7 +273,7 @@ int main(void) {
   // ===== 16) giao thuc =====
   { reset(); uint8_t in[32], out[32];
     memset(in, 0, 32); in[0] = CMD_INFO; proto_cmd(&C, in, out);
-    CHECK(out[0] == 5 && out[1] == 32 && (out[2] | out[3] << 8) == 1282 && out[4] == FW_VER && out[5] == 16 && out[6] == 32 && (out[7] | out[8] << 8) == 1020 && out[9] == OLED_H && out[10] == 16 && (out[11] | out[12] << 8) == OD_FSZ);
+    CHECK(out[0] == 5 && out[1] == 32 && (out[2] | out[3] << 8) == NW && out[4] == FW_VER && out[5] == 16 && out[6] == 32 && (out[7] | out[8] << 8) == 1020 && out[9] == OLED_H && out[10] == 16 && (out[11] | out[12] << 8) == OD_FSZ);
     CHECK(FW_VER >= 7);
     // doc 14 word tai offset 0 va tai offset >255 (offset cao)
     memset(in, 0, 32); in[0] = CMD_READ; in[1] = 0; in[2] = 14; proto_cmd(&C, in, out);
@@ -432,19 +473,25 @@ int main(void) {
   { // luu flash: ban cu (khong co khoi chuot bay) van nap duoc, khoi chuot bay = mac dinh
     static uint8_t buf[STORE_SIZE]; static cfg_t g, o; cfg_defaults(&g); g.w[W_KM + 5] = KC_Z; g.mac[2][3] = 9;
     store_pack(&g, buf); CHECK(store_unpack(buf, &o) && o.w[W_KM + 5] == KC_Z);
-    size_t old_w = (size_t)(NW - W_NNK - W_NAMB - W_NBZ) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2; static uint8_t oldb[STORE_SIZE]; memset(oldb, 0xFF, sizeof oldb);
+    size_t old_w = (size_t)(NW - W_NKN - W_NNK - W_NAMB - W_NBZ) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2; static uint8_t oldb[STORE_SIZE]; memset(oldb, 0xFF, sizeof oldb);
     store_hdr_t h = {STORE_MAGIC, STORE_VER, (uint32_t)(old_w + rest), 0}; uint8_t *p = oldb + sizeof h;
     memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
     memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_KM + 5] == KC_Z && o.mac[2][3] == 9 && o.w[W_AMB] == 60 && o.w[W_AMB + 7] == 0 && o.w[W_BZB] == 1 && o.w[W_BZB + 1] == BUZ_FREQ && !strcmp(o.lname[2], "MACRO"));
     p[10] ^= 1; CHECK(!store_unpack(oldb, &o));
     // ban luu v11 (co chuot bay, chua co coi): giu chuot bay da chinh, coi = mac dinh
-    g.w[W_AMB] = 77; old_w = (size_t)(NW - W_NNK - W_NBZ) * 2; memset(oldb, 0xFF, sizeof oldb); h.len = (uint32_t)(old_w + rest);
+    g.w[W_AMB] = 77; old_w = (size_t)(NW - W_NKN - W_NNK - W_NBZ) * 2; memset(oldb, 0xFF, sizeof oldb); h.len = (uint32_t)(old_w + rest);
     memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
     memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_AMB] == 77 && o.w[W_BZB] == 1 && o.w[W_BZB + 2] == BUZ_DOT_MS && o.w[W_BZB + 3] == 100);
     // ban luu v12..v16 (co coi, chua co khoi Nokia): giu coi da chinh, Nokia = mac dinh (bat, nốt chuan)
-    g.w[W_BZB + 1] = 3100; old_w = (size_t)(NW - W_NNK) * 2; memset(oldb, 0xFF, sizeof oldb); h.len = (uint32_t)(old_w + rest);
+    g.w[W_BZB + 1] = 3100; old_w = (size_t)(NW - W_NKN - W_NNK) * 2; memset(oldb, 0xFF, sizeof oldb); h.len = (uint32_t)(old_w + rest);
     memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
     memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_BZB + 1] == 3100 && o.w[W_AMB] == 77 && o.w[W_NKB] == 1 && o.w[W_NKB + 1] == 84 && o.w[W_NKB + 10] == 81 && o.w[W_NKB + 11] == 100);
+    // ban luu v17 (co Nokia, chua co khoi nốt theo phim): giu Nokia da chinh, nốt theo phim = mac dinh (bat, 70 ms, im)
+    g.w[W_NKB + 3] = 70; old_w = (size_t)(NW - W_NKN) * 2; memset(oldb, 0xFF, sizeof oldb); h.len = (uint32_t)(old_w + rest);
+    memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
+    memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_NKB + 3] == 70 && o.w[W_KNB] == 1 && o.w[W_KNB + 1] == NK_BEEP_MS && o.w[W_KNB + 2] == 0 && o.w[W_KNB + W_NKN - 1] == 0 && o.w[W_KM + 5] == KC_Z);
+    // v18: nốt theo phim luu va nap lai
+    g.w[W_KNB + 2 + 5] = 0x4C18; g.w[W_KNB] = 0; g.w[W_KNB + 1] = 123; store_pack(&g, buf); memset(&o, 0x55, sizeof o); CHECK(store_unpack(buf, &o) && o.w[W_KNB + 2 + 5] == 0x4C18 && o.w[W_KNB] == 0 && o.w[W_KNB + 1] == 123); g.w[W_KNB] = 1;
     // nốt Nokia tung phim luu va nap lai
     g.w[W_NKB] = 0; g.w[W_NKB + 3] = 70; store_pack(&g, buf); CHECK(store_unpack(buf, &o) && o.w[W_NKB] == 0 && o.w[W_NKB + 3] == 70);
     // cai dat coi luu va nap lai
