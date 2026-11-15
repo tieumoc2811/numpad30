@@ -179,6 +179,8 @@ typedef struct {
   uint16_t mwait;                         // ms cho truoc khi gui bao cao / buoc macro ke tiep
   bool m_on; uint8_t m_idx, m_rep; uint16_t m_p, m_tp; kc_t mhold[6]; uint8_t mhn;
   int nk_key; uint8_t nk_n; uint32_t nk_t;
+  kc_t ch_k; int8_t ch_i; uint32_t ch_t0;   // v19: phim Morse / Nokia dang cho xem co phim thu hai (chord) khong
+  uint8_t ch_n; uint32_t ch_t;             // v19: so chord vua xong (0/1) va thoi diem chord do
   char mo_code[8]; uint8_t mo_len, mo_shown, mo_hint, mo_hopt;
   uint16_t buz_ms;                        // ms con lai cua tieng bip coi (Morse / Nokia); 0 = im
   uint8_t buz_mid;                        // 0 = bip Morse (tan so cai dat); >0 = nốt MIDI cua tieng bip phim Nokia (v17)
@@ -220,7 +222,7 @@ static void core_reset(core_t *c) {       // dat lai trang thai chay, giu cau hi
   memset((uint8_t *)c + sizeof(cfg_t), 0, sizeof(core_t) - sizeof(cfg_t));
   c->imu_ok = iok; c->imu_id = iid;
   for (int i = 0; i < NKEYS; i++) { c->mol[i] = -1; c->cbpair[i] = -1; }
-  c->cbi = -1; c->dfi = -1; c->nk_key = -1; c->rn_nk = -1; c->mo_hopt = 1;
+  c->cbi = -1; c->dfi = -1; c->ch_i = -1; c->nk_key = -1; c->rn_nk = -1; c->mo_hopt = 1;
   for (int i = 0; i < NSQ; i++) c->sq_cur[i] = -1;
   c->pn_vol = 0; c->tn_tempo = 2;
 }
@@ -336,8 +338,7 @@ static void key_beep(core_t *c, int i) {   // goi khi bam phim vat ly i: nốt c
   }
 }
 static void nokia_beep(core_t *c, int g) { if (nk_beep_on(&c->cfg)) { c->buz_mid = nk_note(&c->cfg, g); c->buz_ms = NK_BEEP_MS; } }
-static void nokia_press(core_t *c, int g, uint32_t now) {
-  nokia_beep(c, g);
+static void nokia_press(core_t *c, int g, uint32_t now) {   // v19: tieng bip phat ngay luc bam (chord_intercept), khong phat o day
   int len = (int)strlen(NK_TAB[g]);
   if (c->nk_key == g && now - c->nk_t < NOKIA_MS) { q_bs(c); c->nk_n = (c->nk_n + 1) % len; }
   else { c->nk_key = g; c->nk_n = 0; }
@@ -490,6 +491,45 @@ static void piano_press(core_t *c, int i, kc_t k) {
   }
   if (IS_BZCTL(k) && !c->bz_mute) { c->buz_mid = 84; c->buz_ms = NK_BEEP_MS; }   // bip thu de nghe muc am luong moi
 }
+// ---------------------------------------------------------------- chord (v19): 2 phim cung luc
+// Morse: cham + gach cung luc = chot ky tu (nhu Xong); lam 2 lan lien tiep = Space.
+// Nokia: 2 phim so bat ky cung luc = Space; lam 2 lan lien tiep = xoa 1 ky tu (xoa luon dau cach chord dau vua go).
+// Phim Morse / Nokia duoc giu lai toi da CHORD_MS de xem co phim thu hai khong; khong co thi xu ly nhu phim don.
+static inline bool chord_cls(kc_t k) { return IS_NKK(k) || k == KC_MDOT || k == KC_MDASH; }
+static void chord_single(core_t *c, kc_t k, uint32_t now) {
+  if (IS_NKK(k)) nokia_press(c, k & 0xFF, now);
+  else morse_press(c, k == KC_MDASH);
+}
+static void chord_flush(core_t *c, uint32_t now) {
+  if (!c->ch_k) return;
+  kc_t k = c->ch_k; c->ch_k = 0; c->ch_i = -1;
+  chord_single(c, k, now);
+}
+static void chord_fire(core_t *c, bool nokia, uint32_t now) {
+  bool dbl = c->ch_n && now - c->ch_t < CHORD2_MS;
+  c->ch_n = dbl ? 0 : 1; c->ch_t = now;
+  if (nokia) {
+    c->nk_key = -1;                              // het multitap: ky tu dang go duoc chot
+    if (dbl) { if (q_room(c) >= 2) { q_bs(c); q_bs(c); } }   // xoa dau cach cua chord dau + 1 ky tu truoc do
+    else q_ascii(c, ' ');
+  } else {
+    morse_commit(c);                             // chot ky tu (giong phim Xong)
+    if (dbl) q_ascii(c, ' ');
+  }
+}
+// true = phim da duoc xu ly o day (dang cho hoac da thanh chord), press_code khong lam gi them
+static bool chord_intercept(core_t *c, int i, kc_t k, uint32_t now) {
+  if (!chord_cls(k)) { chord_flush(c, now); return false; }
+  if (IS_NKK(k)) nokia_beep(c, k & 0xFF);          // bip nốt ngay khi bam, khong cho het CHORD_MS
+  if (c->ch_k) {
+    bool both_nk = IS_NKK(c->ch_k) && IS_NKK(k), both_mo = !IS_NKK(c->ch_k) && !IS_NKK(k) && c->ch_k != k;
+    if (c->ch_i != i && c->st[c->ch_i] && now - c->ch_t0 <= CHORD_MS && (both_nk || both_mo)) {   // phim dau con dang giu = that su bam cung luc
+      bool nokia = both_nk; c->ch_k = 0; c->ch_i = -1; chord_fire(c, nokia, now); return true;
+    }
+    chord_flush(c, now);
+  }
+  c->ch_k = k; c->ch_i = (int8_t)i; c->ch_t0 = now; return true;
+}
 static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (!k || k == KC_TRNS) return;
   if (c->tn_cur && !IS_TUNE(k) && !IS_TEMPO(k)) tune_stop(c);   // bam phim khac khi dang phat bai -> dung bai
@@ -497,6 +537,7 @@ static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (c->rn_on) { rename_press(c, k, now); return; }
   if (c->latch_wait && IS_HOLDABLE(k) && !IS_CONS(k)) { c->latch_code = k; c->latch_wait = false; c->swallow[i] = 1; return; }
   if (c->latch_wait && IS_CONS(k)) { c->latch_wait = false; c->swallow[i] = 1; return; }
+  if (chord_intercept(c, i, k, now)) return;
   if (!IS_NKK(k)) c->nk_key = -1;
   if (IS_HOLDABLE(k)) c->act[i] = k;
   else if (IS_MO(k)) { if ((k & 0xFF) < NLAYER) c->mol[i] = (int8_t)(k & 0xFF); }
@@ -507,10 +548,8 @@ static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   else if (k >= KC_TGSPC && k <= KC_TGALT) c->tg ^= 1u << (k - KC_TGSPC);
   else if (IS_TK(k)) tk_toggle(c, (uint8_t)k);
   else if (k == KC_RENAME) { c->rn_on = true; c->rn_len = 0; c->rn_buf[0] = 0; c->rn_layer = (uint8_t)core_top_layer(c); c->rn_nk = -1; c->latch_wait = false; }
-  else if (IS_NKK(k)) nokia_press(c, k & 0xFF, now);
   else if (IS_MORSE(k)) {
-    if (k == KC_MDOT) morse_press(c, false); else if (k == KC_MDASH) morse_press(c, true);
-    else if (k == KC_MOK) morse_commit(c); else morse_set_hint(c, !c->mo_hopt);
+    if (k == KC_MOK) morse_commit(c); else morse_set_hint(c, !c->mo_hopt);   // cham / gach / nokia da xu ly o chord_intercept
   }
   else if (IS_MOUSE(k)) { if (k == KC_AIRT) c->air_tog = !c->air_tog; else if (k == KC_AIRCAL) c->cal_req = true; else c->mact[i] = (uint8_t)(k & 0xFF); }
   else if (IS_MACRO(k)) macro_begin(c, k & 0xFF);
@@ -629,6 +668,7 @@ static void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now) {
   }
   if (c->dfi >= 0 && --c->dfw == 0) defer_flush(c, now);
   if (c->cbi >= 0 && now - c->cbt0 >= COMBO_MS) combo_flush(c, now);
+  if (c->ch_k && now - c->ch_t0 >= CHORD_MS) chord_flush(c, now);
   for (int i = 0; i < NKEYS; i++) if (rel[i]) on_release(c, i, now);
   for (int i = 0; i < NKEYS; i++) if (prs[i]) on_press(c, i, now);
   macro_tick(c);

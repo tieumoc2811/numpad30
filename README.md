@@ -121,3 +121,9 @@ R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
 - Do phan giai OLED mac dinh 128x32; doi `OLED_H` thanh 64 trong config.h neu dung man 0.96".
 - Kiem tra cam bien trong app Studio (tab Chuot bay): "Kiem tra cam bien" doc gyro tho qua lenh 11 (firmware v9+), "Thu chuot" gui thang bao cao chuot qua lenh 12 (v10+). Gyro tho dung yen ~0 (lech bias nho) va phai nhay so khi nghieng. Neu 3 so dung o 0 la gyro bi tat (PWR_MGMT_2 0x6C phai la 0x38, khong phai 0x07).
 - Ten layer (v11): app doc/ghi ten layer tren thiet bi qua lenh 13/14 (toi da 10 ky tu: A-Z 0-9 va `! ( ) * + , - . / : = ?`). Ten doi bang phim RENAME tren ban phim duoc app doc lai khi ket noi hoac bam "Dong bo ten".
+
+## v19 — chord (2 phím cùng lúc)
+- Morse: Chấm + Gạch cùng lúc = chốt ký tự (như Xong); 2 lần liên tiếp = Space.
+- Nokia: 2 phím số bất kỳ cùng lúc = Space; 2 lần liên tiếp = xoá 1 ký tự.
+- Hằng số trong `config.h`: `CHORD_MS` (40, cửa sổ "cùng lúc", phím đầu phải còn giữ), `CHORD2_MS` (450, cửa sổ chord đôi).
+- Phím Chấm / Gạch / Nokia đơn được xử lý sau tối đa `CHORD_MS`; tiếng bíp phím Nokia vẫn phát ngay.

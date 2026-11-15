@@ -39,7 +39,7 @@ static kb_report_t kb(void) { kb_report_t r; core_kb(&C, &r); return r; }
 static int has(kb_report_t r, uint8_t k) { for (int i = 0; i < 6; i++) if (r.keys[i] == k) return 1; return 0; }
 static void reset(void) { cfg_defaults(&C.cfg); core_reset(&C); memset(raw, 0, sizeof raw); T = 1000; nev = 0; ntext = 0; text[0] = 0; ncons = 0; last_cons = 0; memset(&last_rpt, 0, sizeof last_rpt); }
 static const char *txt(void) { text[ntext] = 0; return text; }
-static void drain(void) { for (int g = 0; g < 8000 && (C.qn || C.m_on); g++) step(1); step(20); }
+static void drain(void) { step(CHORD_MS + 2); for (int g = 0; g < 8000 && (C.qn || C.m_on); g++) step(1); step(20); }   // v19: cho het CHORD_MS de phim Morse / Nokia don duoc chot
 static void setk(int l, int r, int c, kc_t k) { C.cfg.w[W_KM + l * NKEYS + POS(r, c)] = k; }
 static int mac_put(int slot, int rep, int gap, const char *name, const uint8_t *st, int n) {   // nhu macroEncode() cua app
   uint8_t *s = C.cfg.mac[slot]; memset(s, 0, MSLOT); s[0] = (uint8_t)rep; s[1] = gap & 255; s[2] = gap >> 8; s[3] = (uint8_t)strlen(name); memcpy(s + 4, name, strlen(name));
@@ -159,9 +159,45 @@ int main(void) {
   down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == note_hz(96)); up(1, 4); step(NK_BEEP_MS + 20); CHECK(!core_buz(&C));
   C.cfg.w[W_NKB + 1 + 7] = 72; down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) == note_hz(72) && core_buz_hz(&C) == 524); up(1, 4); step(NK_BEEP_MS + 20);   // doi nốt phim 8 -> C5
   C.cfg.w[W_NKB + 1 + 7] = 5; down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz_hz(&C) == note_hz(96)); up(1, 4); step(NK_BEEP_MS + 20);                        // gia tri hong -> mac dinh
-  down(1, 5); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == buz_freq(&C.cfg)); up(1, 5); step(400);   // Morse sau Nokia: tan so cu
+  down(1, 5); step(DEBOUNCE_MS + 1 + CHORD_MS); CHECK(core_buz(&C) && core_buz_hz(&C) == buz_freq(&C.cfg)); up(1, 5); step(400);   // Morse sau Nokia: tan so cu
   C.cfg.w[W_BZB] = 0; down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C)); up(1, 3); step(NK_BEEP_MS + 20); C.cfg.w[W_BZB] = 1;     // tat Morse: Nokia van keu
   C.cfg.w[W_NKB] = 0; down(1, 3); step(DEBOUNCE_MS + 1); CHECK(!core_buz(&C));                                                          // tat tick Nokia -> im
+
+
+  // ===== v19) chord: 2 phim cung luc =====
+  // Morse: cham + gach cung luc = chot ky tu; 2 lan lien tiep = Space
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK);
+  press(1, 3, 6); press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "i") && C.mo_len == 2);
+#define CHORD2(a, b) do { down(1, a); down(1, b); step(10); up(1, a); up(1, b); step(DEBOUNCE_MS + 1); } while (0)
+  step(CHORD2_MS + 50); CHORD2(3, 4); drain();
+  CHECK(C.mo_len == 0 && !strcmp(txt(), "i"));                      // chord: chot, KHONG them ky tu cham / gach
+  press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "ie"));            // ky tu moi bat dau lai
+  step(CHORD2_MS + 50); CHORD2(4, 3); step(100); CHORD2(3, 4); drain();   // 2 chord cach 100 ms (gach truoc cung duoc) = chot + Space
+  CHECK(C.mo_len == 0 && !strcmp(txt(), "ie "));
+  step(CHORD2_MS + 50); CHORD2(3, 4); step(CHORD2_MS + 50); CHORD2(3, 4); drain(); CHECK(!strcmp(txt(), "ie "));   // 2 chord cach > CHORD2_MS = 2 lan chot don, khong them Space
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);                         // bam lan luot (khong giu cung luc) van la phim don
+  press(1, 3, 6); step(CHORD_MS + 10); press(1, 4, 6); drain(); CHECK(!strcmp(txt(), "a") && C.mo_len == 2);
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);                         // 2 phim bam lech < CHORD_MS va con giu = chord
+  down(1, 3); step(15); down(1, 4); step(10); up(1, 3); up(1, 4); drain(); CHECK(!strcmp(txt(), "") && C.mo_len == 0);
+  // Nokia: 2 phim so bat ky cung luc = Space; 2 lan = xoa 1 ky tu
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2)); setk(0, 1, 5, NKK(6));
+  press(1, 3, 6); step(10); down(1, 4); down(1, 5); step(10); up(1, 4); up(1, 5); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "2 "));                                    // "2" + Space, 2 phim chord khong ra chu
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  press(1, 3, 6); step(10); press(1, 3, 6); step(10); drain(); CHECK(!strcmp(txt(), "d"));        // multitap van dung
+  down(1, 3); down(1, 4); step(10); up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1); step(100);          // chord 1: Space
+  down(1, 3); down(1, 4); step(10); up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1); drain();            // chord 2: xoa dau cach + chu "d"
+  CHECK(!strcmp(txt(), ""));
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  press(1, 3, 6); step(NOKIA_MS + 10); press(1, 3, 6); step(NOKIA_MS + 10); drain(); CHECK(!strcmp(txt(), "22"));
+  down(1, 3); down(1, 4); step(10); up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1); step(60);
+  down(1, 3); down(1, 4); step(10); up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), "2"));   // xoa dung 1 ky tu
+  down(1, 3); down(1, 4); step(10); up(1, 3); up(1, 4); drain(); CHECK(!strcmp(txt(), "2 "));       // chord don moi = Space
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  press(1, 3, 6); step(CHORD_MS + 10); press(1, 4, 6); drain(); CHECK(!strcmp(txt(), "23"));      // lan luot: 2 phim don
+  // chord khi dang o layer khac / phim khong thuoc Morse-Nokia khong bi anh huong
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, KC_A);
+  press(1, 3, 6); press(1, 4, 6); drain(); CHECK(ntext == 2 && strchr(txt(), '2') && strchr(txt(), 'a'));   // phim khac xen vao: Nokia don duoc chot ngay, khong mat phim
 
   // ===== 11) Morse =====
   reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK); setk(0, 1, 6, KC_MHINT);
@@ -330,7 +366,7 @@ int main(void) {
   // ===== 17a) coi bao Morse: bip khi bam Cham / Gach / OK =====
   reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK); setk(0, 1, 6, KC_LATCH);
   CHECK(!core_buz(&C));
-  press(1, 3, 5); { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); down(1, 3); for (int i = 0; i < 20; i++) { step(1); if (core_buz(&C)) n++; } CHECK(n > 0); }
+  press(1, 3, 5); { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); down(1, 3); for (int i = 0; i < 20 + CHORD_MS; i++) { step(1); if (core_buz(&C)) n++; } CHECK(n > 0); }
   { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); down(1, 3); step(8); up(1, 3); step(300);   // cham: bip ~BUZ_DOT_MS roi im
     CHECK(!core_buz(&C)); reset(); setk(0, 1, 4, KC_MDASH); down(1, 4); step(8); for (int i = 0; i < 400; i++) { if (core_buz(&C)) n++; step(1); } CHECK(n >= 3 * BUZ_DOT_MS - 12 && n <= 3 * BUZ_DOT_MS); }
   reset(); setk(0, 1, 5, KC_MOK); press(1, 5, 5); CHECK(!core_buz(&C));                                           // OK luc rong: im
@@ -502,7 +538,7 @@ int main(void) {
     CHECK(C.cfg.w[W_BZB] == 1 && buz_freq(&C.cfg) == BUZ_FREQ && buz_unit(&C.cfg) == BUZ_DOT_MS && buz_vol(&C.cfg) == 100);
     C.cfg.w[W_BZB] = 0; press(1, 3, 5); CHECK(!core_buz(&C)); step(10); CHECK(!core_buz(&C));      // tat -> im
     { uint8_t in[32] = {CMD_BUZTEST}, out[32] = {0}; proto_cmd(&C, in, out); CHECK(out[0] == CMD_BUZTEST && core_buz(&C) && C.buz_ms == 3 * BUZ_DOT_MS); }   // nghe thu van keu
-    reset(); setk(0, 1, 3, KC_MDOT); C.cfg.w[W_BZB + 2] = 100; down(1, 3); step(6); CHECK(C.buz_ms >= 92 && C.buz_ms <= 100);                 // cham 100 ms
+    reset(); setk(0, 1, 3, KC_MDOT); C.cfg.w[W_BZB + 2] = 100; down(1, 3); step(6 + CHORD_MS); CHECK(C.buz_ms >= 92 && C.buz_ms <= 100);                 // cham 100 ms
     C.cfg.w[W_BZB + 1] = 10; C.cfg.w[W_BZB + 2] = 5; C.cfg.w[W_BZB + 3] = 0; CHECK(buz_freq(&C.cfg) == BUZ_FREQ && buz_unit(&C.cfg) == BUZ_DOT_MS && buz_vol(&C.cfg) == 100);
     { uint8_t in[32] = {CMD_INFO}, out[32] = {0}; proto_cmd(&C, in, out); CHECK(out[15] == ((BUZ_PIN >= 0 ? 1 : 0) | (BUZ_ACTIVE ? 2 : 0))); }
   }
@@ -571,7 +607,7 @@ int main(void) {
     reset(); setk(0, 1, 0, NOTE(72)); setk(0, 1, 1, NOTE(74)); setk(0, 3, 0, KC_PSTOP); down(1, 0); down(1, 1); step(6); CHECK(C.nt_n == 2);
     press(3, 0, 5); CHECK(C.nt_n == 0 && core_note(&C) == 0); up(1, 0); up(1, 1); step(6); CHECK(C.nt_n == 0 && !core_buz(&C));
     // Morse van keu nhu cu, va nốt uu tien hon bip
-    reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 0, NOTE(72)); down(1, 3); step(6); CHECK(core_buz(&C) && core_buz_hz(&C) == BUZ_FREQ && core_buz_amp(&C) == 256);
+    reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 0, NOTE(72)); down(1, 3); step(6 + CHORD_MS); CHECK(core_buz(&C) && core_buz_hz(&C) == BUZ_FREQ && core_buz_amp(&C) == 256);
     down(1, 0); step(6); CHECK(core_buz_hz(&C) == 524); up(1, 0); up(1, 3); step(6 + BUZ_DOT_MS);
     // bai nhac: Canon (bai 9): 8 nốt minh 8/16 + nốt cuoi 16/16; nốt dau F#5 (+1 quang tam) = 90
     reset(); setk(0, 0, 0, TUNE(8)); setk(0, 0, 1, KC_TMPU); setk(0, 0, 2, KC_TMPD); setk(0, 1, 0, KC_A); setk(0, 1, 1, TUNE(0));
