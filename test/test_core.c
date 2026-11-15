@@ -178,8 +178,15 @@ int main(void) {
   press(1, 6, 6); drain(); CHECK(C.mo_hopt == 0);
   press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "ie"));
   { char h[24]; CHECK(morse_hint("", h) > 0 && !strcmp(h, " [.e -t]")); CHECK(morse_hint(".", h) > 0 && !strcmp(h, " [.i -a]")); CHECK(morse_find("-.-.") == 'c'); CHECK(morse_find(".-.-") == 0); }
-  // ma dai 7 khong nhan them
-  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); for (int i = 0; i < 9; i++) press(1, 3, 6); drain(); CHECK(C.mo_len == MORSE_MAX);
+  // v18: du 7 ky hieu thi bam tiep se quay vong: xoa ky tu tam, bat dau lai tu ky hieu vua bam
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);
+  for (int i = 0; i < 7; i++) press(1, 3, 6); drain(); CHECK(C.mo_len == MORSE_MAX);
+  press(1, 3, 6); drain(); CHECK(C.mo_len == 1 && !strcmp(C.mo_code, ".") && !strcmp(txt(), "e"));   // 8: quay lai tu dau
+  press(1, 4, 6); drain(); CHECK(C.mo_len == 2 && !strcmp(txt(), "a"));
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);
+  press(1, 3, 6); press(1, 3, 6); press(1, 3, 6); press(1, 4, 6); press(1, 3, 6); press(1, 3, 6); press(1, 4, 6); drain();   // ...-..- = $
+  CHECK(C.mo_len == MORSE_MAX && !strcmp(txt(), "$"));
+  press(1, 4, 6); drain(); CHECK(C.mo_len == 1 && !strcmp(txt(), "t"));   // ky tu "$" bi thay bang "t"
 
   // ===== 12) doi ten layer =====
   reset(); setk(0, 1, 3, KC_RENAME); setk(0, 1, 4, NKK(3)); setk(0, 1, 5, KC_BSPC); setk(0, 1, 6, KC_ENTER);

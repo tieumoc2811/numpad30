@@ -287,15 +287,16 @@ static inline uint32_t buz_freq(const cfg_t *g) { uint16_t v = g->w[W_BZB + 1]; 
 static inline uint16_t buz_unit(const cfg_t *g) { uint16_t v = g->w[W_BZB + 2]; return v < 20 || v > 300 ? BUZ_DOT_MS : v; }   // "cham" (ms)
 static inline uint16_t buz_vol(const cfg_t *g) { uint16_t v = g->w[W_BZB + 3]; return v < 1 || v > 100 ? 100 : v; }
 static int morse_press(core_t *c, bool dash) {
-  if (c->mo_len >= MORSE_MAX) return 0;
-  char nc[10]; memcpy(nc, c->mo_code, c->mo_len); nc[c->mo_len] = dash ? '-' : '.'; nc[c->mo_len + 1] = 0;
+  // Da du MORSE_MAX ky hieu: quay vong, xoa ky tu tam va bat dau lai tu ky hieu vua bam
+  int base = c->mo_len >= MORSE_MAX ? 0 : c->mo_len;
+  char nc[10]; memcpy(nc, c->mo_code, base); nc[base] = dash ? '-' : '.'; nc[base + 1] = 0;
   char ch = morse_find(nc), h[24]; int hl = c->mo_hopt ? morse_hint(nc, h) : (h[0] = 0, 0);
   int del = (c->mo_shown ? 1 : 0) + c->mo_hint;
   if (q_room(c) < del + (ch ? 1 : 0) + 2 * hl) return 0;
   for (int i = 0; i < del; i++) q_bs(c);
   if (ch) q_ascii(c, ch);
   for (int i = 0; i < hl; i++) q_ascii(c, h[i]);
-  memcpy(c->mo_code, nc, c->mo_len + 2); c->mo_len++; c->mo_shown = ch != 0; c->mo_hint = (uint8_t)hl;
+  memcpy(c->mo_code, nc, base + 2); c->mo_len = (uint8_t)(base + 1); c->mo_shown = ch != 0; c->mo_hint = (uint8_t)hl;
   if (buz_enabled(&c->cfg)) { c->buz_mid = 0; c->buz_ms = dash ? 3 * buz_unit(&c->cfg) : buz_unit(&c->cfg); }
   return 1;
 }
