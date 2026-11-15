@@ -57,6 +57,8 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 
 ## Coi bao Morse
 
+- v17: phim Nokia keu 1 nốt ngan (70 ms, `NK_BEEP_MS`) moi lan bam. Cong tac rieng + nốt tung phim (khoi `W_NKB`) chinh trong Studio; mac dinh thang Do truong: 1..9 = C6..D7, 0 = A5, `.` = E7. Chi dung chung chan coi va am luong (`W_BZB`) voi Morse.
+
 - Noi module coi 3 chan: GND -> GND, VCC -> 3V3 (hoac 5V / VBUS neu module ghi 5V), I/O -> **GP14**. Doi chan bang `BUZ_PIN` trong config.h (`-1` = tat han coi).
 - O che do Morse, phim **Cham** keu bip ngan (mac dinh 70 ms), **Gach** keu bip dai gap 3, **OK** keu bip ngan (4/7 lan cham) khi chot ky tu. Ma qua dai / khong gui duoc thi im. Bat / tat, tan so, do dai va am luong chinh trong app Studio (luu flash); `BUZ_FREQ` / `BUZ_DOT_MS` trong config.h chi la gia tri mac dinh.
 - Mac dinh `BUZ_ACTIVE 0`: chan I/O phat xung PWM (mac dinh 2700 Hz, doi trong app), chay duoc ca coi chu dong lan thu dong. Coi chu dong chi can muc cao thi doi `BUZ_ACTIVE 1`. Neu module kich bang muc thap (I/O keo xuong thi keu, im lang luc khoi dong thi keu lien tuc), doi `BUZ_INVERT 1`.

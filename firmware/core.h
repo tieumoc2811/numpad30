@@ -31,7 +31,9 @@
 #define W_NAMB 8
 #define W_BZB (W_AMB + W_NAMB)              // 1266: coi bao Morse, 4 word: [bat 0/1, tan so Hz (200-5000), do dai cham ms (20-300), am luong % (1-100)]
 #define W_NBZ 4
-#define NW (W_BZB + W_NBZ)                  // 1270
+#define W_NKB (W_BZB + W_NBZ)               // 1270: phim Nokia keu nốt (v17), 12 word: [bat 0/1, nốt MIDI cua 11 phim: 1..9, 0, '.'; ngoai 48..108 -> mac dinh]
+#define W_NNK 12
+#define NW (W_NKB + W_NNK)                  // 1282
 #define LDB_ROT 8
 // ---- du lieu OLED (lenh 8/9): [0..143] header, [256 + i*512] khung i ----
 #define OD_NF 16
@@ -172,7 +174,8 @@ typedef struct {
   bool m_on; uint8_t m_idx, m_rep; uint16_t m_p, m_tp; kc_t mhold[6]; uint8_t mhn;
   int nk_key; uint8_t nk_n; uint32_t nk_t;
   char mo_code[8]; uint8_t mo_len, mo_shown, mo_hint, mo_hopt;
-  uint16_t buz_ms;                        // ms con lai cua tieng bip coi (Morse); 0 = im
+  uint16_t buz_ms;                        // ms con lai cua tieng bip coi (Morse / Nokia); 0 = im
+  uint8_t buz_mid;                        // 0 = bip Morse (tan so cai dat); >0 = nốt MIDI cua tieng bip phim Nokia (v17)
   bool rn_on; char rn_buf[NAMELEN + 2]; uint8_t rn_len; uint8_t rn_layer; int rn_nk; uint8_t rn_n; uint32_t rn_t;
   bool boot_req, save_req;
   uint8_t mact[NKEYS];                    // phim chuot dang giu (KC_AIR / KC_MB1..3) cua phim i, 0 = khong
@@ -293,10 +296,10 @@ static int morse_press(core_t *c, bool dash) {
   if (ch) q_ascii(c, ch);
   for (int i = 0; i < hl; i++) q_ascii(c, h[i]);
   memcpy(c->mo_code, nc, c->mo_len + 2); c->mo_len++; c->mo_shown = ch != 0; c->mo_hint = (uint8_t)hl;
-  if (buz_enabled(&c->cfg)) c->buz_ms = dash ? 3 * buz_unit(&c->cfg) : buz_unit(&c->cfg);
+  if (buz_enabled(&c->cfg)) { c->buz_mid = 0; c->buz_ms = dash ? 3 * buz_unit(&c->cfg) : buz_unit(&c->cfg); }
   return 1;
 }
-static void morse_commit(core_t *c) { if (c->mo_len && buz_enabled(&c->cfg)) c->buz_ms = (uint16_t)(buz_unit(&c->cfg) * 4 / 7); for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_len = 0; c->mo_code[0] = 0; c->mo_shown = 0; c->mo_hint = 0; }
+static void morse_commit(core_t *c) { if (c->mo_len && buz_enabled(&c->cfg)) { c->buz_mid = 0; c->buz_ms = (uint16_t)(buz_unit(&c->cfg) * 4 / 7); } for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_len = 0; c->mo_code[0] = 0; c->mo_shown = 0; c->mo_hint = 0; }
 static void morse_set_hint(core_t *c, bool on) {
   if (on == !!c->mo_hopt) return;
   if (!on) { if (q_room(c) < c->mo_hint) return; for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_hint = 0; c->mo_hopt = 0; return; }
@@ -307,7 +310,13 @@ static void morse_set_hint(core_t *c, bool on) {
 
 // ---------------------------------------------------------------- Nokia multitap, doi ten layer
 static const char *const NK_TAB[11] = {"1abc", "2def", "3ghi", "4jkl", "5mno", "6pqr", "7stu", "8vwx", "9yz", "0 ", ".,?!"};
+// v17: moi phim Nokia keu 1 nốt nhac ngan. Cong tac + nốt tung phim nam trong W_NKB (app Studio chinh); am luong dung chung voi coi (W_BZB[3]), khong phu thuoc cong tac Morse.
+static const uint8_t NK_DEF[11] = {84, 86, 88, 89, 91, 93, 95, 96, 98, 81, 100};   // mac dinh: thang C truong C6 D6 E6 F6 G6 A6 B6 C7 D7 | 0 = A5 | . = E7
+static inline bool nk_beep_on(const cfg_t *g) { return g->w[W_NKB] != 0; }
+static inline uint8_t nk_note(const cfg_t *g, int k) { uint16_t v = g->w[W_NKB + 1 + k]; return v < 48 || v > 108 ? NK_DEF[k] : (uint8_t)v; }
+static void nokia_beep(core_t *c, int g) { if (nk_beep_on(&c->cfg)) { c->buz_mid = nk_note(&c->cfg, g); c->buz_ms = NK_BEEP_MS; } }
 static void nokia_press(core_t *c, int g, uint32_t now) {
+  nokia_beep(c, g);
   int len = (int)strlen(NK_TAB[g]);
   if (c->nk_key == g && now - c->nk_t < NOKIA_MS) { q_bs(c); c->nk_n = (c->nk_n + 1) % len; }
   else { c->nk_key = g; c->nk_n = 0; }
@@ -326,7 +335,7 @@ static void rename_press(core_t *c, kc_t k, uint32_t now) {
     char ch;
     if (c->rn_nk == g && now - c->rn_t < NOKIA_MS && c->rn_len) { c->rn_n = (c->rn_n + 1) % len; ch = NK_TAB[g][c->rn_n]; c->rn_buf[c->rn_len - 1] = ch >= 'a' && ch <= 'z' ? ch - 32 : ch; }
     else if (c->rn_len < NAMELEN) { c->rn_nk = g; c->rn_n = 0; ch = NK_TAB[g][0]; c->rn_buf[c->rn_len++] = ch >= 'a' && ch <= 'z' ? ch - 32 : ch; }
-    c->rn_buf[c->rn_len] = 0; c->rn_t = now; return;
+    c->rn_buf[c->rn_len] = 0; c->rn_t = now; nokia_beep(c, g); return;
   }
   c->rn_nk = -1;
   if (k == KC_BSPC) { if (c->rn_len) c->rn_buf[--c->rn_len] = 0; }
@@ -574,7 +583,7 @@ static void on_release(core_t *c, int i, uint32_t now) {
 }
 static void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now) {
   if (c->mwait) c->mwait--;
-  if (c->buz_ms) c->buz_ms--;
+  if (c->buz_ms && !--c->buz_ms) c->buz_mid = 0;
   if (c->nt_age < 0xFFFF) c->nt_age++;
   tune_tick(c);
   bool rel[NKEYS] = {0}, prs[NKEYS] = {0};
@@ -630,7 +639,7 @@ static uint16_t core_cons(const core_t *c) {
 static inline uint8_t core_note(const core_t *c) { return c->tn_cur ? c->tn_note : (c->nt_n ? c->nt_stk[c->nt_n - 1] : 0); }
 static uint32_t core_buz_hz(const core_t *c) {
   uint8_t n = core_note(c);
-  if (!n) return c->buz_ms ? buz_freq(&c->cfg) : 0;
+  if (!n) return c->buz_ms ? (c->buz_mid ? note_hz(c->buz_mid) : buz_freq(&c->cfg)) : 0;
   uint32_t hz = note_hz(n);
   if (c->pn_vib && c->nt_age > 150) {       // rung ~6 Hz, +-1.5%, sau 150 ms
     int ph = (int)((uint32_t)(c->nt_age - 150) * 1536u / 1000u) & 255, tri = (ph < 128 ? ph : 255 - ph) * 2 - 128;

@@ -13,7 +13,7 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | 2 | Ghi `n<=14` word (`[3+2i]`), co hieu luc ngay |
 | 3 | Luu toan bo cau hinh vao flash. Tra loi sau khi ghi xong (~0,3 s); `[0]=0xFF` neu ghi that bai |
 | 4 | Ve mac dinh trong RAM (phim, macro, du lieu OLED, ten layer); chua luu flash |
-| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1270), `[4]`=FW_VER (16), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien, `[15]`=coi bao (v12): bit0 = co coi (`BUZ_PIN >= 0`), bit1 = coi chu dong (`BUZ_ACTIVE`, tan so / am luong khong co tac dung) |
+| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1282), `[4]`=FW_VER (17), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien, `[15]`=coi bao (v12): bit0 = co coi (`BUZ_PIN >= 0`), bit1 = coi chu dong (`BUZ_ACTIVE`, tan so / am luong khong co tac dung) |
 | 6 / 7 | Doc / ghi `n<=28` byte macro, offset = `o*1020 + vi tri` (0..32639) |
 | 8 / 9 | Doc / ghi `n<=28` byte du lieu OLED, offset 0..8447 |
 | 10 | Xem thu OLED: `out[1]` = 0 dung, 1 loi chao, 2 screensaver, 4 logo |
@@ -36,7 +36,7 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | Chuoi (SEQ) | 1194 + 8n + k | 8 bo x 8 buoc, o 0 = het danh sach |
 Khoi chuot bay `AMB` = word 1258..1265: [do nhay X, do nhay Y, vung chet (0.1 do/s), lam muot 0-9, co (bit0 dao X, bit1 dao Y, bit2 Y theo gy, bit3 luon bay), 3 du phong]. Ma phim: 0x7070 AIR (giu de bay), 0x7071 AIR bat/tat, 0x7072/73/74 chuot trai/phai/giua, 0x7075 hieu chuan gyro, 0x7076 / 0x7077 cuon chuot len / xuong (bam 1 nac ngay, giu > 350 ms thi lap moi 50 ms), 0x7076 / 0x7077 cuon chuot len / xuong (bam 1 nac ngay, giu > 350 ms thi lap moi 50 ms).
 
-Tong NW = 1270 (v12: them khoi coi bao W_BZB = 1266, 4 word: `[bat 0/1, tan so Hz 200-5000, do dai cham ms 20-300, am luong % 1-100]`; gach = 3 x cham, OK = 4/7 x cham; gia tri ngoai khoang -> mac dinh). Ban luu flash cu (thieu khoi coi bao, hoac thieu ca chuot bay) van nap duoc, phan thieu lay mac dinh. Ma o trong `r*7+c` khong co phim: (R2,C6) (R3,C0) (R3,C2) (R4,C4) (R4,C6).
+Tong NW = 1282 (v17: them khoi Nokia W_NKB = 1270, 12 word: `[bat 0/1, nốt MIDI cua 11 phim NK1..NK9, NK0, NK. (ngoai 48..108 -> mac dinh C6 D6 E6 F6 G6 A6 B6 C7 D7 A5 E7)]`, ban luu cu nap duoc, khoi thieu = mac dinh; v12: them khoi coi bao W_BZB = 1266, 4 word: `[bat 0/1, tan so Hz 200-5000, do dai cham ms 20-300, am luong % 1-100]`; gach = 3 x cham, OK = 4/7 x cham; gia tri ngoai khoang -> mac dinh). Ban luu flash cu (thieu khoi coi bao, hoac thieu ca chuot bay) van nap duoc, phan thieu lay mac dinh. Ma o trong `r*7+c` khong co phim: (R2,C6) (R3,C0) (R3,C2) (R4,C4) (R4,C6).
 
 LED onboard dung: `obMode` 0 theo layer / 1 cau vong / 2 mot mau (hue,sat) / 3 tho / 4 tat, do sang `obSang`, CapsLock = do. Cac hieu ung/den tung phim (word 0..5) chi luu giu.
 
@@ -71,7 +71,7 @@ LED onboard dung: `obMode` 0 theo layer / 1 cau vong / 2 mot mau (hue,sat) / 3 t
 Vung `0x100000` (1 MB), 12 sector x 4 KB: `magic "NP30"`, ver, len, CRC32, roi toan bo `cfg_t` (word, macro, du lieu OLED, ten layer). Sai CRC/magic -> dung mac dinh.
 
 ## Ma phim nhac cu (v13)
-Khong doi khoi cau hinh (NW van 1270); chi them ma phim, ghi vao o phim nhu moi ma khac:
+Khong doi khoi cau hinh (luc do NW = 1270; v17 them khoi Nokia, xem tren); chi them ma phim, ghi vao o phim nhu moi ma khac:
 
 | Ma | Y nghia |
 |---|---|

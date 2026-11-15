@@ -62,7 +62,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
       #undef P16
     } break;
     case CMD_MOUSE: flags |= PROTO_MOUSE; break;
-    case CMD_BUZTEST: c->buz_ms = 3 * buz_unit(&c->cfg); break;
+    case CMD_BUZTEST: c->buz_mid = 0; c->buz_ms = 3 * buz_unit(&c->cfg); break;
     case CMD_LNREAD:
       if (in[1] >= NLAYER) { out[0] = 0xFF; break; }
       memcpy(out + 3, c->cfg.lname[in[1]], 12);
@@ -86,7 +86,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
 #define STORE_SIZE (STORE_SECTORS * 4096)
 typedef struct { uint32_t magic, ver, len, crc; } store_hdr_t;
 _Static_assert(sizeof(store_hdr_t) + sizeof(cfg_t) <= STORE_SIZE, "cau hinh vuot vung flash");
-_Static_assert(NW == 1270 && NKEYS == 35, "ban do word khop app");
+_Static_assert(NW == 1282 && NKEYS == 35, "ban do word khop app");
 
 static uint32_t crc32_buf(const uint8_t *p, size_t n) {
   uint32_t c = 0xFFFFFFFFu;
@@ -106,15 +106,17 @@ static bool store_unpack(const uint8_t *buf, cfg_t *g) {   // dung neu hop le (m
     memcpy(g, buf + sizeof h, sizeof(cfg_t));
     return true;
   }
-  // ban luu cua firmware cu (w[] ngan hon): thieu khoi coi bao (W_NBZ word) hoac thieu ca khoi chuot bay + coi bao; doc tung phan, khoi thieu lay mac dinh
-  for (int air = 0; air < 2; air++) {
-    size_t miss = W_NBZ + (air ? W_NAMB : 0), old_w = (size_t)(NW - miss) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2;
+  // ban luu cua firmware cu (w[] ngan hon): thieu khoi Nokia (v17), hoac them khoi coi bao, hoac them ca chuot bay; doc tung phan, khoi thieu lay mac dinh
+  for (int lv = 0; lv < 3; lv++) {
+    bool buz = lv >= 1, air = lv >= 2;
+    size_t miss = W_NNK + (buz ? W_NBZ : 0) + (air ? W_NAMB : 0), old_w = (size_t)(NW - miss) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2;
     if (h.len != old_w + rest) continue;
     if (crc32_buf(buf + sizeof h, h.len) != h.crc) return false;
     const uint8_t *p = buf + sizeof h;
     memcpy(g->w, p, old_w); memcpy((uint8_t *)g + (size_t)NW * 2, p + old_w, rest);
     if (air) cfg_air_defaults(g);
-    cfg_buz_defaults(g);
+    if (buz) cfg_buz_defaults(g);
+    cfg_nk_defaults(g);
     return true;
   }
   return false;
