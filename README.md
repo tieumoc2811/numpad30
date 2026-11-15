@@ -86,6 +86,8 @@ R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
 - OLED hien ten nốt (`C+5` = Do thang quang tam 5, font khong co dau #) hoac ten bai.
 - Sua o v13: tan so PWM duoi ~570 Hz truoc day tran thanh ghi wrap 16 bit (bo chia xung co dinh /4); gio chia xung tu dong, nốt 32 Hz van dung.
 
+- **Bai khoi dong (v14)**: chon 1 trong 9 bai de coi phat khi cap dien (app Studio, tab Coi bao -> "Bai khoi dong", nho "Luu vao thiet bi"). Mac dinh tat. Bam phim bat ky de dung. Word `OSB+7`, xem `docs/PROTOCOL.md`.
+
 ## Chuot bay (MPU-6515)
 
 - Noi MPU-6515 chung I2C0 voi OLED: SDA -> GP12, SCL -> GP13, VCC -> 3V3, GND -> GND, AD0 -> GND (dia chi 0x68; AD0 -> 3V3 thi doi `IMU_ADDR` thanh 0x69 trong config.h). Gyro doc o +-500 dps, 200 lan/giay.

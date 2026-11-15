@@ -242,7 +242,7 @@ static void raw_task(uint32_t now) {
 
 int main(void) {
   store_load();
-  matrix_init(); buz_init(); core_reset(&core);
+  matrix_init(); buz_init(); core_reset(&core); core_boot_tune(&core);
   tusb_init(); oled_init(); led_init(); air_init(&air); imu_try_init();
   uint32_t last = 0, active = ms(); (void)active;
   ui_init(&ui, &core, ms());

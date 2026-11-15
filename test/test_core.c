@@ -511,6 +511,13 @@ int main(void) {
     press(4, 5, 5); CHECK(core_top_layer(&C) == 3);                                                                                   // quay lai PIANO
     down(0, 3); step(5 + TAP_TERM_MS); press(3, 6, 5); up(0, 3); step(6); CHECK(core_top_layer(&C) == 0);                              // thoat PIANO
     down(1, 3); step(6); CHECK(has(kb(), KC_P7) && core_note(&C) == 0); up(1, 3); step(6);
+    // bai khoi dong (v14, word W_STARTUP = OSB+7): 0 = im, 1..9 = bai, ngoai khoang = im; phim bam thi dung; het bai tu dung
+    reset(); CHECK(C.cfg.w[W_STARTUP] == 0); core_boot_tune(&C); step(10); CHECK(C.tn_cur == 0 && !core_buz(&C));
+    reset(); C.cfg.w[W_STARTUP] = NTUNE + 1; core_boot_tune(&C); CHECK(C.tn_cur == 0);
+    reset(); C.cfg.w[W_STARTUP] = 0xFFFF; core_boot_tune(&C); CHECK(C.tn_cur == 0);
+    reset(); C.cfg.w[W_STARTUP] = 3; core_boot_tune(&C); step(5); CHECK(C.tn_cur == 3 && core_buz(&C) && core_note(&C) == TUNE_TAB[2].p[0].n + 12);
+    press(1, 1, 5); step(10); CHECK(C.tn_cur == 0 && !core_buz(&C));                     // bam phim bat ky -> dung bai
+    reset(); C.cfg.w[W_STARTUP] = NTUNE; core_boot_tune(&C); CHECK(C.tn_cur == NTUNE); step(20000); CHECK(C.tn_cur == 0 && !core_buz(&C));   // bai cuoi chay het roi tu dung
   }
 
   printf(fails ? "core: %d LOI\n" : "core: tat ca dat\n", fails);

@@ -423,6 +423,8 @@ static void tune_load(core_t *c) {          // nap nốt c->tn_i cua bai dang ph
   c->nt_age = 0;
 }
 static void tune_start(core_t *c, int n) { c->tn_cur = (uint8_t)(n + 1); c->tn_i = 0; tune_load(c); }
+#define W_STARTUP (W_OSB + 7)               // v14: bai khoi dong (word du phong cua khoi man hinh): 0 = tat, 1..NTUNE = bai tuong ung
+static void core_boot_tune(core_t *c) { uint16_t v = c->cfg.w[W_STARTUP]; if (v >= 1 && v <= NTUNE) tune_start(c, v - 1); }   // goi 1 lan sau core_reset luc cap dien
 static void tune_tick(core_t *c) {          // goi moi ms
   if (!c->tn_cur) return;
   if (c->tn_left > 1) { c->tn_left--; return; }
