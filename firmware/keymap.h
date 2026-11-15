@@ -10,7 +10,7 @@
 #include "core.h"
 #define __ KC_NO
 #define ___ KC_TRNS
-#define NUM_DEFAULT_LAYERS 6
+#define NUM_DEFAULT_LAYERS 7
 
 static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
   // ---- Layer 0: NUM (numpad + phim tat) ----
@@ -45,7 +45,7 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     TUNE(3), TUNE(4), TUNE(5), __, __, __, KC_TMPU,
     TUNE(6), TUNE(7), TUNE(8), __, __, __, __,
     __, __, __, __, __, KC_PSTOP, ___,
-    __, __, TL(5), __, __, TL(4), __ },
+    __, __, TL(5), TL(6), __, TL(4), __ },
   // ---- Layer 5: TUNES trang 2 (xep len tren trang 1): 11 bai thieu nhi / dan ca (bai 10..20). M1..M9 = bai 10..18, R1C3 / R1C4 = bai 19 / 20 ----
   // R4C0 (mui ten trai) = ve trang 1 (TL(5) tat chinh no), - / + = cham / nhanh, R3C5 = dung. Muon them trang 3: gan TL(6) vao R4C2 cua trang nay va them 1 layer
   { TUNE(9), TUNE(10), TUNE(11), LT(1, 0), __, __, KC_TMPD,
@@ -53,6 +53,14 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     TUNE(15), TUNE(16), TUNE(17), __, __, __, __,
     __, __, __, __, __, KC_PSTOP, ___,
     TL(5), __, __, __, __, __, __ },
+  // ---- Layer 6: NOTES (v16): choi nhac bang khoi so numpad, kieu "so": 1..7 = Do Re Mi Fa Sol La Si (C5..B5), 8 = Do cao, 9 = Re cao, 0 = nghi (STOP) ----
+  // Vao: o layer TUNES trang 1 bam R4C3 (vi tri phim 0); thoat: bam R4C5 (phim .). Khoi M ben trai = nốt thang (#): R0C0 C#5, R0C1 D#5, R1C0 F#5, R1C1 G#5, R1C2 A#5, R2C0 C#6, R2C1 D#6.
+  // R0C4 / R0C5 = Oct- / Oct+ (phim / va *), R0C6 / R1C6 = Trans- / Trans+ (phim - va +), R3C1 giu <-> tat dan, R4C0 am sac, R4C1 rung, R4C2 am luong. R3C6 trong suot de FN+Enter tat layer.
+  { NOTE(73), NOTE(75), __, LT(1, 0), KC_OCTD, KC_OCTU, KC_TRD,
+    NOTE(78), NOTE(80), NOTE(82), NOTE(83), NOTE(84), NOTE(86), KC_TRU,
+    NOTE(85), NOTE(87), __, NOTE(77), NOTE(79), NOTE(81), __,
+    __, KC_PENV, __, NOTE(72), NOTE(74), NOTE(76), ___,
+    KC_PTIM, KC_PVIB, KC_PVOL, KC_PSTOP, __, TL(6), __ },
 };
 #undef __
 #undef ___
@@ -102,5 +110,5 @@ static void cfg_defaults(cfg_t *g) {
   const char *gr = "HELLO NUMPAD30", *sv = "NUMPAD30";
   g->od[16] = (uint8_t)strlen(gr); memcpy(g->od + 17, gr, strlen(gr));
   g->od[80] = (uint8_t)strlen(sv); memcpy(g->od + 81, sv, strlen(sv));
-  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "PIANO"); strcpy(g->lname[4], "TUNES"); strcpy(g->lname[5], "TUNES 2");
+  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "PIANO"); strcpy(g->lname[4], "TUNES"); strcpy(g->lname[5], "TUNES 2"); strcpy(g->lname[6], "NOTES");
 }

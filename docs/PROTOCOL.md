@@ -88,7 +88,7 @@ Khong doi khoi cau hinh (NW van 1270); chi them ma phim, ghi vao o phim nhu moi 
 | `0x7600 \| n` | (v16) Phat bai n = 16..19 (cung bang bai nhu tren). Chi nhan n >= 16; `0x7600 \| n` voi n < 16 khong hop le (dung ma `0x7500 \| n`) |
 | `0x7510` / `0x7511` | Tempo cham / nhanh (5 muc, 160..80 ms moi 1/16 nốt) |
 
-Mac dinh co them layer 3 `PIANO` va layer 4 `TUNES` (so layer mac dinh 3 -> 5); v16 them layer 5 `TUNES 2` (so layer mac dinh 6): TUNES R4C2 = `TL(5)` sang trang 2, TUNES 2 R4C0 = `TL(5)` ve trang 1; layer FN R3C6 = `TL(3)`. Layer PIANO dung `LT(1, 0)` o R0C3 (giu = FN, bam nhanh khong lam gi).
+Mac dinh co them layer 3 `PIANO` va layer 4 `TUNES` (so layer mac dinh 3 -> 5); v16 them layer 5 `TUNES 2` va layer 6 `NOTES` (so layer mac dinh 7; NOTES: khoi so numpad 1..7 = C5..B5, TUNES R4C3 = `TL(6)` vao, NOTES R4C5 = `TL(6)` thoat): TUNES R4C2 = `TL(5)` sang trang 2, TUNES 2 R4C0 = `TL(5)` ve trang 1; layer FN R3C6 = `TL(3)`. Layer PIANO dung `LT(1, 0)` o R0C3 (giu = FN, bam nhanh khong lam gi).
 
 ## Bai khoi dong (v14)
 Word `OSB + 7` = 1193 (truoc day la o du phong): `0` tat (mac dinh, cau hinh cu van dung), `1..20` (v16; truoc day 1..9) = phat bai tuong ung (n = gia tri - 1, bang bai trong `firmware/tunes.h`) tren coi ngay khi cap dien. Gia tri ngoai khoang -> im. Bam phim bat ky thi dung bai. Can coi THU DONG tren GP14. Doi bang lenh ghi (2) nhu moi word man hinh, luu flash bang lenh 3; co hieu luc o lan cap dien ke tiep.

@@ -68,7 +68,7 @@ Dung chinh coi Morse tren GP14 (xem muc tren) lam dan: **moi phim = 1 nốt** (l
 
 - **Can coi THU DONG** (passive) de doi cao do. Coi chu dong chi co 1 tong co dinh, layer dan se khong ra dung nốt.
 - Bat: giu `Num` + bam `Enter` (R3C6, o layer FN). Tat: lai giu `Num` + `Enter`. Giu `Num` o PIANO / TUNES van vao FN (bam nhanh khong lam gi, khong bat NumLock).
-- Cau hinh luu flash cu van la 3 layer: layer PIANO / TUNES / TUNES 2 chi xuat hien sau lenh "ve mac dinh" (app Studio) roi luu, hoac tu gan phim bang ma o `docs/PROTOCOL.md`. Layer mac dinh hien la 6 (v16, truoc la 5): sau khi nap firmware moi, can "ve mac dinh" + luu de co trang TUNES 2 va phim mui ten R4C2 o trang 1.
+- Cau hinh luu flash cu van la 3 layer: layer PIANO / TUNES / TUNES 2 chi xuat hien sau lenh "ve mac dinh" (app Studio) roi luu, hoac tu gan phim bang ma o `docs/PROTOCOL.md`. Layer mac dinh hien la 7 (v16, truoc la 5): sau khi nap firmware moi, can "ve mac dinh" + luu de co trang TUNES 2 va phim mui ten R4C2 o trang 1.
 
 ```
         C0     C1     C2     C3     C4     C5     C6
@@ -87,6 +87,17 @@ R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
   - **Trang 2 (TUNES 2, v16)**: M1..M9 = Old MacDonald, Row Your Boat, London Bridge, Cross Buns (Hot Cross Buns), Yankee Doodle, Lightly Row, Au Clair de la Lune, Surprise Symphony (Haydn), Silent Night; `R1C3` = Deck the Halls, `R1C4` = We Wish You a Merry Christmas. Phim mui ten trai `R4C0` ve trang 1.
   - Tat ca la ban nhac dan gian / co truyen (het ban quyen). Nhac thieu nhi Viet Nam hien dai (vd. Chu ech con, Chau len ba...) con ban quyen tac gia nen khong dua vao san; muon them thi tu nhap nốt vao `tunes.h`.
   - Moi bai dung 1 phim; muon them bai thu 21 tro len: them mang nốt + 1 dong `TUNE_OF(...)` vao `TUNE_TAB`, doi `NTUNE`, roi gan phim `TUNE(n)` (xem `firmware/keymap.h`).
+- **NOTES (v16) - choi nhac bang khoi so numpad, kieu "so"**: vao tu layer TUNES trang 1 bam `R4C3` (vi tri phim `0`), thoat bam `R4C5` (phim `.`).
+  ```
+        C0     C1     C2     C3     C4     C5     C6
+  R0:   C#5    D#5    --    [Num]   Oct-   Oct+   Trans-     (/ va * = Oct- / Oct+)
+  R1:   F#5    G#5    A#5    7=Si   8=Do'  9=Re'  Trans+
+  R2:   C#6    D#6    --     4=Fa   5=Sol  6=La    --
+  R3:   --    Giu/    --     1=Do   2=Re   3=Mi    (FN)
+              tat dan
+  R4:  Am sac  Rung  Am luong 0=Nghi  --    (thoat) --
+  ```
+  Phim `1..7` = Do Re Mi Fa Sol La Si (C5..B5), `8` = Do cao (C6), `9` = Re cao (D6), `0` = nghi / dung. Khoi M ben trai la cac nốt thang (#) de choi duoc ca cung thang. `-` / `+` chuyen giong, `/` / `*` doi quang tam. Layer mac dinh la 7 (v16): can "ve mac dinh" + luu de co layer NOTES.
 - OLED hien ten nốt (`C+5` = Do thang quang tam 5, font khong co dau #) hoac ten bai.
 - Sua o v13: tan so PWM duoi ~570 Hz truoc day tran thanh ghi wrap 16 bit (bo chia xung co dinh /4); gio chia xung tu dong, nốt 32 Hz van dung.
 
