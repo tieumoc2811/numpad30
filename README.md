@@ -58,9 +58,10 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 ## Chuot bay (MPU-6515)
 
 - Noi MPU-6515 chung I2C0 voi OLED: SDA -> GP12, SCL -> GP13, VCC -> 3V3, GND -> GND, AD0 -> GND (dia chi 0x68; AD0 -> 3V3 thi doi `IMU_ADDR` thanh 0x69 trong config.h). Gyro doc o +-500 dps, 200 lan/giay.
-- HID them chuot (report ID 3). Phim: AIR (giu de bay), AIR bat/tat, chuot trai/phai/giua, hieu chuan. Mac dinh nam o layer MACRO: R1C3 AIR, R1C4 trai, R1C5 phai, R2C3 giua, R2C4 AIR bat/tat, R2C5 hieu chuan.
+- HID them chuot (report ID 3). Phim: AIR (giu de bay), AIR bat/tat, chuot trai/phai/giua, hieu chuan, cuon len/xuong (giu de cuon lien tuc). Mac dinh nam o layer MACRO: R1C3 AIR, R1C4 trai, R1C5 phai, R2C3 giua, R2C4 AIR bat/tat, R2C5 hieu chuan, R3C3 cuon len, R3C4 cuon xuong (cau hinh cu da luu: tu gan 2 phim nay trong app).
 - Khi cam USB hoac bam hieu chuan, de ban phim nam yen ~1 giay. Do nhay, vung chet, lam muot, dao truc chinh trong app (tab Den LED -> Chuot bay).
 - Cau hinh cu da luu trong flash van dung duoc (khoi chuot bay lay mac dinh); phim chuot phai tu gan trong app neu khong ve mac dinh.
 - Neu cam bien khong tra loi (day sai), ban phim van chay binh thuong, firmware thu lai moi 2 giay.
 - Do phan giai OLED mac dinh 128x32; doi `OLED_H` thanh 64 trong config.h neu dung man 0.96".
 - Kiem tra cam bien trong app Studio (tab Chuot bay): "Kiem tra cam bien" doc gyro tho qua lenh 11 (firmware v9+), "Thu chuot" gui thang bao cao chuot qua lenh 12 (v10+). Gyro tho dung yen ~0 (lech bias nho) va phai nhay so khi nghieng. Neu 3 so dung o 0 la gyro bi tat (PWR_MGMT_2 0x6C phai la 0x38, khong phai 0x07).
+- Ten layer (v11): app doc/ghi ten layer tren thiet bi qua lenh 13/14 (toi da 10 ky tu: A-Z 0-9 va `! ( ) * + , - . / : = ?`). Ten doi bang phim RENAME tren ban phim duoc app doc lai khi ket noi hoac bam "Dong bo ten".

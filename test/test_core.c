@@ -243,6 +243,15 @@ int main(void) {
     memset(in, 0, 32); in[0] = CMD_AIRDBG; CHECK(proto_cmd(&C, in, out) == 0);
     CHECK(out[0] == 11 && (int16_t)(out[3] | out[4] << 8) == -1234 && (int16_t)(out[7] | out[8] << 8) == 6550 && (int16_t)(out[11] | out[12] << 8) == -7 && (int16_t)(out[15] | out[16] << 8) == -3 && out[19] == 1 && out[28] == 9);
     memset(in, 0, 32); in[0] = CMD_MOUSE; in[1] = 236; in[2] = 20; CHECK(proto_cmd(&C, in, out) == PROTO_MOUSE);
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 5; in[2] = 9; memcpy(in + 3, "ab_c d~e1", 9); proto_cmd(&C, in, out);
+    CHECK(out[0] == CMD_LNWRITE && !strcmp(C.cfg.lname[5], "ABC DE1"));        // chu thuong -> hoa, ky tu ngoai font bi bo
+    memset(in, 0, 32); in[0] = CMD_LNREAD; in[1] = 5; proto_cmd(&C, in, out); CHECK(out[0] == CMD_LNREAD && !strcmp((char *)out + 3, "ABC DE1"));
+    memset(in, 0, 32); in[0] = CMD_LNREAD; in[1] = NLAYER; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
+    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 5; in[2] = NAMELEN + 1; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
+    { core_t W2; memset(&W2, 0, sizeof W2); cfg_defaults(&W2.cfg); core_reset(&W2);   // cuon chuot: nac dau ngay, giu 350 ms roi lap 50 ms
+      W2.mact[0] = KC_WHUP & 0xFF; int n = 0; for (uint32_t t = 1000; t < 1800; t++) n += core_wheel(&W2, t) == 1;
+      CHECK(n == 1 + (1800 - 1350 + 49) / 50);
+      W2.mact[0] = 0; CHECK(core_wheel(&W2, 1801) == 0); W2.mact[1] = KC_WHDN & 0xFF; CHECK(core_wheel(&W2, 1802) == -1 && core_wheel(&W2, 1803) == 0); }
     memset(in, 0, 32); in[0] = CMD_SAVE; CHECK(proto_cmd(&C, in, out) == PROTO_SAVE);
     memset(in, 0, 32); in[0] = CMD_PREVIEW; in[1] = 4; CHECK(proto_cmd(&C, in, out) == PROTO_PREVIEW && out[1] == 4);
     // ve mac dinh

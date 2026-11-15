@@ -16,6 +16,8 @@
 #define CMD_AIRDBG 11     // doc truc tiep gyro + trang thai chuot bay (xem docs/PROTOCOL.md)
 #define CMD_MOUSE 12      // [12, dx, dy] (int8): gui thang 1 bao cao chuot, khong qua gyro / phim AIR; tra loi [3] = 1 neu da gui
 #define PROTO_MOUSE 4     // proto_cmd tra ve bit nay: caller gui bao cao chuot (in[1], in[2]) roi dat out[3]
+#define CMD_LNREAD 13     // (v11) [13, layer] -> [3..14] ten layer tren OLED (12 byte, dem 0)
+#define CMD_LNWRITE 14    // (v11) [14, layer, len, chu...] (len <= NAMELEN): dat ten layer; luu flash bang lenh 3
 #define PROTO_SAVE 1      // proto_cmd tra ve bit nay: caller phai luu flash roi moi gui tra loi
 #define PROTO_PREVIEW 2   // caller phai goi ui_cmd(out[1])
 
@@ -58,6 +60,18 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
       #undef P16
     } break;
     case CMD_MOUSE: flags |= PROTO_MOUSE; break;
+    case CMD_LNREAD:
+      if (in[1] >= NLAYER) { out[0] = 0xFF; break; }
+      memcpy(out + 3, c->cfg.lname[in[1]], 12);
+      break;
+    case CMD_LNWRITE: {
+      if (in[1] >= NLAYER || in[2] > NAMELEN) { out[0] = 0xFF; break; }
+      char *d = c->cfg.lname[in[1]]; int k = 0; memset(d, 0, 12);
+      for (int i = 0; i < in[2]; i++) {            // chi nhan ky tu OLED ve duoc (A-Z 0-9 khoang trang ! ( ) * + , - . / : = ?), chu thuong doi thanh hoa
+        uint8_t ch = in[3 + i]; if (ch >= 'a' && ch <= 'z') ch -= 32;
+        if ((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || (ch >= 32 && ch <= 63 && strchr(" !()*+,-./:=?", ch))) d[k++] = (char)ch;
+      }
+    } break;
     default: out[0] = 0xFF; break;
   }
   return flags;

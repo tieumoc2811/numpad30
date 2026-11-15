@@ -26,11 +26,11 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     __, KC_ESC, __, KC_END, KC_INS, KC_DEL, ___,
     KC_TAB, KC_SPACE, KC_ENTER, TL(2), __, KC_BOOT, __ },
   // ---- Layer 2: MACRO (bat/tat bang TL(2) o layer FN, phim 0): M1..M9 ----
-  // Cum chuot bay: R1C3 AIR (giu de bay), R1C4/R1C5/R2C3 chuot trai/phai/giua, R2C4 AIR bat/tat, R2C5 hieu chuan gyro
+  // Cum chuot bay: R1C3 AIR (giu de bay), R1C4/R1C5/R2C3 chuot trai/phai/giua, R2C4 AIR bat/tat, R2C5 hieu chuan gyro, R3C3/R3C4 cuon len/xuong
   { MACRO(0), MACRO(1), MACRO(2), ___, ___, ___, ___,
     MACRO(3), MACRO(4), MACRO(5), KC_AIR, KC_MB1, KC_MB2, ___,
     MACRO(6), MACRO(7), MACRO(8), KC_MB3, KC_AIRT, KC_AIRCAL, __,
-    __, ___, __, ___, ___, ___, ___,
+    __, ___, __, KC_WHUP, KC_WHDN, ___, ___,
     ___, ___, ___, ___, __, ___, __ },
 };
 #undef __

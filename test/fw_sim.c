@@ -7,7 +7,7 @@
 #include "pico_stub.h"
 
 i2c_inst_t dummy_i2c, *i2c0 = &dummy_i2c; PIO_t dummy_pio, *pio0 = &dummy_pio; pio_program_t ws2812_program;
-uint8_t sim_imu_reg, sim_pwr2; int16_t sim_gyro[3]; int sim_imu_present = 1; uint8_t sim_mb; int sim_mdx, sim_mdy, sim_mrep;
+uint8_t sim_imu_reg, sim_pwr2; int16_t sim_gyro[3]; int sim_imu_present = 1; uint8_t sim_mb; int sim_mdx, sim_mdy, sim_mrep, sim_wheel, sim_wrep;
 uint8_t sim_flash[2 * 1024 * 1024]; int sim_flash_erases; static uint8_t raw_tx[32]; static int raw_txn;
 bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)id; if (itf == 1 && n == 32) { memcpy(raw_tx, r, 32); raw_txn++; } return true; }
 typedef struct { uint32_t t; void (*f)(void); } act_t; static act_t acts[64]; static int nacts;
@@ -16,7 +16,7 @@ typedef struct { uint32_t t; uint8_t mods, k[6]; } kbl_t; static kbl_t kbl[4096]
 typedef struct { uint32_t t; uint16_t u; } cnl_t; static cnl_t cnl[1024]; static int ncn;
 bool tud_hid_n_ready(uint8_t i) { (void)i; return true; }
 bool tud_hid_keyboard_report(uint8_t id, uint8_t mod, const uint8_t k[6]) { (void)id; kbl_t *e = &kbl[nkb++]; e->t = fake_ms; e->mods = mod; memcpy(e->k, k, 6); return true; }
-bool tud_hid_mouse_report(uint8_t id, uint8_t b, int8_t x, int8_t y, int8_t v, int8_t h) { (void)id; (void)v; (void)h; sim_mb |= b; sim_mdx += x; sim_mdy += y; sim_mrep++; return true; }
+bool tud_hid_mouse_report(uint8_t id, uint8_t b, int8_t x, int8_t y, int8_t v, int8_t h) { (void)id; (void)h; if (v) { sim_wheel += v; sim_wrep++; } sim_mb |= b; sim_mdx += x; sim_mdy += y; sim_mrep++; return true; }
 bool tud_hid_report(uint8_t id, const void *r, uint16_t n) { (void)n; if (id == 2) { cnl[ncn].t = fake_ms; cnl[ncn++].u = *(const uint16_t *)r; } return true; }
 
 typedef struct { uint32_t t; int r, c, d; } ev_t; static ev_t evs[256]; static int nev; static uint32_t endt; static jmp_buf jb;
@@ -120,7 +120,10 @@ static int scenario_proto(void) {   // Raw HID: info, ghi phim co hieu luc ngay,
   return fails;
 }
 static void a_gyro_hold(void) { sim_gyro[2] = (int16_t)(65.5 * 100); }   // 100 do/s quanh Z
-static void a_air_cfg(void) { core.cfg.w[W_KM + POS_(1, 3)] = KC_AIR; core.cfg.w[W_KM + POS_(1, 4)] = KC_MB1; }
+static void a_air_cfg(void) { core.cfg.w[W_KM + POS_(1, 3)] = KC_AIR; core.cfg.w[W_KM + POS_(1, 4)] = KC_MB1; core.cfg.w[W_KM + POS_(2, 3)] = KC_WHUP; core.cfg.w[W_KM + POS_(2, 4)] = KC_WHDN; }
+static void a_lnw(void) { mk(CMD_LNWRITE, 0, 0); R_in[1] = 3; R_in[2] = 6; memcpy(R_in + 3, "my-Tab", 6); raw_send(); }   // layer 3: "MY-TAB"
+static void a_lnr(void) { mk(CMD_LNREAD, 0, 0); R_in[1] = 3; raw_send(); }
+static int sn3[3]; static void a_snap(void) { sn3[0] = sim_mrep; sn3[1] = sim_mdx; sn3[2] = sim_mdy; }
 static void a_dbg(void) { mk(CMD_AIRDBG, 0, 0); raw_send(); }
 static void a_mouse(void) { mk(CMD_MOUSE, 0, 0); R_in[1] = (uint8_t)(int8_t)-20; R_in[2] = 20; raw_send(); }
 static int scenario_air(void) {
@@ -131,17 +134,20 @@ static int scenario_air(void) {
   tap(2500, 1, 4, 100);                             // chuot trai
   act_at(1900, a_dbg); act_at(1902, keep);          // lenh 11 luc dang giu AIR va gyro dang quay
   act_at(2600, a_dbg); act_at(2602, keep);          // lenh 11 luc da nha AIR
-  endt = 3000; run();
-  int m0 = sim_mrep, dx0 = sim_mdx, dy0 = sim_mdy;
-  act_at(3100, a_mouse); act_at(3102, keep); endt = 3200; run();   // lenh 12: gui thang (-20, +20), khong qua gyro
-  CHECK(ngot == 3 && got[2][0] == CMD_MOUSE && got[2][3] == 1 && sim_mrep == m0 + 1 && sim_mdx == dx0 - 20 && sim_mdy == dy0 + 20);
+  act_at(3099, a_snap); act_at(3100, a_mouse); act_at(3102, keep);   // lenh 12: gui thang (-20, +20), khong qua gyro
+  tap(3300, 2, 3, 40); tap(3500, 2, 4, 700);       // cuon len 1 lan; giu cuon xuong 700 ms (nac dau + lap lai)
+  act_at(4400, a_lnw); act_at(4402, keep); act_at(4410, a_lnr); act_at(4412, keep);
+  endt = 4600; run();
+  CHECK(got[2][0] == CMD_MOUSE && got[2][3] == 1 && sim_mrep == sn3[0] + 1 + sim_wrep && sim_mdx == sn3[1] - 20 && sim_mdy == sn3[2] + 20);
+  CHECK(sim_wheel < 0 && sim_wrep >= 5 && sim_wrep <= 14);                      // +1 roi -1 * n (nac dau ngay, lap lai sau 350 ms moi 50 ms)
+  CHECK(got[3][0] == CMD_LNWRITE && got[4][0] == CMD_LNREAD && memcmp(got[4] + 3, "MY-TAB", 7) == 0 && !strcmp(core.cfg.lname[3], "MY-TAB"));
   { const uint8_t *r = got[0]; int16_t gz = (int16_t)(r[7] | r[8] << 8), bz = (int16_t)(r[13] | r[14] << 8);
     CHECK(r[0] == CMD_AIRDBG && gz == (int16_t)(65.5 * 100) && bz == 40 && (r[19] & 1) && !(r[19] & 2));   // gz = 100 do/s, bias = 40, dang bay, da hieu chuan
     CHECK((r[20] | r[21] << 8) == 60 && (r[22] | r[23] << 8) == 60 && (r[24] | r[25] << 8) == 15 && r[26] == 2 && r[28] > 0 && r[29] == 0);
     CHECK(!(got[1][19] & 1)); }
   CHECK(core.imu_ok == 1 && core.imu_id == 0x74);
   CHECK(sim_mrep > 5); CHECK(sim_mdx < -300 && sim_mdx > -2500);   // gz+ -> sang trai, khi dang giu AIR
-  CHECK(dy0 == 0 && sim_mb == 1);                              // sim_mb gom moi nut da tung bam
+  CHECK(sn3[2] == 0 && sim_mb == 1);                              // sim_mb gom moi nut da tung bam
   return fails;
 }
 int main(int argc, char **argv) {

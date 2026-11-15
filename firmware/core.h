@@ -42,7 +42,7 @@ typedef uint16_t kc_t;
 // ---- ma phim (khong gian ma cua app) ----
 // 0 NO | 1 TRNS | 0x04..0xE7 phim HID (0xE0..0xE7 modifier) | (mods<<8)|kc to hop (mods C=1 S=2 A=4 G=8)
 // 0x2000|(n<<8)|kc LT | 0x4000|n MO | 0x4100|n TL | 0x4200/0x4201 LY+/LY- | 0x5000|n TD | 0x6000|i Nokia
-// 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro
+// 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro | 0x7076/77 cuon len/xuong (giu = lap lai)
 // 0x7001 LATCH | 0x7002..5 TG Space/Shift/Ctrl/Alt | 0x7010..16 LED (bo qua) | 0x7020 RENAME | 0x7060..63 Morse
 // 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
 #define KC_NO 0x0000
@@ -74,6 +74,8 @@ typedef uint16_t kc_t;
 #define KC_MB2 0x7073
 #define KC_MB3 0x7074
 #define KC_AIRCAL 0x7075
+#define KC_WHUP 0x7076
+#define KC_WHDN 0x7077
 #define MACRO(n) (0x7100 | (n))
 #define SEQ_F 0x7200
 #define SEQ_B 0x7280
@@ -88,7 +90,7 @@ typedef uint16_t kc_t;
 #define IS_TD(k) (((k) & 0xFFFC) == 0x5000)
 #define IS_NKK(k) ((k) >= 0x6000 && (k) <= 0x600A)
 #define IS_MORSE(k) ((k) >= KC_MDOT && (k) <= KC_MHINT)
-#define IS_MOUSE(k) ((k) >= KC_AIR && (k) <= KC_AIRCAL)
+#define IS_MOUSE(k) ((k) >= KC_AIR && (k) <= KC_WHDN)
 #define IS_MACRO(k) (((k) & 0xFF00) == 0x7100 && ((k) & 0xFF) < NMAC)
 #define IS_SEQ(k) ((((k) & 0xFFF8) == SEQ_F) || (((k) & 0xFFF8) == SEQ_B) || (((k) & 0xFFF8) == SEQ_R))
 #define IS_CONS(k) ((k) & 0x8000)
@@ -144,6 +146,7 @@ typedef struct {
   bool rn_on; char rn_buf[NAMELEN + 2]; uint8_t rn_len; uint8_t rn_layer; int rn_nk; uint8_t rn_n; uint32_t rn_t;
   bool boot_req, save_req;
   uint8_t mact[NKEYS];                    // phim chuot dang giu (KC_AIR / KC_MB1..3) cua phim i, 0 = khong
+  int8_t wh_dir; uint32_t wh_due;         // con lan chuot: huong dang giu (+1 len, -1 xuong, 0 khong) va thoi diem gui nac ke tiep
   bool air_tog, cal_req;                  // KC_AIRT dang bat; yeu cau hieu chuan gyro (main.c xu ly)
   uint8_t imu_ok, imu_id;                 // main.c dat: cam bien da nhan (0/1) va gia tri WHO_AM_I
   struct { int16_t g[3], b[3], px, py; uint8_t st, sent, rej; } dbg;   // main.c dien ngay truoc proto_cmd: gyro tho, bias, pixel cho, co (bit0 bay, bit1 hieu chuan), dem HID
@@ -538,7 +541,7 @@ static void core_label(const core_t *c, kc_t k, char *o, int n) {
   else if (k == KC_LATCH) ADD("LATCH");
   else if (k == KC_TGSPC) ADD("TG SPACE"); else if (k == KC_TGSFT) ADD("TG SHIFT"); else if (k == KC_TGCTL) ADD("TG CTRL"); else if (k == KC_TGALT) ADD("TG ALT");
   else if (k == KC_RENAME) ADD("RENAME");
-  else if (k == KC_AIR) ADD("AIR"); else if (k == KC_AIRT) ADD("AIR TG"); else if (k == KC_AIRCAL) ADD("AIR CAL");
+  else if (k == KC_AIR) ADD("AIR"); else if (k == KC_AIRT) ADD("AIR TG"); else if (k == KC_AIRCAL) ADD("AIR CAL"); else if (k == KC_WHUP) ADD("SCROLL UP"); else if (k == KC_WHDN) ADD("SCROLL DN");
   else if (k == KC_MB1) ADD("LMB"); else if (k == KC_MB2) ADD("RMB"); else if (k == KC_MB3) ADD("MMB");
   else if (k == KC_MDOT) ADD("DOT"); else if (k == KC_MDASH) ADD("DASH"); else if (k == KC_MOK) ADD("OK"); else if (k == KC_MHINT) ADD("HINT");
   else if (k == KC_BOOT) ADD("BOOT");
@@ -583,6 +586,19 @@ static uint8_t core_mouse_buttons(const core_t *c) {
   uint8_t b = 0;
   for (int i = 0; i < NKEYS; i++) { uint8_t m = c->mact[i]; if (m >= (KC_MB1 & 0xFF) && m <= (KC_MB3 & 0xFF)) b |= 1u << (m - (KC_MB1 & 0xFF)); }
   return b;
+}
+// Con lan: tra +1 (cuon len), -1 (cuon xuong) hoac 0 cho moi nac can gui. Nac dau gui ngay khi bam, giu qua WHEEL_DELAY_MS thi lap moi WHEEL_REPEAT_MS.
+#ifndef WHEEL_DELAY_MS
+#define WHEEL_DELAY_MS 350
+#define WHEEL_REPEAT_MS 50
+#endif
+static int core_wheel(core_t *c, uint32_t now) {
+  int d = 0;
+  for (int i = 0; i < NKEYS; i++) { if (c->mact[i] == (KC_WHUP & 0xFF)) d = 1; else if (c->mact[i] == (KC_WHDN & 0xFF)) d = -1; }
+  if (d == 0) { c->wh_dir = 0; return 0; }
+  if (d != c->wh_dir) { c->wh_dir = (int8_t)d; c->wh_due = now + WHEEL_DELAY_MS; return d; }
+  if ((int32_t)(now - c->wh_due) >= 0) { c->wh_due = now + WHEEL_REPEAT_MS; return d; }
+  return 0;
 }
 static bool core_air_on(const core_t *c) {
   if (c->air_tog || (c->cfg.w[W_AMB + 4] & 8)) return true;

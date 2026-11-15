@@ -27,6 +27,6 @@
 #define TAP_HOLD_MS 10                       // phim "tap" tao ra (LT/TD) duoc giu it nhat so ms nay
 #define STORE_OFFSET (1024 * 1024)           // vi tri vung cau hinh trong flash (RP2350-Zero 2 MB)
 #define STORE_SECTORS 14                     // 14 x 4 KB = 56 KB cho cau hinh + macro + du lieu OLED
-#define FW_VER 10                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I), >=9 lenh 11 doc gyro truc tiep, >=10 lenh 12 thu HID chuot
+#define FW_VER 11                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I), >=9 lenh 11 doc gyro truc tiep, >=10 lenh 12 thu HID chuot, >=11 lenh 13/14 doc/ghi ten layer + phim cuon chuot
 #define IMU_ADDR 0x68                        // MPU-6515 / MPU-6500 (chan AD0 noi GND; noi 3V3 thi 0x69). Dung chung I2C0 voi OLED (GP12/GP13)
 #define IMU_POLL_MS 5                        // doc gyro 200 lan/giay

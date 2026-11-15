@@ -183,9 +183,10 @@ static void hid_task(void) {
   if (got && memcmp(&r, &sent, sizeof r)) { tud_hid_keyboard_report(1, r.mods, r.keys); sent = r; return; }
   if (cn != cons_sent) { tud_hid_report(2, &cn, sizeof cn); cons_sent = cn; return; }
   uint8_t mb = core_mouse_buttons(&core);
-  if (mb != m_sent || air_px || air_py) {
+  int wh = core_wheel(&core, ms());
+  if (mb != m_sent || air_px || air_py || wh) {
     int sx = air_px > 127 ? 127 : air_px < -127 ? -127 : air_px, sy = air_py > 127 ? 127 : air_py < -127 ? -127 : air_py;
-    if (tud_hid_mouse_report(3, mb, (int8_t)sx, (int8_t)sy, 0, 0)) { hid_sent++; air_px -= sx; air_py -= sy; m_sent = mb; } else hid_rej++;
+    if (tud_hid_mouse_report(3, mb, (int8_t)sx, (int8_t)sy, (int8_t)wh, 0)) { hid_sent++; air_px -= sx; air_py -= sy; m_sent = mb; } else hid_rej++;
     return;
   }
   if (got && core_out_busy(&core)) core_out_ack(&core);   // bao cao cua muc hien tai da gui xong

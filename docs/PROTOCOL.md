@@ -13,12 +13,14 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | 2 | Ghi `n<=14` word (`[3+2i]`), co hieu luc ngay |
 | 3 | Luu toan bo cau hinh vao flash. Tra loi sau khi ghi xong (~0,3 s); `[0]=0xFF` neu ghi that bai |
 | 4 | Ve mac dinh trong RAM (phim, macro, du lieu OLED, ten layer); chua luu flash |
-| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1266), `[4]`=FW_VER (10), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien |
+| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1266), `[4]`=FW_VER (11), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien |
 | 6 / 7 | Doc / ghi `n<=28` byte macro, offset = `o*1020 + vi tri` (0..32639) |
 | 8 / 9 | Doc / ghi `n<=28` byte du lieu OLED, offset 0..8447 |
 | 10 | Xem thu OLED: `out[1]` = 0 dung, 1 loi chao, 2 screensaver, 4 logo |
 | 11 | (v9) Go loi chuot bay, doc gyro truc tiep. Tra loi (s16 little endian): `[3..8]` gyro tho X,Y,Z (LSB, 65.5 LSB/do/s), `[9..14]` bias hieu chuan X,Y,Z, `[15..18]` pixel dang cho gui X,Y, `[19]` bit0 dang bay / bit1 dang hieu chuan, `[20..21]` do nhay X, `[22..23]` do nhay Y, `[24..25]` vung chet (0.1 do/s), `[26]` lam muot, `[27]` co, `[28]` so bao cao chuot da gui, `[29]` so bi tu choi (dem vong 256) |
 | 12 | (v10) Thu duong HID chuot, khong dung gyro / phim AIR: `[12, dx, dy]` (int8). Gui thang 1 bao cao chuot; tra loi `[3]` = 1 neu gui duoc, 0 neu giao dien HID chua san sang |
+| 13 | (v11) Doc ten layer tren OLED: `[13, layer]` -> `[3..14]` 12 byte, dem 0 (rong = ten mac dinh BASE / MORSE / LAYERn). `[0]=0xFF` neu layer >= 32 |
+| 14 | (v11) Dat ten layer: `[14, layer, len, chu...]`, `len <= 10`. Chi giu ky tu OLED ve duoc (A-Z 0-9 khoang trang `! ( ) * + , - . / : = ?`), chu thuong doi thanh hoa. Chua vao flash cho toi khi gui lenh 3 |
 
 ## Ban do word (uint16)
 | Khoi | Offset | Noi dung |
@@ -31,7 +33,7 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | Huong OLED tung layer | 1154..1185 | 0..3, >=4 = theo huong chung |
 | Man hinh | 1186..1193 | `[timeout giay (0=tat), toc do chu 1-10, loi chao bat, logo truoc loi chao, so lan chay 1-5, kieu saver 0-3, ms/khung, du phong]` |
 | Chuoi (SEQ) | 1194 + 8n + k | 8 bo x 8 buoc, o 0 = het danh sach |
-Khoi chuot bay `AMB` = word 1258..1265: [do nhay X, do nhay Y, vung chet (0.1 do/s), lam muot 0-9, co (bit0 dao X, bit1 dao Y, bit2 Y theo gy, bit3 luon bay), 3 du phong]. Ma phim: 0x7070 AIR (giu de bay), 0x7071 AIR bat/tat, 0x7072/73/74 chuot trai/phai/giua, 0x7075 hieu chuan gyro.
+Khoi chuot bay `AMB` = word 1258..1265: [do nhay X, do nhay Y, vung chet (0.1 do/s), lam muot 0-9, co (bit0 dao X, bit1 dao Y, bit2 Y theo gy, bit3 luon bay), 3 du phong]. Ma phim: 0x7070 AIR (giu de bay), 0x7071 AIR bat/tat, 0x7072/73/74 chuot trai/phai/giua, 0x7075 hieu chuan gyro, 0x7076 / 0x7077 cuon chuot len / xuong (bam 1 nac ngay, giu > 350 ms thi lap moi 50 ms), 0x7076 / 0x7077 cuon chuot len / xuong (bam 1 nac ngay, giu > 350 ms thi lap moi 50 ms).
 
 Tong NW = 1266. Ma o trong `r*7+c` khong co phim: (R2,C6) (R3,C0) (R3,C2) (R4,C4) (R4,C6).
 
