@@ -12,7 +12,7 @@ static const uint8_t d_raw[] = {
 
 static const tusb_desc_device_t dev = {
   .bLength = sizeof(tusb_desc_device_t), .bDescriptorType = TUSB_DESC_DEVICE, .bcdUSB = 0x0200,
-  .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE, .idVendor = 0xC1A0, .idProduct = 0x0030, .bcdDevice = 0x0200,
+  .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE, .idVendor = 0xC1A0, .idProduct = 0x0030, .bcdDevice = 0x0201,
   .iManufacturer = 1, .iProduct = 2, .iSerialNumber = 3, .bNumConfigurations = 1 };
 
 #define CFG_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_INOUT_DESC_LEN)

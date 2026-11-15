@@ -13,6 +13,9 @@
 #define CMD_ODREAD 8      // doc byte du lieu OLED (n<=28)
 #define CMD_ODWRITE 9     // ghi byte du lieu OLED
 #define CMD_PREVIEW 10    // [10, n]: 0 dung, 1 loi chao, 2 screensaver, 4 logo
+#define CMD_AIRDBG 11     // doc truc tiep gyro + trang thai chuot bay (xem docs/PROTOCOL.md)
+#define CMD_MOUSE 12      // [12, dx, dy] (int8): gui thang 1 bao cao chuot, khong qua gyro / phim AIR; tra loi [3] = 1 neu da gui
+#define PROTO_MOUSE 4     // proto_cmd tra ve bit nay: caller gui bao cao chuot (in[1], in[2]) roi dat out[3]
 #define PROTO_SAVE 1      // proto_cmd tra ve bit nay: caller phai luu flash roi moi gui tra loi
 #define PROTO_PREVIEW 2   // caller phai goi ui_cmd(out[1])
 
@@ -45,6 +48,16 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
       if (in[0] == CMD_ODREAD) memcpy(out + 3, c->cfg.od + off, n); else memcpy(c->cfg.od + off, in + 3, n);
       break;
     case CMD_PREVIEW: flags |= PROTO_PREVIEW; break;
+    case CMD_AIRDBG: {
+      #define P16(o, v) do { out[o] = (uint8_t)((v) & 255); out[(o) + 1] = (uint8_t)(((v) >> 8) & 255); } while (0)
+      const uint16_t *a = &c->cfg.w[W_AMB];
+      for (int k = 0; k < 3; k++) { P16(3 + 2 * k, (uint16_t)c->dbg.g[k]); P16(9 + 2 * k, (uint16_t)c->dbg.b[k]); }
+      P16(15, (uint16_t)c->dbg.px); P16(17, (uint16_t)c->dbg.py);
+      out[19] = c->dbg.st; P16(20, a[0]); P16(22, a[1]); P16(24, a[2]);
+      out[26] = (uint8_t)a[3]; out[27] = (uint8_t)a[4]; out[28] = c->dbg.sent; out[29] = c->dbg.rej;
+      #undef P16
+    } break;
+    case CMD_MOUSE: flags |= PROTO_MOUSE; break;
     default: out[0] = 0xFF; break;
   }
   return flags;

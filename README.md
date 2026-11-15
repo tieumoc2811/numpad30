@@ -63,3 +63,4 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 - Cau hinh cu da luu trong flash van dung duoc (khoi chuot bay lay mac dinh); phim chuot phai tu gan trong app neu khong ve mac dinh.
 - Neu cam bien khong tra loi (day sai), ban phim van chay binh thuong, firmware thu lai moi 2 giay.
 - Do phan giai OLED mac dinh 128x32; doi `OLED_H` thanh 64 trong config.h neu dung man 0.96".
+- Kiem tra cam bien trong app Studio (tab Chuot bay): "Kiem tra cam bien" doc gyro tho qua lenh 11 (firmware v9+), "Thu chuot" gui thang bao cao chuot qua lenh 12 (v10+). Gyro tho dung yen ~0 (lech bias nho) va phai nhay so khi nghieng. Neu 3 so dung o 0 la gyro bi tat (PWR_MGMT_2 0x6C phai la 0x38, khong phai 0x07).

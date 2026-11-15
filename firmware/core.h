@@ -146,6 +146,7 @@ typedef struct {
   uint8_t mact[NKEYS];                    // phim chuot dang giu (KC_AIR / KC_MB1..3) cua phim i, 0 = khong
   bool air_tog, cal_req;                  // KC_AIRT dang bat; yeu cau hieu chuan gyro (main.c xu ly)
   uint8_t imu_ok, imu_id;                 // main.c dat: cam bien da nhan (0/1) va gia tri WHO_AM_I
+  struct { int16_t g[3], b[3], px, py; uint8_t st, sent, rej; } dbg;   // main.c dien ngay truoc proto_cmd: gyro tho, bias, pixel cho, co (bit0 bay, bit1 hieu chuan), dem HID
   kc_t last_kc; uint32_t press_seq; uint32_t touch;
 } core_t;
 

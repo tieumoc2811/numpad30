@@ -121,16 +121,27 @@ static int scenario_proto(void) {   // Raw HID: info, ghi phim co hieu luc ngay,
 }
 static void a_gyro_hold(void) { sim_gyro[2] = (int16_t)(65.5 * 100); }   // 100 do/s quanh Z
 static void a_air_cfg(void) { core.cfg.w[W_KM + POS_(1, 3)] = KC_AIR; core.cfg.w[W_KM + POS_(1, 4)] = KC_MB1; }
+static void a_dbg(void) { mk(CMD_AIRDBG, 0, 0); raw_send(); }
+static void a_mouse(void) { mk(CMD_MOUSE, 0, 0); R_in[1] = (uint8_t)(int8_t)-20; R_in[2] = 20; raw_send(); }
 static int scenario_air(void) {
   nacts = 0; nev = 0; sim_mdx = sim_mdy = sim_mrep = 0; sim_gyro[0] = sim_gyro[1] = sim_gyro[2] = 40;
   act_at(50, a_air_cfg);                            // (main() nap lai cau hinh luc khoi dong nen gan phim sau do)
   act_at(1500, a_gyro_hold);                        // sau khi hieu chuan xong (~1 s), quay Z
   tap(1700, 1, 3, 600);                             // giu AIR 1700..2300
   tap(2500, 1, 4, 100);                             // chuot trai
+  act_at(1900, a_dbg); act_at(1902, keep);          // lenh 11 luc dang giu AIR va gyro dang quay
+  act_at(2600, a_dbg); act_at(2602, keep);          // lenh 11 luc da nha AIR
   endt = 3000; run();
+  int m0 = sim_mrep, dx0 = sim_mdx, dy0 = sim_mdy;
+  act_at(3100, a_mouse); act_at(3102, keep); endt = 3200; run();   // lenh 12: gui thang (-20, +20), khong qua gyro
+  CHECK(ngot == 3 && got[2][0] == CMD_MOUSE && got[2][3] == 1 && sim_mrep == m0 + 1 && sim_mdx == dx0 - 20 && sim_mdy == dy0 + 20);
+  { const uint8_t *r = got[0]; int16_t gz = (int16_t)(r[7] | r[8] << 8), bz = (int16_t)(r[13] | r[14] << 8);
+    CHECK(r[0] == CMD_AIRDBG && gz == (int16_t)(65.5 * 100) && bz == 40 && (r[19] & 1) && !(r[19] & 2));   // gz = 100 do/s, bias = 40, dang bay, da hieu chuan
+    CHECK((r[20] | r[21] << 8) == 60 && (r[22] | r[23] << 8) == 60 && (r[24] | r[25] << 8) == 15 && r[26] == 2 && r[28] > 0 && r[29] == 0);
+    CHECK(!(got[1][19] & 1)); }
   CHECK(core.imu_ok == 1 && core.imu_id == 0x74);
   CHECK(sim_mrep > 5); CHECK(sim_mdx < -300 && sim_mdx > -2500);   // gz+ -> sang trai, khi dang giu AIR
-  CHECK(sim_mdy == 0 && sim_mb == 1);                              // sim_mb gom moi nut da tung bam
+  CHECK(dy0 == 0 && sim_mb == 1);                              // sim_mb gom moi nut da tung bam
   return fails;
 }
 int main(int argc, char **argv) {

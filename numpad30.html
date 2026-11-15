@@ -919,6 +919,10 @@ html[data-theme="light"] .help-tabs button.on b{color:#6d4aff}
         <svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="11" rx="1.8"/><path d="M8 20h8M12 16v4M6 10h6"/></svg>
         <span>Màn hình</span>
       </button>
+      <button data-view="air" title="Chuột bay">
+        <svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="5"/><path d="M12 2.5v6M7 8.5h10"/></svg>
+        <span>Chuột bay</span>
+      </button>
       <button data-view="tools" title="Công cụ">
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-2.5z"/></svg>
         <span>Công cụ</span>
@@ -966,7 +970,7 @@ html[data-theme="light"] .help-tabs button.on b{color:#6d4aff}
             <div class="layers" id="layers"></div>
             <div class="layer-actions">
               <button class="btn sm" id="addLayer">+ Layer</button>
-              <button class="btn sm" id="dupLayer">Nhân bản</button>
+              <button class="btn sm" id="moveL" title="Đưa layer này lên trước (đổi chỗ với layer bên trái)">◀ Lùi</button><button class="btn sm" id="moveR" title="Đưa layer này ra sau (đổi chỗ với layer bên phải)">Tiến ▶</button><button class="btn sm" id="dupLayer">Nhân bản</button>
               <button class="btn sm" id="renameLayer">Đổi tên</button>
               <button class="btn sm danger" id="delLayer">Xoá</button>
             </div>
@@ -1000,6 +1004,19 @@ html[data-theme="light"] .help-tabs button.on b{color:#6d4aff}
         </div>
       </section>
       <section class="view" id="view-macro">
+        <div class="card" id="appCard" style="margin-bottom:16px">
+          <div class="card-hd"><h2>Mở ứng dụng Windows bằng phím</h2><span class="sub">tạo macro tự động</span></div>
+          <div class="card-bd">
+            <div class="mac-fields">
+              <label class="field"><span>Ứng dụng có sẵn</span><select class="mac-in" id="appPre"></select></label>
+              <label class="field"><span>Lệnh / tên ứng dụng</span><input class="mac-in" id="appCmd" maxlength="60" placeholder="vd: notepad, chrome, C:\\Tools\\app.exe" spellcheck="false"></label>
+              <label class="field"><span>Cách mở</span><select class="mac-in" id="appMode"><option value="run">Hộp Run (Win+R) — nhanh, cần đúng tên lệnh</option><option value="search">Tìm trong Start (Win) — mở được mọi ứng dụng theo tên</option></select></label>
+              <label class="field"><span>Lưu vào ô macro</span><select class="mac-in" id="appSlot"></select></label>
+            </div>
+            <div class="tool-actions" style="margin-top:12px"><button class="btn sm primary" id="appMake">Tạo macro mở ứng dụng</button></div>
+            <p class="hint">App tạo macro: Win+R (hoặc Win) → chờ → gõ lệnh → Enter. Sau đó vào tab <b>Bàn phím</b>, chọn phím, danh mục <b>Macro</b>, gán macro vừa tạo, rồi bấm “Lưu vào thiết bị”. Lệnh Run phổ biến: notepad, calc, explorer, taskmgr, cmd, chrome, msedge, ms-settings:. Chrome/Edge/Firefox đôi khi cần đường dẫn đầy đủ nếu chưa nằm trong PATH — khi đó chọn cách “Tìm trong Start”. Chỉ gõ được ASCII, tối đa 64 ký tự.</p>
+          </div>
+        </div>
         <div class="macro-layout">
           <div class="card">
             <div class="card-hd"><h2>Danh sách macro</h2><span class="sub" id="macRange">M1 – M32</span></div>
@@ -1176,6 +1193,69 @@ html[data-theme="light"] .help-tabs button.on b{color:#6d4aff}
           </div>
         </div>
         <p class="hint" id="osdNote" style="margin-top:12px">Chữ trên OLED dùng phông 5×7: tự đổi thành CHỮ HOA, bỏ dấu tiếng Việt; chỉ hiện được A–Z, 0–9 và các ký tự  ! ( ) * + , - . / : = ?</p>
+      </section>
+      <section class="view" id="view-air">
+        <div class="card led-hero">
+          <div>
+            <div class="eyebrow">CHUỘT BAY</div>
+            <h2>Nghiêng bàn phím để di chuyển con trỏ</h2>
+            <p>Cảm biến gyro <b>MPU-6515</b> nối chung bus I2C0 với màn hình OLED (SDA → GP12, SCL → GP13, VCC 3V3, GND, AD0 → GND = địa chỉ 0x68). Giữ phím <b>AIR</b> (layer MACRO) rồi nghiêng bàn phím, hoặc bật <b>Luôn bay</b> ở dưới. Khi cắm USB hay bấm Hiệu chuẩn, để bàn phím nằm yên khoảng 1 giây để đo độ lệch gyro.</p>
+            <div class="led-badges"><span class="badge acc">MPU-6515 · I2C 0x68</span><span class="badge">Cần firmware v10</span></div>
+          </div>
+        </div>
+        <div class="led-controls" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+          <div class="card">
+            <div class="card-hd"><h2>Chuột bay</h2><span class="sub">MPU-6515</span></div>
+            <div class="card-bd">
+              <div class="ob-preview"><div class="orb" id="airOrb"></div><div><b id="airName">Cảm biến</b><small id="airDesc">—</small></div></div>
+              <div class="slider-row"><label for="ambX">Độ nhạy ngang</label><input type="range" id="ambX" min="1" max="255"><output id="ambXv">—</output></div>
+              <div class="slider-row"><label for="ambY">Độ nhạy dọc</label><input type="range" id="ambY" min="1" max="255"><output id="ambYv">—</output></div>
+              <div class="slider-row"><label for="ambDz">Vùng chết</label><input type="range" id="ambDz" min="0" max="100"><output id="ambDzv">—</output></div>
+              <div class="slider-row"><label for="ambSm">Làm mượt</label><input type="range" id="ambSm" min="0" max="9"><output id="ambSmv">—</output></div>
+              <label class="field"><span><input type="checkbox" id="ambF0"> Đảo hướng ngang</span></label>
+              <label class="field"><span><input type="checkbox" id="ambF1"> Đảo hướng dọc</span></label>
+              <label class="field"><span><input type="checkbox" id="ambF2"> Dọc theo trục gyro-Y (nếu mạch gắn xoay 90°)</span></label>
+              <label class="field"><span><input type="checkbox" id="ambF3"> Luôn bay (không cần giữ phím AIR)</span></label>
+              <p class="hint">Gán phím trong tab Bàn phím → danh mục <b>Chuột bay</b>: <b>AIR</b> giữ để bay, <b>AIR bật/tắt</b>, chuột trái / phải / giữa, <b>Hiệu chuẩn</b>. Mặc định nằm ở layer MACRO (giữ Num → FN → phím 0).</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h2>Cách bật nhanh</h2><span class="sub">layer MACRO</span></div>
+            <div class="card-bd">
+              <p class="hint" style="margin-top:0">Phím chuột bay mặc định chỉ có ở layer <b>MACRO</b>, không nằm ở layer NUM:</p>
+              <ol class="hint" style="padding-left:18px;line-height:1.7">
+                <li>Giữ phím <b>Num</b> (góc phải trên) rồi bấm phím <b>0</b> để bật layer MACRO.</li>
+                <li>Lúc này: <b>7</b> = AIR (giữ để bay), <b>8</b> = chuột trái, <b>9</b> = chuột phải.</li>
+                <li><b>4</b> = chuột giữa, <b>5</b> = AIR bật/tắt, <b>6</b> = hiệu chuẩn gyro.</li>
+              </ol>
+              <p class="hint">Bấm <b>5</b> một lần (AIR bật/tắt) rồi nghiêng bàn phím: con trỏ phải chạy mà không cần giữ phím. Bấm lại để tắt. Nhớ bấm giữ <b>Num</b> + <b>0</b> lần nữa để thoát layer MACRO khi dùng numpad bình thường.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h2>Kiểm tra cảm biến</h2><span class="sub">gyro trực tiếp · v9</span></div>
+            <div class="card-bd">
+              <pre id="airDbgOut" style="font:12px/1.7 var(--mono);margin:0;white-space:pre-wrap;color:var(--muted)">Bấm “Đọc một lần” (hoặc “Đọc liên tục”) khi đã kết nối thiết bị để xem số liệu gyro.</pre>
+              <div class="tool-actions" style="margin-top:10px">
+                <button class="btn sm" id="airDbgBtn">Đọc một lần</button>
+                <button class="btn sm" id="airDbgLive">Đọc liên tục</button>
+              </div>
+              <p class="hint">Nghiêng bàn phím: cột <b>Gyro thô</b> phải nhảy số. Nếu 3 số đứng ở 0, hoặc không đổi dù đang nghiêng, thì cảm biến chưa thực sự chạy dù app báo “Cảm biến hoạt động” — đó là lỗi đã sửa ở firmware v9.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h2>Thử chuột</h2><span class="sub">bỏ qua gyro · v10</span></div>
+            <div class="card-bd">
+              <p class="hint" style="margin-top:0">Bấm các mũi tên: firmware gửi thẳng một báo cáo chuột sang máy tính. Phép thử này <b>không dùng cảm biến, không dùng phím AIR</b>, nên nếu con trỏ nhảy thì đường HID tốt và lỗi nằm ở phần gyro/cấu hình; nếu con trỏ vẫn đứng im thì Windows đang không nhận chuột của thiết bị.</p>
+              <div class="tool-actions" style="display:flex;flex-wrap:wrap;gap:6px">
+                <button class="btn sm" data-mdx="0" data-mdy="-20">↑ Lên</button>
+                <button class="btn sm" data-mdx="0" data-mdy="20">↓ Xuống</button>
+                <button class="btn sm" data-mdx="-20" data-mdy="0">← Trái</button>
+                <button class="btn sm" data-mdx="20" data-mdy="0">→ Phải</button>
+              </div>
+              <p class="hint" id="airHidOut">Mỗi lần bấm gửi 20 báo cáo liên tiếp để con trỏ đi được quãng rõ rệt.</p>
+            </div>
+          </div>
+        </div>
       </section>
       <section class="view" id="view-tools">
         <div class="tools-grid">
@@ -1397,7 +1477,9 @@ const BASE_CB = BT + 12;          // 1132 — combo (4 bộ × 3)
 const NLI = BASE_CB + 12;         // 1144 — số layer
 const LDB = NLI + 1;              // 1145 — khối LED (9 word)
 const NLD = 9, LRB = LDB + NLD, OSB = LRB + L, NOS = 8, SQB = OSB + NOS;   // 1154 / 1186 / 1194
-const NSQ = 8, NST = 8, NW = SQB + NSQ * NST;   // 1258 — khối chuỗi: 8 bộ × 8 bước
+const NSQ = 8, NST = 8, AMB = SQB + NSQ * NST, NAMB = 8, NW = AMB + NAMB;   // AMB=1258 (chuột bay), NW=1266 — khối chuỗi: 8 bộ × 8 bước
+// AMB.. = chuột bay: [độ nhạy X, độ nhạy Y, vùng chết (0.1°/s), làm mượt 0-9, cờ (bit0 đảo X, bit1 đảo Y, bit2 Y theo trục gy, bit3 luôn bay), 3 dự phòng]
+const AMB_DEF = [60, 60, 15, 2, 0, 0, 0, 0];
 const ROT_I = 8;                  // LDB+8 = hướng OLED chung: 0=0°, 1=90°, 2=180°, 3=270°
 // LRB..LRB+L-1 = hướng OLED riêng từng layer (0-3), >=4 = theo hướng chung
 // OSB.. = cài đặt màn hình: [giây screensaver, tốc độ chữ, bật lời chào, logo trước lời chào, số lần chạy, kiểu screensaver, ms/khung, dự phòng]
@@ -1431,7 +1513,7 @@ const CATS = [
   { id: 'nav', name: 'Điều hướng' }, { id: 'fkeys', name: 'Phím F' }, { id: 'mods', name: 'Bổ trợ' },
   { id: 'combo', name: 'Phím tắt' }, { id: 'lt', name: 'Layer-Tap' },
   { id: 'media', name: 'Media' }, { id: 'layer', name: 'Layer' },
-  { id: 'special', name: 'Đặc biệt' }, { id: 'seq', name: 'Chuỗi' }, { id: 'macro', name: 'Macro' }, { id: 'morse', name: 'Morse' }
+  { id: 'special', name: 'Đặc biệt' }, { id: 'seq', name: 'Chuỗi' }, { id: 'macro', name: 'Macro' }, { id: 'morse', name: 'Morse' }, { id: 'mouse', name: 'Chuột bay' }
 ];
 const CATNAME = Object.fromEntries(CATS.map(c => [c.id, c.name]));
 const C = [];
@@ -1481,6 +1563,8 @@ A(0x7F00, 'BOOTSEL — vào chế độ nạp firmware', 'special', 'BOOT');
 for (let i = 0; i < NMAC; i++) A(0x7100 + i, `MACRO ${i + 1} — chạy macro ${i + 1}`, 'macro', `M${i + 1}`);
 for (let i = 0; i < NSQ; i++) { A(SEQ_F + i, `SEQ ${i + 1} ▶ — chuỗi ${i + 1}: chạy bước kế tiếp`, 'seq', `S${i + 1}▶`); A(SEQ_B + i, `SEQ ${i + 1} ◀ — chuỗi ${i + 1}: lùi về bước trước`, 'seq', `S${i + 1}◀`); A(SEQ_R + i, `SEQ ${i + 1} ↺ — chuỗi ${i + 1}: đặt lại về đầu`, 'seq', `S${i + 1}↺`); }
 A(0x7060, 'MORSE Chấm — bấm 1 nét ngắn', 'morse', '•'); A(0x7061, 'MORSE Gạch — bấm 1 nét dài', 'morse', '—'); A(0x7062, 'MORSE Xong — chốt ký tự đang gõ', 'morse', 'OK'); A(0x7063, 'MORSE Gợi ý — bật / tắt gợi ý trên văn bản, vd e [.i -a]', 'morse', '?');
+A(0x7070, 'AIR — giữ để bay chuột (di chuyển bàn phím = di chuyển con trỏ)', 'mouse', 'AIR'); A(0x7071, 'AIR bật / tắt — bấm 1 lần bật bay, bấm lần nữa tắt', 'mouse', 'AIR⇄');
+A(0x7072, 'Chuột trái', 'mouse', 'LMB'); A(0x7073, 'Chuột phải', 'mouse', 'RMB'); A(0x7074, 'Chuột giữa', 'mouse', 'MMB'); A(0x7075, 'Hiệu chuẩn gyro — để bàn phím nằm yên khoảng 1 giây', 'mouse', 'CAL');
 const KMAP = new Map(C.map(o => [o.c, o]));
 const isMacro = c => (c & 0xFF00) === 0x7100 && (c & 255) < NMAC;
 const nameOf = c => {
@@ -1508,7 +1592,7 @@ function catClass(c) {
   if (c & 0x8000) return 'media';
   const hi = c & 0xFF00;
   if (hi === 0x4000 || hi === 0x4100 || c === 0x4200 || c === 0x4201 || isLT(c)) return 'layer';
-  if (hi === 0x5000 || hi === 0x6000 || hi === 0x7100 || isSeq(c) || (c >= 0x7060 && c <= 0x7063)) return 'special';
+  if (hi === 0x5000 || hi === 0x6000 || hi === 0x7100 || isSeq(c) || (c >= 0x7060 && c <= 0x7063) || (c >= 0x7070 && c <= 0x7075)) return 'special';
   if ((c >= 0x7001 && c <= 0x7005) || c === 0x7020 || c === 0x7F00) return 'special';
   if (c >= 224 && c <= 231) return 'mod';
   return 'std';
@@ -1575,25 +1659,26 @@ function defaults() {
       0x2B, 0x2C, 0x28, TL(2), 0, 0x7F00, 0],
     // MACRO: M1..M9 trên khối 3×3
     [0x7100, 0x7101, 0x7102, 1, 1, 1, 1,
-      0x7103, 0x7104, 0x7105, 1, 1, 1, 1,
-      0x7106, 0x7107, 0x7108, 1, 1, 1, 0,
+      0x7103, 0x7104, 0x7105, 0x7070, 0x7072, 0x7073, 1,
+      0x7106, 0x7107, 0x7108, 0x7074, 0x7071, 0x7075, 0,
       0, 1, 0, 1, 1, 1, 1,
       1, 1, 1, 1, 0, 1, 0]
   ];
   lay.forEach((a, l) => a.forEach((c, i) => { w[K(l, i)] = c; }));
   w[TDW(0, 0)] = 0x2C; w[TDW(0, 1)] = 0xE1; w[TDW(0, 2)] = 0x28;
   w[NLI] = 3;
-  const ld = [0, 128, 200, 210, 255, 1, 0, 24, 2];
+  const ld = [0, 128, 200, 210, 255, 1, 0, 24, 0];
   for (let i = 0; i < NLD; i++) w[LDB + i] = ld[i];
   for (let l = 0; l < L; l++) w[LRB + l] = 4;
   for (let i = 0; i < NOS; i++) w[OSB + i] = OS_DEF[i];
+  for (let i = 0; i < NAMB; i++) w[AMB + i] = AMB_DEF[i];
 }
 const nl = () => clamp(w[NLI] | 0 || 1, 1, L);
 const layerLabel = l => names[l] || (l === 0 ? 'BASE' : hasMorse(l) ? 'MORSE' : 'LAYER' + l);   // giong lname_get() trong firmware
 
 /* ---------- bản nháp / lịch sử ---------- */
-const okLen = n => n === NW;
-function padWords(a) { return Array.from(a); }
+const okLen = n => n === NW || n === NW - NAMB;   // hồ sơ cũ (chưa có chuột bay) vẫn nhập được
+function padWords(a) { const o = Array.from(a); while (o.length < NW) o.push(AMB_DEF[o.length - AMB]); return o; }
 function loadDraft() {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
@@ -1655,6 +1740,8 @@ function renderLayers() {
   $('#addLayer').disabled = n >= L;
   $('#dupLayer').disabled = n >= L;
   $('#delLayer').disabled = layer === 0 || n <= 1;
+  $('#moveL').disabled = layer <= 1;
+  $('#moveR').disabled = layer === 0 || layer >= n - 1;
   const chip = wrap.children[layer];
   if (chip) chip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
@@ -1843,6 +1930,7 @@ function showView(v) {
     adv: ['Nâng cao', 'Tap dance, combo và hành vi đặc biệt'],
     led: ['Đèn LED', 'Đèn onboard và hướng OLED'],
     screen: ['Màn hình', 'Lời chào, screensaver và logo động'],
+    air: ['Chuột bay', 'Cảm biến MPU-6515 và độ nhạy con trỏ'],
     tools: ['Công cụ', 'Hồ sơ, thiết bị và phím tắt'],
     help: ['Hướng dẫn', 'Sổ tay sử dụng và xử lý lỗi']
   }[v];
@@ -1853,6 +1941,7 @@ function showView(v) {
   if (v === 'keymap') { renderDevice(); renderInspector(); }
   if (v === 'led') { renderLedModes(); renderLedControls(); }
   if (v === 'screen') renderScreen(); else if (lgPlayT) lgStopPlay();
+  if (v === 'air') renderAir(); else airDbgStop();
   if (v === 'tools') renderTools();
 }
 function helpShow(id) {
@@ -2141,6 +2230,27 @@ async function doRenameLayer() {
   names[layer] = String(v).trim().slice(0, 16);
   queueDraft(); renderAll(); toast('Đã đổi tên hiển thị', 'ok');
 }
+function remapLayerRef(c, a, b) {   // đổi chỗ layer a ↔ b trong mã phím MO / TL / LT
+  const m = n => n === a ? b : n === b ? a : n, h = c & 0xFF00;
+  if (h === 0x4000) return 0x4000 | m(c & 255);
+  if (h === 0x4100 && (c & 255) > 0) return 0x4100 | m(c & 255);
+  if (isLT(c)) return 0x2000 | (m((c >> 8) & 31) << 8) | (c & 255);
+  return c;
+}
+async function doMoveLayer(d) {
+  const n = nl(), a = layer, b = layer + d;
+  if (a < 1 || b < 1 || b >= n) return;
+  for (let i = 0; i < NK; i++) { const t = w[K(a, i)]; w[K(a, i)] = w[K(b, i)]; w[K(b, i)] = t; }
+  { const t = w[LRB + a]; w[LRB + a] = w[LRB + b]; w[LRB + b] = t; }
+  { const t = names[a]; names[a] = names[b]; names[b] = t; }
+  for (let i = 0; i < NLI; i++) w[i] = remapLayerRef(w[i], a, b);
+  for (let i = SQB; i < NW; i++) w[i] = remapLayerRef(w[i], a, b);
+  macros.forEach(m => m.steps.forEach(s => { if (s.c) s.c = remapLayerRef(s.c, a, b); }));
+  layer = b; sel = null;
+  markDirty(); commit(); renderAll();
+  if (dev) writeAll().catch(e => toast('Lỗi ghi: ' + e.message, 'err'));
+  toast(`Đã đưa layer ${a} sang vị trí ${b}. Phím MO / TL / Layer-Tap trỏ tới layer đã được cập nhật theo.`, 'ok', 3800);
+}
 async function doDelLayer() {
   const n = nl(), k = layer;
   if (k === 0 || n <= 1) return;
@@ -2249,7 +2359,8 @@ async function readAll() {
   setBusy(true, 0);
   try {
     const tmp = new Uint16Array(NW), dn = devNw();
-    tmp[LDB + ROT_I] = 2; tmp.fill(4, LRB, OSB); OS_DEF.forEach((v, i) => { tmp[OSB + i] = v; });   // firmware cũ không có ô xoay: giữ mặc định
+    AMB_DEF.forEach((v, i) => { tmp[AMB + i] = v; });
+    tmp[LDB + ROT_I] = 0; tmp.fill(4, LRB, OSB); OS_DEF.forEach((v, i) => { tmp[OSB + i] = v; });   // firmware cũ không có ô xoay: giữ mặc định
     for (let o = 0; o < dn; o += 14) {
       const n = Math.min(14, dn - o), r = await tx([1, o & 255, n], o >> 8);
       for (let i = 0; i < n; i++) tmp[o + i] = r[3 + 2 * i] | (r[4 + 2 * i] << 8);
@@ -2363,7 +2474,7 @@ async function flushLed() {
 async function readInfo() {
   try {
     const r = await tx([5], 0, 1200);
-    if (r && r[1]) devInfo = { L: r[1], NW: r[2] | (r[3] << 8), ver: r[4] || 3, nfx: r[5] || 16, nmac: r[6] || 0, slot: r[7] | (r[8] << 8), oledH: r[9] || 0, nf: r[10] || 0, fsz: r[11] | (r[12] << 8) };
+    if (r && r[1]) devInfo = { L: r[1], NW: r[2] | (r[3] << 8), ver: r[4] || 3, nfx: r[5] || 16, nmac: r[6] || 0, slot: r[7] | (r[8] << 8), oledH: r[9] || 0, nf: r[10] || 0, fsz: r[11] | (r[12] << 8), imuOk: r[13] | 0, imuId: r[14] | 0 };
     else devInfo = null;
   } catch (e) { devInfo = null; }
 }
@@ -2510,8 +2621,98 @@ function renderLedControls() {
   if (nm) nm.textContent = OB[obm];
   if (ds) ds.textContent = ['Đổi màu khi chuyển layer', 'Trôi qua bảy màu', 'Sáng một màu cố định', 'Sáng tối nhịp nhàng', 'Tắt đèn onboard'][obm];
   paintOrbs(performance.now());
+  renderAir();
 }
 const ledWriteQ = () => { };
+function setAmb(i, v, lo, hi) {
+  v = clamp(Math.round(v) || 0, lo, hi);
+  if (w[AMB + i] === v) return;
+  w[AMB + i] = v; markDirty();
+  if (dev && hasAir()) { ledPend.set(AMB + i, v); if (!ledFlushing) { ledFlushing = true; flushLed(); } }
+  renderAir(); queueLedCommit();
+}
+function setAmbFlag(bit, on) { setAmb(4, on ? (w[AMB + 4] | (1 << bit)) : (w[AMB + 4] & ~(1 << bit)), 0, 255); }
+/* ---------- go loi chuot bay: doc gyro truc tiep (lenh 11, firmware v9) ---------- */
+let airDbgOn = false, airDbgT = null;
+function airDbgPrint(txt, bad) { const el = $('#airDbgOut'); if (!el) return; el.textContent = txt; el.style.color = bad ? '#e5484d' : 'var(--muted)'; }
+function airDbgStop() {
+  airDbgOn = false; clearTimeout(airDbgT); airDbgT = null;
+  const b = $('#airDbgLive'); if (b) { b.textContent = 'Đọc liên tục'; b.classList.remove('primary'); }
+}
+async function airDbgOnce() {
+  if (!dev) { airDbgPrint('Chưa kết nối thiết bị — bấm “Kết nối” ở thanh bên trái trước.', true); airDbgStop(); return; }
+  try {
+    const r = await tx([11], 0);
+    if (r[0] !== 11) { airDbgPrint('Firmware đang nạp chưa có lệnh 11.\nCần bản v9 (bản sửa lỗi chuột bay) — nạp file .uf2 mới rồi thử lại.', true); airDbgStop(); return; }
+    const s16 = o => (r[o] | (r[o + 1] << 8)) << 16 >> 16;
+    const gx = s16(3), gy = s16(5), gz = s16(7), bx = s16(9), by = s16(11), bz = s16(13);
+    const px = s16(15), py = s16(17), air = r[19];
+    const sx = r[20] | (r[21] << 8), sy = r[22] | (r[23] << 8), dz = (r[24] | (r[25] << 8)) / 10, sm = r[26], fl = r[27];
+    const d = v => (v / 65.5).toFixed(2);
+    const p = (s, n) => String(s).padStart(n);
+    const flat = gx === 0 && gy === 0 && gz === 0;
+    const stuck = gx === bx && gy === by && gz === bz;
+    airDbgPrint(
+      `Gyro thô (LSB)     X ${p(gx, 6)}  Y ${p(gy, 6)}  Z ${p(gz, 6)}\n` +
+      `Tốc độ (°/s)       X ${p(d(gx - bx), 6)}  Y ${p(d(gy - by), 6)}  Z ${p(d(gz - bz), 6)}\n` +
+      `Bias hiệu chuẩn    X ${p(bx, 6)}  Y ${p(by, 6)}  Z ${p(bz, 6)}\n` +
+      `Trạng thái         ${air & 1 ? 'ĐANG BAY' : 'đứng yên (chưa bật AIR)'} · ${air & 2 ? 'đang hiệu chuẩn' : 'đã hiệu chuẩn'}\n` +
+      `Pixel chờ gửi      ${px} / ${py}\n` +
+      `HID chuột          gửi ${r[28]} · bị từ chối ${r[29]} (đếm vòng 256)\n` +
+      `Cấu hình           nhạy ${sx}/${sy} · vùng chết ${dz.toFixed(1)}°/s · mượt ${sm} · cờ ${fl}` +
+      (flat ? '\n\n⚠ Gyro trả toàn 0: chip chưa chạy thật (thiếu reset/nguồn REGOUT).' : '') +
+      (sx < 1 || sy < 1 ? '\n\n⚠ Độ nhạy = 0: con trỏ không bao giờ nhích dù gyro chạy. Kéo thanh “Độ nhạy ngang/dọc” về 60.' : '') +
+      (stuck && !flat ? '\n\n⚠ Gyro không đổi so với bias: nghiêng bàn phím mà số không nhảy thì chip không cập nhật.' : ''),
+      flat);
+  } catch (e) { airDbgPrint('Lỗi đọc: ' + (e && e.message ? e.message : e), true); }
+}
+function airDbgLoop() {
+  if (!airDbgOn) return;
+  airDbgOnce().then(() => { if (airDbgOn) airDbgT = setTimeout(airDbgLoop, 250); });
+}
+function airDbgToggle() {
+  if (airDbgOn) { airDbgStop(); return; }
+  airDbgOn = true;
+  const b = $('#airDbgLive'); if (b) { b.textContent = 'Dừng đọc'; b.classList.add('primary'); }
+  airDbgLoop();
+}
+/* ---------- thu duong HID chuot (lenh 12, firmware v10): khong dung gyro, khong dung phim AIR ---------- */
+async function airHidTest(dx, dy) {
+  const out = $('#airHidOut');
+  const say = (t, bad) => { if (out) { out.textContent = t; out.style.color = bad ? '#e5484d' : 'var(--muted)'; } };
+  if (!dev) { say('Chưa kết nối thiết bị — bấm “Kết nối” trước.', true); return; }
+  const n = 20; let ok = 0, bad = 0;
+  for (let i = 0; i < n; i++) {
+    try { const r = await tx([12, dx & 255, dy & 255], 0); if (r[0] === 12 && r[3]) ok++; else bad++; }
+    catch (e) { bad++; }
+  }
+  if (ok === 0) { say('Cả 20 báo cáo đều thất bại — firmware đang nạp chưa có lệnh 12 (cần bản v10).', true); return; }
+  say(`Đã gửi ${n} báo cáo: ${ok} thành công, ${bad} bị từ chối. Con trỏ vừa nhảy thì đường HID tốt, lỗi nằm ở phía cảm biến/cấu hình.`, false);
+}
+function renderAir() {
+  const set = (id, v, txt) => { const el = $('#' + id); if (el && document.activeElement !== el) el.value = v; const o = $('#' + id + 'v'); if (o) o.textContent = txt; };
+  const ok = hasAir();
+  set('ambX', w[AMB], String(w[AMB])); set('ambY', w[AMB + 1], String(w[AMB + 1]));
+  set('ambDz', w[AMB + 2], (w[AMB + 2] / 10).toFixed(1) + '°/s'); set('ambSm', w[AMB + 3], String(w[AMB + 3]));
+  for (let b = 0; b < 4; b++) { const el = $('#ambF' + b); if (el) { el.checked = !!(w[AMB + 4] >> b & 1); el.disabled = !ok; } }
+  for (const id of ['ambX', 'ambY', 'ambDz', 'ambSm']) { const el = $('#' + id); if (el) el.disabled = !ok; }
+  const nm = $('#airName'), ds = $('#airDesc'), orb = $('#airOrb');
+  let st = 'off', t1 = 'Chưa kết nối', t2 = 'Kết nối thiết bị để xem trạng thái cảm biến';
+  if (connected && !ok) { t1 = 'Firmware chưa hỗ trợ'; t2 = 'Nạp firmware v8 trở lên để dùng chuột bay'; }
+  else if (connected && devInfo && devInfo.imuOk) { st = 'ok'; t1 = 'Cảm biến hoạt động'; t2 = 'WHO_AM_I = 0x' + (devInfo.imuId | 0).toString(16).toUpperCase().padStart(2, '0') + ' · I2C 0x68 (GP12/GP13)'; }
+  else if (connected) { st = 'bad'; t1 = 'Không thấy cảm biến'; t2 = 'Kiểm tra dây SDA→GP12, SCL→GP13, VCC 3V3, GND, chân AD0 nối GND (địa chỉ 0x68)'; }
+  if (nm) nm.textContent = t1; if (ds) ds.textContent = t2;
+  if (orb) { const c = st === 'ok' ? '#2ecc71' : st === 'bad' ? '#e5484d' : '#6b7280'; orb.style.background = c; orb.style.boxShadow = st === 'off' ? 'none' : '0 0 16px 2px ' + c; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const bind = (id, i, lo, hi) => { const el = $('#' + id); if (el) el.addEventListener('input', e => setAmb(i, +e.target.value, lo, hi)); };
+  bind('ambX', 0, 1, 255); bind('ambY', 1, 1, 255); bind('ambDz', 2, 0, 100); bind('ambSm', 3, 0, 9);
+  for (let b = 0; b < 4; b++) { const el = $('#ambF' + b); if (el) el.addEventListener('change', e => setAmbFlag(b, e.target.checked)); }
+  const dbgBtn = $('#airDbgBtn'); if (dbgBtn) dbgBtn.addEventListener('click', airDbgOnce);
+  const dbgLive = $('#airDbgLive'); if (dbgLive) dbgLive.addEventListener('click', airDbgToggle);
+  for (const b of document.querySelectorAll('#view-air [data-mdx]')) b.addEventListener('click', () => airHidTest(+b.dataset.mdx, +b.dataset.mdy));
+  renderAir();
+});
 
 /* ---------- hồ sơ ---------- */
 function profileObj() {
@@ -2623,6 +2824,8 @@ function bindStaticEvents() {
   $('#dupLayer').addEventListener('click', doDupLayer);
   $('#renameLayer').addEventListener('click', doRenameLayer);
   $('#delLayer').addEventListener('click', doDelLayer);
+  $('#moveL').addEventListener('click', () => doMoveLayer(-1));
+  $('#moveR').addEventListener('click', () => doMoveLayer(1));
   $('#testSwitch').addEventListener('click', () => setTestMode(!testMode));
 
   $('#pkClose').addEventListener('click', closePicker);
@@ -2706,6 +2909,37 @@ function bindStaticEvents() {
 
 /* ---------- macro ---------- */
 const STEP_LABEL = { tap: 'NHẤN', down: 'GIỮ', up: 'NHẢ', delay: 'CHỜ', text: 'GÕ CHỮ' };
+const APPS = [['Notepad', 'notepad'], ['Máy tính', 'calc'], ['File Explorer', 'explorer'], ['Task Manager', 'taskmgr'], ['Command Prompt', 'cmd'], ['PowerShell', 'powershell'],
+  ['Terminal', 'wt'], ['Paint', 'mspaint'], ['Chrome', 'chrome'], ['Edge', 'msedge'], ['Firefox', 'firefox'], ['Cài đặt Windows', 'ms-settings:'], ['Snipping Tool', 'snippingtool'], ['Control Panel', 'control']];
+function renderAppCard() {
+  const pre = $('#appPre'), slot = $('#appSlot'); if (!pre || !slot) return;
+  if (!pre.options.length) pre.innerHTML = '<option value="">— Tự nhập —</option>' + APPS.map((a, i) => `<option value="${i}">${esc(a[0])} (${esc(a[1])})</option>`).join('');
+  const keep = slot.value;
+  slot.innerHTML = macros.map((m, i) => `<option value="${i}">M${i + 1}${m.name ? ' · ' + esc(m.name) : m.steps.length ? ' · (đang có bước)' : ' · trống'}</option>`).join('');
+  slot.value = keep || String(Math.max(0, macros.findIndex(m => !m.steps.length && !m.name)));
+}
+async function makeAppMacro() {
+  const raw = $('#appCmd').value.trim(), cmd = asciiOnly(raw).trim();
+  if (!cmd) { toast('Nhập lệnh hoặc chọn ứng dụng có sẵn', 'warn'); return; }
+  if (cmd.length > 60) { toast('Lệnh dài quá (tối đa 60 ký tự)', 'warn'); return; }
+  if (cmd !== raw) toast('Đã bỏ ký tự không phải ASCII (firmware chỉ gõ được ASCII)', 'warn');
+  const i = +$('#appSlot').value, mode = $('#appMode').value, m = macros[i];
+  if ((m.steps.length || m.name) && !await ask({ title: `Ghi đè macro M${i + 1}?`, msg: `Macro M${i + 1}${m.name ? ' «' + m.name + '»' : ''} đang có nội dung, sẽ bị thay bằng macro mở “${cmd}”.`, ok: 'Ghi đè' })) return;
+  const WIN = 0xE3, WINR = 0x800 | 0x15, ENTER = 0x28;
+  const name = ($('#appPre').selectedOptions[0] && $('#appPre').value !== '' ? APPS[+$('#appPre').value][0] : cmd).slice(0, 12);
+  m.name = name; m.repeat = 1; m.gap = 0;
+  m.steps = mode === 'run'
+    ? [{ t: 'tap', c: WINR }, { t: 'delay', ms: 400 }, { t: 'text', s: cmd }, { t: 'delay', ms: 100 }, { t: 'tap', c: ENTER }]
+    : [{ t: 'tap', c: WIN }, { t: 'delay', ms: 600 }, { t: 'text', s: cmd }, { t: 'delay', ms: 700 }, { t: 'tap', c: ENTER }];
+  macSel = i; markDirty(); renderMacro(); renderAppCard();
+  toast(`Đã tạo macro M${i + 1} «${name}». Gán nó cho một phím (Bàn phím → Macro) rồi bấm Lưu vào thiết bị.`, 'ok', 5200);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const pre = $('#appPre'); if (!pre) return;
+  renderAppCard();
+  pre.addEventListener('change', () => { if (pre.value !== '') $('#appCmd').value = APPS[+pre.value][1]; });
+  $('#appMake').addEventListener('click', makeAppMacro);
+});
 function newMacro() { return { name: '', repeat: 1, gap: 0, steps: [] }; }
 function defaultMacros() {
   const m = Array.from({ length: NMAC }, newMacro), T = (name, s, enter) => ({ name, repeat: 1, gap: 0, steps: [{ t: 'text', s }].concat(enter ? [{ t: 'tap', c: 40 }] : []) });
@@ -2733,6 +2967,7 @@ function sanitizeMacros(arr) {
 }
 /* Firmware v3 chỉ hiểu 16 hiệu ứng đầu; firmware v4 hiểu đủ 25. Với hiệu ứng thiết bị chưa có, thiết bị giữ chế độ cũ */
 const devNw = () => Math.min(NW, (devInfo && devInfo.NW) || NW);
+const hasAir = () => !connected || (devInfo && devInfo.ver >= 8 && devNw() >= NW);
 const hasRot = () => !connected || devNw() > LDB + ROT_I;   // firmware cũ không có xoay OLED
 const hasLayerRot = () => !connected || devNw() >= NW;
 const nfxDev = () => (devInfo && devInfo.nfx) || 16;
@@ -2763,6 +2998,7 @@ function stepRow(s, i, n) {
 }
 function renderMacro() {
   const ed = $('#macEditor'); if (!ed) return;
+  renderAppCard();
   renderMacroList();
   const m = macros[macSel], n = m.steps.length;
   $('#macTitle').textContent = `Macro ${macSel + 1}` + (m.name ? ' · ' + m.name : '');

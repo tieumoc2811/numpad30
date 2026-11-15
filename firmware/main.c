@@ -105,6 +105,7 @@ static void oled_init(void) {
 }
 // ---------------- cam bien gyro MPU-6515 (chuot bay), chung I2C0 voi OLED ----------------
 static air_t air; static int air_px, air_py; static uint8_t m_sent;
+static int16_t air_g[3]; static uint8_t hid_sent, hid_rej;   // gyro tho moi nhat + dem bao cao chuot (cho lenh go loi 11)
 static bool imu_wr(uint8_t reg, uint8_t v) { uint8_t b[2] = {reg, v}; return i2c_write_timeout_us(i2c0, IMU_ADDR, b, 2, false, 4000) == 2; }
 static bool imu_rd(uint8_t reg, uint8_t *o, size_t n) {
   return i2c_write_timeout_us(i2c0, IMU_ADDR, &reg, 1, true, 4000) == 1 && i2c_read_timeout_us(i2c0, IMU_ADDR, o, n, false, 4000) == (int)n;
@@ -128,6 +129,7 @@ static void imu_task(uint32_t now) {      // goi moi ms; doc moi IMU_POLL_MS
   uint8_t b[6];
   if (!imu_rd(0x43, b, 6)) { core.imu_ok = 0; return; }
   int16_t gx = (int16_t)(b[0] << 8 | b[1]), gy = (int16_t)(b[2] << 8 | b[3]), gz = (int16_t)(b[4] << 8 | b[5]);
+  air_g[0] = gx; air_g[1] = gy; air_g[2] = gz;
   int dx, dy; air_update(&air, &core.cfg.w[W_AMB], gx, gy, gz, dt, core_air_on(&core), &dx, &dy);
   air_px += dx; air_py += dy;
 }
@@ -158,6 +160,8 @@ static bool store_save(void) {   // moi sector 1 lan flash_safe_execute, giua ca
 }
 static void store_load(void) {
   if (!store_unpack((const uint8_t *)(XIP_BASE + STORE_OFFSET), &core.cfg)) cfg_defaults(&core.cfg);
+  const uint16_t *am = &core.cfg.w[W_AMB];   // app cu / cau hinh hong co the de do nhay = 0 (con tro dung yen) -> dung mac dinh
+  if (am[0] == 0 && am[1] == 0) cfg_air_defaults(&core.cfg);
 }
 
 // ---------------- USB HID ----------------
@@ -181,7 +185,8 @@ static void hid_task(void) {
   uint8_t mb = core_mouse_buttons(&core);
   if (mb != m_sent || air_px || air_py) {
     int sx = air_px > 127 ? 127 : air_px < -127 ? -127 : air_px, sy = air_py > 127 ? 127 : air_py < -127 ? -127 : air_py;
-    tud_hid_mouse_report(3, mb, (int8_t)sx, (int8_t)sy, 0, 0); air_px -= sx; air_py -= sy; m_sent = mb; return;
+    if (tud_hid_mouse_report(3, mb, (int8_t)sx, (int8_t)sy, 0, 0)) { hid_sent++; air_px -= sx; air_py -= sy; m_sent = mb; } else hid_rej++;
+    return;
   }
   if (got && core_out_busy(&core)) core_out_ack(&core);   // bao cao cua muc hien tai da gui xong
 }
@@ -189,7 +194,15 @@ static void raw_task(uint32_t now) {
   if (tx_pend) { if (tud_hid_n_ready(1) && tud_hid_n_report(1, 0, tx_buf, 32)) tx_pend = false; return; }
   if (!rx_pend) return;
   uint8_t in[32]; memcpy(in, rx_buf, 32); rx_pend = false;
+  for (int k = 0; k < 3; k++) { core.dbg.g[k] = air_g[k]; core.dbg.b[k] = (int16_t)(k == 0 ? air.bx : k == 1 ? air.by : air.bz); }
+  core.dbg.px = (int16_t)air_px; core.dbg.py = (int16_t)air_py; core.dbg.sent = hid_sent; core.dbg.rej = hid_rej;
+  core.dbg.st = (uint8_t)((core_air_on(&core) ? 1 : 0) | (air_calibrating(&air) ? 2 : 0));
   int f = proto_cmd(&core, in, tx_buf);
+  if (f & PROTO_MOUSE) {                       // thu duong HID chuot: gui thang, khong qua gyro
+    bool ok = tud_hid_n_ready(0) && tud_hid_mouse_report(3, core_mouse_buttons(&core), (int8_t)in[1], (int8_t)in[2], 0, 0);
+    if (ok) hid_sent++; else hid_rej++;
+    tx_buf[3] = ok ? 1 : 0;
+  }
   if (f & PROTO_PREVIEW) ui_cmd(&ui, in[1], now);
   if ((f & PROTO_SAVE) && !store_save()) tx_buf[0] = 0xFF;
   tx_pend = true;

@@ -239,6 +239,10 @@ int main(void) {
     proto_cmd(&C, in, out); in[0] = CMD_ODREAD; memset(in + 3, 0, 28); proto_cmd(&C, in, out); for (int i = 0; i < 28; i++) CHECK(out[3 + i] == 0xA0 + i);
     memset(in, 0, 32); in[0] = CMD_ODREAD; in[1] = (OD_SIZE - 10) & 255; in[2] = 20; in[31] = (OD_SIZE - 10) >> 8; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
     // luu / xem thu
+    C.dbg.g[0] = -1234; C.dbg.g[2] = 6550; C.dbg.b[1] = -7; C.dbg.px = -3; C.dbg.st = 1; C.dbg.sent = 9;
+    memset(in, 0, 32); in[0] = CMD_AIRDBG; CHECK(proto_cmd(&C, in, out) == 0);
+    CHECK(out[0] == 11 && (int16_t)(out[3] | out[4] << 8) == -1234 && (int16_t)(out[7] | out[8] << 8) == 6550 && (int16_t)(out[11] | out[12] << 8) == -7 && (int16_t)(out[15] | out[16] << 8) == -3 && out[19] == 1 && out[28] == 9);
+    memset(in, 0, 32); in[0] = CMD_MOUSE; in[1] = 236; in[2] = 20; CHECK(proto_cmd(&C, in, out) == PROTO_MOUSE);
     memset(in, 0, 32); in[0] = CMD_SAVE; CHECK(proto_cmd(&C, in, out) == PROTO_SAVE);
     memset(in, 0, 32); in[0] = CMD_PREVIEW; in[1] = 4; CHECK(proto_cmd(&C, in, out) == PROTO_PREVIEW && out[1] == 4);
     // ve mac dinh
