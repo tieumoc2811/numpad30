@@ -199,6 +199,26 @@ int main(void) {
   reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, KC_A);
   press(1, 3, 6); press(1, 4, 6); drain(); CHECK(ntext == 2 && strchr(txt(), '2') && strchr(txt(), 'a'));   // phim khac xen vao: Nokia don duoc chot ngay, khong mat phim
 
+
+  // ===== v19b) bip chord + tu viet hoa Nokia =====
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  step(CHORD2_MS + 50); down(1, 3); down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == note_hz(NK_CHORD_SP_NOTE)); up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1);
+  step(NK_BEEP_MS + 10); CHECK(!core_buz(&C));
+  step(100); down(1, 3); down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == note_hz(NK_CHORD_DEL_NOTE)); up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1);   // chord doi: bip thap
+  reset(); C.cfg.w[W_NKB] = 0; setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  step(CHORD2_MS + 50); down(1, 3); down(1, 4); step(DEBOUNCE_MS + 1); CHECK(!core_buz(&C)); up(1, 3); up(1, 4);   // tat tick Nokia -> chord im
+  reset(); setk(0, 1, 3, NKK(10)); setk(0, 1, 4, NKK(1)); setk(0, 1, 5, NKK(2));
+  press(1, 3, 6); step(10); CHORD2(4, 5); step(CHORD2_MS + 50);                                    // "." + chord Space
+  press(1, 4, 6); step(10); press(1, 4, 6); drain(); CHECK(!strcmp(txt(), ". D"));                  // chu dau sau cau viet hoa
+  step(NOKIA_MS + 20); press(1, 4, 6); step(10); press(1, 4, 6); drain(); CHECK(!strcmp(txt(), ". Dd"));   // chi viet hoa 1 ky tu
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2)); setk(0, 1, 5, KC_ENTER);
+  press(1, 5, 6); drain(); press(1, 3, 6); step(10); press(1, 3, 6); drain(); CHECK(strchr(txt(), 'D'));   // sau Enter viet hoa
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  press(1, 3, 6); step(10); press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "d"));                    // dau cau khong co: chu thuong
+  reset(); setk(0, 1, 3, NKK(10)); setk(0, 1, 4, NKK(9)); setk(0, 1, 5, NKK(1));
+  press(1, 3, 6); step(10); press(1, 4, 6); step(10); press(1, 4, 6); step(NOKIA_MS + 20);          // ". " bang phim 0 (0 roi chu cach)
+  press(1, 5, 6); step(10); press(1, 5, 6); drain(); CHECK(strchr(txt(), 'D'));
+
   // ===== 11) Morse =====
   reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK); setk(0, 1, 6, KC_MHINT);
   C.mo_hopt = 0;

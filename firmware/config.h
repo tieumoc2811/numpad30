@@ -27,6 +27,9 @@
 #define NOKIA_MS 600                         // multitap Nokia: bam lai cung phim trong khoang nay -> ky tu ke tiep
 #define CHORD_MS 40                          // v19: 2 phim Morse (cham+gach) hoac 2 phim Nokia bam trong khoang nay = chord
 #define CHORD2_MS 450                        // v19: chord thu hai trong khoang nay (tinh tu chord truoc) = chord doi
+#define NK_AUTOCAP 1                         // v19: Nokia tu viet hoa chu dau sau ". " "! " "? " va sau Enter (0 = tat, phai build lai)
+#define NK_CHORD_SP_NOTE 91                  // v19: nốt MIDI bip khi chord Nokia = Space (G6)
+#define NK_CHORD_DEL_NOTE 72                 // v19: nốt MIDI bip khi chord doi Nokia = xoa (C5)
 #define TAP_HOLD_MS 10                       // phim "tap" tao ra (LT/TD) duoc giu it nhat so ms nay
 #define STORE_OFFSET (1024 * 1024)           // vi tri vung cau hinh trong flash (RP2350-Zero 2 MB)
 #define STORE_SECTORS 14                     // 14 x 4 KB = 56 KB cho cau hinh + macro + du lieu OLED

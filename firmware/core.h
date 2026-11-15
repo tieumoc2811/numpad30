@@ -180,6 +180,7 @@ typedef struct {
   bool m_on; uint8_t m_idx, m_rep; uint16_t m_p, m_tp; kc_t mhold[6]; uint8_t mhn;
   int nk_key; uint8_t nk_n; uint32_t nk_t;
   kc_t ch_k; int8_t ch_i; uint32_t ch_t0;   // v19: phim Morse / Nokia dang cho xem co phim thu hai (chord) khong
+  uint8_t nk_cap, nk_up; char nk_lc, nk_pc;        // v19: cho viet hoa chu ke tiep / dang viet hoa luot Nokia nay / ky tu Nokia cuoi
   uint8_t ch_n; uint32_t ch_t;             // v19: so chord vua xong (0/1) va thoi diem chord do
   char mo_code[8]; uint8_t mo_len, mo_shown, mo_hint, mo_hopt;
   uint16_t buz_ms;                        // ms con lai cua tieng bip coi (Morse / Nokia); 0 = im
@@ -340,9 +341,15 @@ static void key_beep(core_t *c, int i) {   // goi khi bam phim vat ly i: nốt c
 static void nokia_beep(core_t *c, int g) { if (nk_beep_on(&c->cfg)) { c->buz_mid = nk_note(&c->cfg, g); c->buz_ms = NK_BEEP_MS; } }
 static void nokia_press(core_t *c, int g, uint32_t now) {   // v19: tieng bip phat ngay luc bam (chord_intercept), khong phat o day
   int len = (int)strlen(NK_TAB[g]);
-  if (c->nk_key == g && now - c->nk_t < NOKIA_MS) { q_bs(c); c->nk_n = (c->nk_n + 1) % len; }
-  else { c->nk_key = g; c->nk_n = 0; }
-  q_ascii(c, NK_TAB[g][c->nk_n]); c->nk_t = now;
+  char pc = c->nk_lc;                                   // ky tu truoc luot nay
+  if (c->nk_key == g && now - c->nk_t < NOKIA_MS) { q_bs(c); c->nk_n = (c->nk_n + 1) % len; pc = c->nk_pc; }
+  else { c->nk_key = g; c->nk_n = 0; c->nk_up = c->nk_cap; c->nk_cap = 0; c->nk_pc = pc; }
+  char ch = NK_TAB[g][c->nk_n];
+#if NK_AUTOCAP
+  if (c->nk_up && ch >= 'a' && ch <= 'z') ch = (char)(ch - 32);
+  if (ch == ' ' && (pc == '.' || pc == '!' || pc == '?')) c->nk_cap = 1; else if (ch != ' ') c->nk_cap = 0;   // "0 " -> dau cach sau cau: viet hoa tiep
+#endif
+  q_ascii(c, ch); c->nk_lc = ch; c->nk_t = now;
 }
 static void rename_end(core_t *c, bool save) {
   if (save) {
@@ -510,11 +517,12 @@ static void chord_fire(core_t *c, bool nokia, uint32_t now) {
   c->ch_n = dbl ? 0 : 1; c->ch_t = now;
   if (nokia) {
     c->nk_key = -1;                              // het multitap: ky tu dang go duoc chot
-    if (dbl) { if (q_room(c) >= 2) { q_bs(c); q_bs(c); } }   // xoa dau cach cua chord dau + 1 ky tu truoc do
-    else q_ascii(c, ' ');
+    if (dbl) { if (q_room(c) >= 2) { q_bs(c); q_bs(c); } c->nk_lc = 0; c->nk_cap = 0; }   // xoa dau cach cua chord dau + 1 ky tu truoc do
+    else { q_ascii(c, ' '); if (c->nk_lc == '.' || c->nk_lc == '!' || c->nk_lc == '?') c->nk_cap = NK_AUTOCAP; c->nk_lc = ' '; }
+    if (nk_beep_on(&c->cfg)) { c->buz_mid = dbl ? NK_CHORD_DEL_NOTE : NK_CHORD_SP_NOTE; c->buz_ms = NK_BEEP_MS; }   // bip rieng: cao = Space, thap = xoa
   } else {
     morse_commit(c);                             // chot ky tu (giong phim Xong)
-    if (dbl) q_ascii(c, ' ');
+    if (dbl) { q_ascii(c, ' '); if (buz_enabled(&c->cfg)) { c->buz_mid = 0; c->buz_ms = buz_unit(&c->cfg); } }   // Space: 1 bip ngan
   }
 }
 // true = phim da duoc xu ly o day (dang cho hoac da thanh chord), press_code khong lam gi them
@@ -538,7 +546,7 @@ static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (c->latch_wait && IS_HOLDABLE(k) && !IS_CONS(k)) { c->latch_code = k; c->latch_wait = false; c->swallow[i] = 1; return; }
   if (c->latch_wait && IS_CONS(k)) { c->latch_wait = false; c->swallow[i] = 1; return; }
   if (chord_intercept(c, i, k, now)) return;
-  if (!IS_NKK(k)) c->nk_key = -1;
+  if (!IS_NKK(k)) { c->nk_key = -1; c->nk_lc = 0; if (k == KC_ENTER || k == KC_PENT) c->nk_cap = NK_AUTOCAP; }
   if (IS_HOLDABLE(k)) c->act[i] = k;
   else if (IS_MO(k)) { if ((k & 0xFF) < NLAYER) c->mol[i] = (int8_t)(k & 0xFF); }
   else if (IS_TL(k)) { int n = k & 0xFF; if (n == 0) c->toggled = 0; else if (n < NLAYER) c->toggled ^= 1u << n; }
