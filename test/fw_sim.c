@@ -7,7 +7,7 @@
 #include "pico_stub.h"
 
 i2c_inst_t dummy_i2c, *i2c0 = &dummy_i2c; PIO_t dummy_pio, *pio0 = &dummy_pio; pio_program_t ws2812_program;
-uint8_t sim_imu_reg; int16_t sim_gyro[3]; int sim_imu_present = 1; uint8_t sim_mb; int sim_mdx, sim_mdy, sim_mrep;
+uint8_t sim_imu_reg, sim_pwr2; int16_t sim_gyro[3]; int sim_imu_present = 1; uint8_t sim_mb; int sim_mdx, sim_mdy, sim_mrep;
 uint8_t sim_flash[2 * 1024 * 1024]; int sim_flash_erases; static uint8_t raw_tx[32]; static int raw_txn;
 bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)id; if (itf == 1 && n == 32) { memcpy(raw_tx, r, 32); raw_txn++; } return true; }
 typedef struct { uint32_t t; void (*f)(void); } act_t; static act_t acts[64]; static int nacts;

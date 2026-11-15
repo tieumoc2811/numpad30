@@ -116,7 +116,7 @@ static void imu_try_init(void) {
   sleep_ms(10);
   if (!imu_rd(0x75, &id, 1) || id == 0x00 || id == 0xFF) return;    // WHO_AM_I (MPU-6515 ~0x74, MPU-6500 0x70)
   imu_wr(0x1A, 0x03); imu_wr(0x19, 0x00); imu_wr(0x1B, 0x08);       // loc so 41 Hz, 1 kHz, gyro +-500 dps
-  imu_wr(0x6C, 0x07);                                               // tat gia toc ke (khong dung)
+  imu_wr(0x6C, 0x38);                                               // PWR_MGMT_2: tat gia toc ke (bit5..3). KHONG dung 0x07: do la TAT GYRO
   core.imu_ok = 1; core.imu_id = id; air_recal(&air);
 }
 static void imu_task(uint32_t now) {      // goi moi ms; doc moi IMU_POLL_MS

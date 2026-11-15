@@ -44,15 +44,15 @@ static inline void busy_wait_us_32(uint32_t u) { (void)u; }
 extern uint32_t fake_ms; static inline uint32_t time_us_32(void) { return fake_ms * 1000u; }
 extern int sim_i2c_writes; extern uint8_t sim_i2c_cmd[2];
 static inline void sleep_ms(uint32_t m) { (void)m; }
-extern uint8_t sim_imu_reg; extern int16_t sim_gyro[3]; extern int sim_imu_present;
+extern uint8_t sim_imu_reg; extern uint8_t sim_pwr2; extern int16_t sim_gyro[3]; extern int sim_imu_present;
 static inline int i2c_write_timeout_us(i2c_inst_t *i, uint8_t a, const uint8_t *s, size_t n, bool nostop, uint t) { (void)i; (void)nostop; (void)t;
-  if (a == 0x68) { if (!sim_imu_present) return -2; if (n >= 1) sim_imu_reg = s[0]; return (int)n; }
+  if (a == 0x68) { if (!sim_imu_present) return -2; if (n >= 1) sim_imu_reg = s[0]; if (n == 2 && s[0] == 0x6C) sim_pwr2 = s[1]; return (int)n; }
   sim_i2c_writes++; if (n == 2 && s[0] == 0x00 && (s[1] == 0xAE || s[1] == 0xAF)) { sim_i2c_cmd[0] = s[0]; sim_i2c_cmd[1] = s[1]; } return (int)n; }
 static inline int i2c_read_timeout_us(i2c_inst_t *i, uint8_t a, uint8_t *d, size_t n, bool nostop, uint t) { (void)i; (void)a; (void)nostop; (void)t;
   if (!sim_imu_present) return -2;
   for (size_t k = 0; k < n; k++) d[k] = 0;
   if (sim_imu_reg == 0x75) d[0] = 0x74;
-  else if (sim_imu_reg == 0x43 && n == 6) for (int k = 0; k < 3; k++) { d[2 * k] = (uint8_t)((uint16_t)sim_gyro[k] >> 8); d[2 * k + 1] = (uint8_t)sim_gyro[k]; }
+  else if (sim_imu_reg == 0x43 && n == 6) for (int k = 0; k < 3; k++) { int16_t v = (sim_pwr2 & (4 >> k)) ? 0 : sim_gyro[k]; /* PWR_MGMT_2 bit2/1/0 = tat gyro X/Y/Z: that thi doc ra 0 */ d[2 * k] = (uint8_t)((uint16_t)v >> 8); d[2 * k + 1] = (uint8_t)v; }
   return (int)n; }
 static inline void i2c_init(i2c_inst_t *i, uint b) { (void)i; (void)b; }
 extern int sim_boot; static inline void reset_usb_boot(uint32_t a, uint32_t b) { (void)a; (void)b; sim_boot++; }
