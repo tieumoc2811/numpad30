@@ -28,7 +28,7 @@ Keymap, macro, OLED khong con nam trong ma nguon: `firmware/keymap.h` chi la **m
 
 Mac dinh: 3 layer **NUM** (numpad + Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D, mui ten), **FN** (giu `Num`; nha ngan = NumLock: F1-F9, media, Home/End/PgUp/PgDn/Ins/Del, `0` bat/tat layer MACRO, `.` = BOOTSEL), **MACRO** (M1-M9). Con lai la layer 3..31 (trong suot).
 
-Tinh nang: 32 layer, MO/TL/LY+/LY-/LT, 4 tap dance (cham/giu/cham 2 lan), 4 combo (30 ms), 8 bo chuoi SEQ x 8 buoc, LATCH, TG Space/Shift/Ctrl/Alt, TK (toggle giu bat ky phim, toi da 4), Nokia multitap + RENAME (doi ten layer tren OLED), Morse (co goi y), 32 macro dang buoc (nhan/giu/nha/cho/go chuoi, lap), OLED: loi chao chu chay + logo dong 16 khung 128x32, screensaver 4 kieu, xoay 0/90/180/270 (chung hoac theo layer), LED RGB onboard (theo layer / cau vong / mot mau / tho / tat, CapsLock = do). Chong doi 5 ms, 6KRO, remote wakeup.
+Tinh nang: 32 layer, MO/TL/LY+/LY-/LT, 4 tap dance (cham/giu/cham 2 lan), 4 combo (30 ms), 8 bo chuoi SEQ x 8 buoc, LATCH, TG Space/Shift/Ctrl/Alt, Nokia multitap + RENAME (doi ten layer tren OLED), Morse (co goi y), 32 macro dang buoc (nhan/giu/nha/cho/go chuoi, lap), OLED: loi chao chu chay + logo dong 16 khung 128x32, screensaver 4 kieu, xoay 0/90/180/270 (chung hoac theo layer), LED RGB onboard (theo layer / cau vong / mot mau / tho / tat, CapsLock = do). Chong doi 5 ms, 6KRO, remote wakeup.
 
 Ma phim, ban do word, giao thuc: `docs/PROTOCOL.md`. Cau truc ma: `core.h` (engine phim), `proto.h` (giao thuc + dong goi flash), `ui.h` (OLED), `keymap.h` (mac dinh), `main.c` (phan cung).
 
@@ -53,3 +53,13 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 - Morse: hang tren = ten layer + NUM/CAP; giua = ma dang go (cham = o vuong, gach = thanh dai); duoi = nhanh ke tiep (vd `. R  - W`); ben phai = ky tu dang hien tren may tinh (hoac `?` neu ma chua co ky tu). Khi chua go gi hien `MORSE`.
 - Nokia: hien nhom chu cua phim (vd `2DEF`), ky tu dang chon dao mau, thanh duoi giam dan trong 600 ms truoc khi chot. Het gio tro ve man hinh thuong.
 - Man doc (90/270) va OLED 64 hang: chi hien nhan ngan (ma Morse + ky tu, hoac ky tu Nokia dang chon).
+
+
+## Chuot bay (MPU-6515)
+
+- Noi MPU-6515 chung I2C0 voi OLED: SDA -> GP12, SCL -> GP13, VCC -> 3V3, GND -> GND, AD0 -> GND (dia chi 0x68; AD0 -> 3V3 thi doi `IMU_ADDR` thanh 0x69 trong config.h). Gyro doc o +-500 dps, 200 lan/giay.
+- HID them chuot (report ID 3). Phim: AIR (giu de bay), AIR bat/tat, chuot trai/phai/giua, hieu chuan. Mac dinh nam o layer MACRO: R1C3 AIR, R1C4 trai, R1C5 phai, R2C3 giua, R2C4 AIR bat/tat, R2C5 hieu chuan.
+- Khi cam USB hoac bam hieu chuan, de ban phim nam yen ~1 giay. Do nhay, vung chet, lam muot, dao truc chinh trong app (tab Den LED -> Chuot bay).
+- Cau hinh cu da luu trong flash van dung duoc (khoi chuot bay lay mac dinh); phim chuot phai tu gan trong app neu khong ve mac dinh.
+- Neu cam bien khong tra loi (day sai), ban phim van chay binh thuong, firmware thu lai moi 2 giay.
+- Do phan giai OLED mac dinh 128x32; doi `OLED_H` thanh 64 trong config.h neu dung man 0.96".

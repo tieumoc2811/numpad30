@@ -26,11 +26,13 @@
 #define W_OSB (W_LRB + NLAYER)              // 1186: cai dat man hinh [timeout s, toc do, greet, logo greet, so lan, kieu saver, ms/khung, du phong]
 #define W_NOS 8
 #define W_SQB (W_OSB + W_NOS)               // 1194: 8 bo x 8 buoc
-#define NW (W_SQB + NSQ * NST)              // 1258
+#define W_AMB (W_SQB + NSQ * NST)           // 1258: chuot bay, 8 word: [do nhay X, do nhay Y, vung chet (0.1 do/s), lam muot 0-9, co (bit0 dao X, bit1 dao Y, bit2 Y theo gy, bit3 luon bay), 3 du phong]
+#define W_NAMB 8
+#define NW (W_AMB + W_NAMB)                 // 1266
 #define LDB_ROT 8
 // ---- du lieu OLED (lenh 8/9): [0..143] header, [256 + i*512] khung i ----
 #define OD_NF 16
-#define OD_FSZ 512
+#define OD_FSZ (128 * OLED_H / 8)   // 1 khung logo = 128 x OLED_H pixel dang page SSD1306 (512 B cho 32 hang, 1024 B cho 64 hang)
 #define OD_HDR 144
 #define OD_START 256
 #define OD_SIZE (OD_START + OD_NF * OD_FSZ)
@@ -40,8 +42,9 @@ typedef uint16_t kc_t;
 // ---- ma phim (khong gian ma cua app) ----
 // 0 NO | 1 TRNS | 0x04..0xE7 phim HID (0xE0..0xE7 modifier) | (mods<<8)|kc to hop (mods C=1 S=2 A=4 G=8)
 // 0x2000|(n<<8)|kc LT | 0x4000|n MO | 0x4100|n TL | 0x4200/0x4201 LY+/LY- | 0x5000|n TD | 0x6000|i Nokia
+// 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro
 // 0x7001 LATCH | 0x7002..5 TG Space/Shift/Ctrl/Alt | 0x7010..16 LED (bo qua) | 0x7020 RENAME | 0x7060..63 Morse
-// 0x7800|kc TK (bam 1 lan giu phim kc, bam lan nua nha; toi da NTK phim cung luc) | 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
+// 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
 #define KC_NO 0x0000
 #define KC_TRNS 0x0001
 #define C_(k) (0x0100 | (k))
@@ -65,13 +68,17 @@ typedef uint16_t kc_t;
 #define KC_MDASH 0x7061
 #define KC_MOK 0x7062
 #define KC_MHINT 0x7063
+#define KC_AIR 0x7070
+#define KC_AIRT 0x7071
+#define KC_MB1 0x7072
+#define KC_MB2 0x7073
+#define KC_MB3 0x7074
+#define KC_AIRCAL 0x7075
 #define MACRO(n) (0x7100 | (n))
 #define SEQ_F 0x7200
 #define SEQ_B 0x7280
 #define SEQ_R 0x7300
 #define KC_BOOT 0x7F00
-#define TK(k) (0x7800 | (k))
-#define NTK 4                               // so phim toggle giu cung luc
 #define CONS(x) (0x8000 | (x))
 #define IS_BASIC(k) ((k) >= 0x04 && (k) <= 0xE7)
 #define IS_COMBO(k) ((k) >= 0x0100 && (k) <= 0x0FFF && (((k) & 0xFF) == 0 || IS_BASIC((k) & 0xFF)))
@@ -81,9 +88,9 @@ typedef uint16_t kc_t;
 #define IS_TD(k) (((k) & 0xFFFC) == 0x5000)
 #define IS_NKK(k) ((k) >= 0x6000 && (k) <= 0x600A)
 #define IS_MORSE(k) ((k) >= KC_MDOT && (k) <= KC_MHINT)
+#define IS_MOUSE(k) ((k) >= KC_AIR && (k) <= KC_AIRCAL)
 #define IS_MACRO(k) (((k) & 0xFF00) == 0x7100 && ((k) & 0xFF) < NMAC)
 #define IS_SEQ(k) ((((k) & 0xFFF8) == SEQ_F) || (((k) & 0xFFF8) == SEQ_B) || (((k) & 0xFFF8) == SEQ_R))
-#define IS_TK(k) (((k) & 0xFF00) == 0x7800 && IS_BASIC((k) & 0xFF))
 #define IS_CONS(k) ((k) & 0x8000)
 #define IS_HOLDABLE(k) (IS_BASIC(k) || IS_COMBO(k) || IS_CONS(k))
 
@@ -126,7 +133,6 @@ typedef struct {
   uint32_t toggled;                       // bit layer dang bat bang TL / LY+
   uint8_t tg;                             // bit0 Space bit1 Shift bit2 Ctrl bit3 Alt
   kc_t latch_code; bool latch_wait;
-  uint8_t tk[NTK];                        // phim dang giu bang TK (0 = o trong)
   int cbi; kc_t cbk; uint32_t cbt0;       // combo cho
   int dfi; kc_t dfk; uint8_t dfw;         // phim bi hoan lai de di sau 1 phim "tap" vua chot (bao cao rieng, dung thu tu)
   int8_t sq_cur[NSQ];
@@ -137,6 +143,9 @@ typedef struct {
   char mo_code[8]; uint8_t mo_len, mo_shown, mo_hint, mo_hopt;
   bool rn_on; char rn_buf[NAMELEN + 2]; uint8_t rn_len; uint8_t rn_layer; int rn_nk; uint8_t rn_n; uint32_t rn_t;
   bool boot_req, save_req;
+  uint8_t mact[NKEYS];                    // phim chuot dang giu (KC_AIR / KC_MB1..3) cua phim i, 0 = khong
+  bool air_tog, cal_req;                  // KC_AIRT dang bat; yeu cau hieu chuan gyro (main.c xu ly)
+  uint8_t imu_ok, imu_id;                 // main.c dat: cam bien da nhan (0/1) va gia tri WHO_AM_I
   kc_t last_kc; uint32_t press_seq; uint32_t touch;
 } core_t;
 
@@ -154,8 +163,10 @@ static int core_top_layer(const core_t *c) {
   for (int l = NLAYER - 1; l > 0; l--) if (m >> l & 1) return l;
   return 0;
 }
-static void core_reset(core_t *c) {       // dat lai trang thai chay, giu cau hinh
+static void core_reset(core_t *c) {       // dat lai trang thai chay, giu cau hinh (va trang thai cam bien do main.c dat)
+  uint8_t iok = c->imu_ok, iid = c->imu_id;
   memset((uint8_t *)c + sizeof(cfg_t), 0, sizeof(core_t) - sizeof(cfg_t));
+  c->imu_ok = iok; c->imu_id = iid;
   for (int i = 0; i < NKEYS; i++) { c->mol[i] = -1; c->cbpair[i] = -1; }
   c->cbi = -1; c->dfi = -1; c->nk_key = -1; c->rn_nk = -1; c->mo_hopt = 1;
   for (int i = 0; i < NSQ; i++) c->sq_cur[i] = -1;
@@ -333,11 +344,6 @@ static void seq_step(core_t *c, kc_t *kp) {   // SEQ -> ma buoc ke tiep (0 = kho
   kc_t s = st[i];
   *kp = (s == KC_TRNS || IS_TD(s) || IS_SEQ(s)) ? 0 : s;
 }
-static void tk_toggle(core_t *c, uint8_t kc) {   // dang giu -> nha; chua giu -> giu (day thi bo qua)
-  int free_i = -1;
-  for (int j = 0; j < NTK; j++) { if (c->tk[j] == kc) { c->tk[j] = 0; return; } if (!c->tk[j] && free_i < 0) free_i = j; }
-  if (free_i >= 0) c->tk[free_i] = kc;
-}
 static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (!k || k == KC_TRNS) return;
   if (IS_SEQ(k)) { seq_step(c, &k); if (!k) return; }
@@ -352,18 +358,18 @@ static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   else if (k == KC_LYDN) layer_cycle(c, -1);
   else if (k == KC_LATCH) { if (c->latch_code) c->latch_code = 0; else c->latch_wait = true; }
   else if (k >= KC_TGSPC && k <= KC_TGALT) c->tg ^= 1u << (k - KC_TGSPC);
-  else if (IS_TK(k)) tk_toggle(c, (uint8_t)k);
   else if (k == KC_RENAME) { c->rn_on = true; c->rn_len = 0; c->rn_buf[0] = 0; c->rn_layer = (uint8_t)core_top_layer(c); c->rn_nk = -1; c->latch_wait = false; }
   else if (IS_NKK(k)) nokia_press(c, k & 0xFF, now);
   else if (IS_MORSE(k)) {
     if (k == KC_MDOT) morse_press(c, false); else if (k == KC_MDASH) morse_press(c, true);
     else if (k == KC_MOK) morse_commit(c); else morse_set_hint(c, !c->mo_hopt);
   }
+  else if (IS_MOUSE(k)) { if (k == KC_AIRT) c->air_tog = !c->air_tog; else if (k == KC_AIRCAL) c->cal_req = true; else c->mact[i] = (uint8_t)(k & 0xFF); }
   else if (IS_MACRO(k)) macro_begin(c, k & 0xFF);
   else if (k == KC_BOOT) c->boot_req = true;
 }
 static void do_release(core_t *c, int i) {
-  c->act[i] = 0; c->mol[i] = -1; c->pend[i] = P_NONE; c->hold_min[i] = 0; c->up_pend[i] = 0;
+  c->act[i] = 0; c->mact[i] = 0; c->mol[i] = -1; c->pend[i] = P_NONE; c->hold_min[i] = 0; c->up_pend[i] = 0;
   int j = c->cbpair[i]; if (j >= 0) { c->cbpair[i] = -1; c->cbpair[j] = -1; c->act[j] = 0; c->swallow[j] = 1; }
 }
 static void fire_tap(core_t *c, int i, kc_t k, uint32_t now) {   // phim "tap" tao ra: giu >= TAP_HOLD_MS; i da nha vat ly thi nha sau do
@@ -490,7 +496,6 @@ static bool core_kb(const core_t *c, kb_report_t *r) {   // false = dang cho giu
   static const kc_t tgk[4] = {KC_SPACE, KC_LSFT, KC_LCTL, KC_LALT};
   for (int b = 0; b < 4; b++) if (c->tg >> b & 1) rpt_add(r, &n, tgk[b]);
   if (c->latch_code && !IS_CONS(c->latch_code)) rpt_add(r, &n, c->latch_code);
-  for (int j = 0; j < NTK; j++) if (c->tk[j]) rpt_add(r, &n, c->tk[j]);
   for (int i = 0; i < c->mhn; i++) rpt_add(r, &n, c->mhold[i]);
   if (c->qn && c->qphase == 0) { const out_t *o = &c->q[c->qh]; r->mods |= o->mods; if (o->key) rpt_add(r, &n, o->key); }
   if (n == 7) memset(r->keys, 0x01, 6);
@@ -529,10 +534,11 @@ static void core_label(const core_t *c, kc_t k, char *o, int n) {
   else if (IS_LT(k)) { core_label(c, k & 0xFF, o, n); return; }
   else if (IS_TD(k)) { ADD("TD "); d[0] = '0' + (k & 3); ADD(d); }
   else if (IS_NKK(k)) { d[0] = (k & 0xFF) == 10 ? '.' : (k & 0xFF) == 9 ? '0' : '1' + (k & 0xFF); ADD("NOKIA "); ADD(d); }
-  else if (IS_TK(k)) { char s[16]; core_label(c, k & 0xFF, s, sizeof s); ADD("TOG "); ADD(s); }
   else if (k == KC_LATCH) ADD("LATCH");
   else if (k == KC_TGSPC) ADD("TG SPACE"); else if (k == KC_TGSFT) ADD("TG SHIFT"); else if (k == KC_TGCTL) ADD("TG CTRL"); else if (k == KC_TGALT) ADD("TG ALT");
   else if (k == KC_RENAME) ADD("RENAME");
+  else if (k == KC_AIR) ADD("AIR"); else if (k == KC_AIRT) ADD("AIR TG"); else if (k == KC_AIRCAL) ADD("AIR CAL");
+  else if (k == KC_MB1) ADD("LMB"); else if (k == KC_MB2) ADD("RMB"); else if (k == KC_MB3) ADD("MMB");
   else if (k == KC_MDOT) ADD("DOT"); else if (k == KC_MDASH) ADD("DASH"); else if (k == KC_MOK) ADD("OK"); else if (k == KC_MHINT) ADD("HINT");
   else if (k == KC_BOOT) ADD("BOOT");
   else if (k == 1) ADD("-");
@@ -569,4 +575,16 @@ static void core_layer_name(const core_t *c, int l, char *o, int n) {   // ten t
   if (l == 0) strncpy(o, "BASE", n - 1); else if (core_has_morse(c, l)) strncpy(o, "MORSE", n - 1);
   else { char b[10]; snprintf(b, sizeof b, "LAYER%d", l); strncpy(o, b, n - 1); }
   o[n - 1] = 0;
+}
+
+// ---- chuot: nut dang giu (bit0 trai, bit1 phai, bit2 giua) va co "dang bay" ----
+static uint8_t core_mouse_buttons(const core_t *c) {
+  uint8_t b = 0;
+  for (int i = 0; i < NKEYS; i++) { uint8_t m = c->mact[i]; if (m >= (KC_MB1 & 0xFF) && m <= (KC_MB3 & 0xFF)) b |= 1u << (m - (KC_MB1 & 0xFF)); }
+  return b;
+}
+static bool core_air_on(const core_t *c) {
+  if (c->air_tog || (c->cfg.w[W_AMB + 4] & 8)) return true;
+  for (int i = 0; i < NKEYS; i++) if (c->mact[i] == (KC_AIR & 0xFF)) return true;
+  return false;
 }

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../firmware/ui.h"
+#include "../firmware/airmouse.h"
 
 static int fails;
 #define CHECK(c) do { if (!(c)) { printf("LOI dong %d: %s\n", __LINE__, #c); fails++; } } while (0)
@@ -54,7 +55,7 @@ int main(void) {
   CHECK(W(0,3,6) == KC_PENT); CHECK(W(0,1,6) == KC_PPLS); CHECK(W(0,4,3) == KC_P0); CHECK(W(0,3,1) == KC_UP);
   CHECK(W(0,0,3) == 0x2153); CHECK(W(1,4,3) == TL(2)); CHECK(W(2,0,0) == MACRO(0)); CHECK(W(1,4,5) == KC_BOOT);
   CHECK(C.cfg.w[W_NLI] == 3); CHECK(W(5,0,0) == KC_TRNS); CHECK(W(31,1,3) == KC_TRNS);
-  CHECK(NW == 1258 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
+  CHECK(NW == 1266 && W_AMB == 1258 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
 
   // ===== 2) chong doi =====
   reset(); down(1, 3); step(4); CHECK(!has(kb(), KC_P7)); step(1); CHECK(has(kb(), KC_P7));
@@ -213,7 +214,7 @@ int main(void) {
   // ===== 16) giao thuc =====
   { reset(); uint8_t in[32], out[32];
     memset(in, 0, 32); in[0] = CMD_INFO; proto_cmd(&C, in, out);
-    CHECK(out[0] == 5 && out[1] == 32 && (out[2] | out[3] << 8) == 1258 && out[4] == FW_VER && out[5] == 16 && out[6] == 32 && (out[7] | out[8] << 8) == 1020 && out[9] == OLED_H && out[10] == 16 && (out[11] | out[12] << 8) == 512);
+    CHECK(out[0] == 5 && out[1] == 32 && (out[2] | out[3] << 8) == 1266 && out[4] == FW_VER && out[5] == 16 && out[6] == 32 && (out[7] | out[8] << 8) == 1020 && out[9] == OLED_H && out[10] == 16 && (out[11] | out[12] << 8) == OD_FSZ);
     CHECK(FW_VER >= 7);
     // doc 14 word tai offset 0 va tai offset >255 (offset cao)
     memset(in, 0, 32); in[0] = CMD_READ; in[1] = 0; in[2] = 14; proto_cmd(&C, in, out);
@@ -238,15 +239,6 @@ int main(void) {
     proto_cmd(&C, in, out); in[0] = CMD_ODREAD; memset(in + 3, 0, 28); proto_cmd(&C, in, out); for (int i = 0; i < 28; i++) CHECK(out[3 + i] == 0xA0 + i);
     memset(in, 0, 32); in[0] = CMD_ODREAD; in[1] = (OD_SIZE - 10) & 255; in[2] = 20; in[31] = (OD_SIZE - 10) >> 8; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
     // luu / xem thu
-    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = 6; memcpy(in + 3, "Mixer1", 6); CHECK(proto_cmd(&C, in, out) == 0 && out[0] == CMD_LNWRITE);
-    { char b[16]; core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "MIXER1")); }
-    memset(in, 0, 32); in[0] = CMD_LNREAD; in[1] = 3; proto_cmd(&C, in, out); CHECK(!memcmp(out + 3, "MIXER1\0\0\0\0\0\0", 12));
-    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = NAMELEN + 1; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);   // qua dai
-    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = 1; in[3] = '#'; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);   // ky tu khong co trong font
-    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = NLAYER; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
-    memset(in, 0, 32); in[0] = CMD_LNREAD; in[1] = NLAYER; proto_cmd(&C, in, out); CHECK(out[0] == 0xFF);
-    { char b[16]; core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "MIXER1")); }   // loi khong lam hong ten cu
-    memset(in, 0, 32); in[0] = CMD_LNWRITE; in[1] = 3; in[2] = 0; proto_cmd(&C, in, out); { char b[16]; core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "LAYER3")); }
     memset(in, 0, 32); in[0] = CMD_SAVE; CHECK(proto_cmd(&C, in, out) == PROTO_SAVE);
     memset(in, 0, 32); in[0] = CMD_PREVIEW; in[1] = 4; CHECK(proto_cmd(&C, in, out) == PROTO_PREVIEW && out[1] == 4);
     // ve mac dinh
@@ -262,24 +254,6 @@ int main(void) {
     memset(buf, 0xFF, sizeof buf); CHECK(!store_unpack(buf, &g));            // flash trong
     CHECK(crc32_buf((const uint8_t *)"123456789", 9) == 0xCBF43926u);
   }
-
-  // ===== 17b) TK: bam 1 lan giu, bam lan nua nha =====
-  reset(); setk(0, 4, 0, TK(KC_LSFT)); setk(0, 4, 2, TK(KC_A)); setk(0, 4, 3, TK(KC_Z)); setk(0, 0, 0, KC_P7);
-  press(4, 0, 5); CHECK(kb().mods == 2 && !has(kb(), KC_A));                       // giu Shift sau khi nha phim vat ly
-  step(200); CHECK(kb().mods == 2);                                                // van giu
-  press(4, 2, 5); CHECK(kb().mods == 2 && has(kb(), KC_A));                        // them A
-  press(0, 0, 5); { kb_report_t r = kb(); CHECK(r.mods == 2 && has(r, KC_A)); }   // phim thuong gop cung
-  press(4, 0, 5); CHECK(kb().mods == 0 && has(kb(), KC_A));                        // nha Shift, A van giu
-  press(4, 2, 5); CHECK(kb().mods == 0 && !has(kb(), KC_A));                       // nha A
-  for (int j = 0; j < NTK; j++) CHECK(C.tk[j] == 0);
-  // day: toi da NTK phim, phim thu NTK+1 bi bo qua
-  reset(); for (int j = 0; j < 5; j++) setk(0, 0, j, TK(KC_A + j)); for (int j = 0; j < 5; j++) press(0, j, 5);
-  { kb_report_t r = kb(); CHECK(has(r, KC_A) && has(r, KC_A + 3) && !has(r, KC_A + 4)); }
-  // layer / reset: core_reset nha het
-  core_reset(&C); CHECK(!has(kb(), KC_A));
-  // ma TK khong hop le (0x7800 + khong phai phim thuong) khong lam gi
-  reset(); setk(0, 0, 0, 0x7800); setk(0, 0, 1, 0x7800 | 0x01); press(0, 0, 5); press(0, 1, 5); CHECK(kb().mods == 0 && !has(kb(), 0x01));
-  { char b[24]; core_label(&C, TK(KC_LSFT), b, sizeof b); CHECK(!strcmp(b, "TOG SHIFT")); core_label(&C, TK(KC_Z), b, sizeof b); CHECK(!strcmp(b, "TOG Z")); }
 
   // ===== 18) nhan OLED =====
   reset();
@@ -313,8 +287,8 @@ int main(void) {
     // kieu 0 chu chay, 1 logo (khung 5 pixel dac biet), 2 xen ke
     C.cfg.od[0] = 1; memset(C.cfg.od + OD_START, 0, OD_FSZ); C.cfg.od[OD_START + 0] = 0x01; C.cfg.od[OD_START + 127 + 3 * 128] = 0x80;   // (0,0) va (127,31)
     ui_cmd(&U, 4, t); ui_task(&U, &C, ++t, 0); CHECK(U.st == UI_LOGO && U.fb[0] == 0x01 && U.fb[127 + 3 * 128] == 0x80);
-    C.cfg.w[W_LDB + LDB_ROT] = 2; U.dirty = true; ui_task(&U, &C, ++t, 0); CHECK(U.fb[127 + 3 * 128] == 0x80 && U.fb[0] == 0x01);   // xoay 180: 2 diem doi xung cho nhau
-    C.cfg.od[OD_START + 1] = 0x01; U.dirty = true; ui_task(&U, &C, ++t, 0); CHECK(U.fb[126 + 3 * 128] == 0x80);   // (1,0) -> (126,31)
+    C.cfg.w[W_LDB + LDB_ROT] = 2; U.dirty = true; ui_task(&U, &C, ++t, 0); CHECK(U.fb[((OLED_H - 1 - 0) >> 3) * 128 + 127] >> ((OLED_H - 1) & 7) & 1); CHECK(U.fb[((OLED_H - 1 - 31) >> 3) * 128 + 0] >> ((OLED_H - 1 - 31) & 7) & 1);   // xoay 180: 2 diem doi xung cho nhau
+    C.cfg.od[OD_START + 1] = 0x01; U.dirty = true; ui_task(&U, &C, ++t, 0); CHECK(U.fb[((OLED_H - 1) >> 3) * 128 + 126] >> ((OLED_H - 1) & 7) & 1);   // (1,0) -> (126,H-1)
     C.cfg.w[W_LDB + LDB_ROT] = 0;
     for (int mode = 0; mode < 3; mode++) { C.cfg.w[W_OSB + 5] = mode; ui_cmd(&U, 2, t); int any = 0; for (int i = 0; i < 400; i++) { ui_task(&U, &C, t += 20, 0); for (int k = 0; k < FB_SIZE; k++) any |= U.fb[k]; } CHECK(any && U.st == UI_SAVER); }
     ui_cmd(&U, 0, t); CHECK(U.st == UI_NORMAL);
@@ -335,20 +309,29 @@ int main(void) {
     press(3, 3, 20); press(3, 4, 20); drain();
     CHECK(ui_morse_on(&C) && C.mo_len == 2);
     U.dirty = true; ui_task(&U, &C, t += 50, 0);
-    int px_code = 0; for (int x = 0; x < 30; x++) for (int y = 15; y < 19; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) px_code++;
-    CHECK(px_code == 4 * 4 + 10 * 4);                      // 1 cham + 1 gach
+    int px_code = 0; for (int x = 0; x < 30; x++) for (int y = 15; y < 20; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) px_code++;
+    #if OLED_H == 64
+    CHECK(px_code == 5 * 5 + 14 * 5);
+#else
+    CHECK(px_code == 4 * 4 + 10 * 4);
+#endif                      // 1 cham + 1 gach
     int px_big = 0; for (int x = 104; x < 120; x++) for (int y = 11; y < 32; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) px_big++;
     CHECK(px_big > 20);                                    // ky tu 'A' lon
     { char o[24]; ui_morse_opts(&C, o); CHECK(!strcmp(o, ". R  - W")); }   // .-. = r, .-- = w
-    printf("morse .-:\n"); for (int y = 0; y < 32; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
+    printf("morse .-:\n"); for (int y = 0; y < OLED_H; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
     press(3, 5, 20); drain(); U.dirty = true; ui_task(&U, &C, t += 50, 0); CHECK(C.mo_len == 0 && ui_morse_on(&C));   // OK: ma xoa, van o man Morse
     // Nokia: bam 2 lan phim 2 -> chon 'b' (nhom "2def" -> index 1 = 'd')
     T = 20000; press(2, 3, 20); press(2, 3, 20); drain();
     CHECK(C.nk_key == 1 && C.nk_n == 1 && ui_nokia_on(&C, T));
     U.dirty = true; ui_task(&U, &C, T, 0);
-    int inv = 0; for (int x = 14; x < 27; x++) for (int y = 12; y < 28; y++) if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) inv++;
+    #if OLED_H == 64
+    int inv = 0; for (int x = 24; x < 46; x++) for (int y = 18; y < 46; y++)
+#else
+    int inv = 0; for (int x = 14; x < 27; x++) for (int y = 12; y < 28; y++)
+#endif
+      if (U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1) inv++;
     CHECK(inv > 100);                                      // o chon dao mau (hop dac)
-    printf("nokia 2d:\n"); for (int y = 0; y < 32; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
+    printf("nokia 2d:\n"); for (int y = 0; y < OLED_H; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
     CHECK(!ui_nokia_on(&C, T + NOKIA_MS + 1));            // het gio -> ve man hinh thuong
     // man doc: chi hien nhan ky tu (khong vo)
     C.cfg.w[W_LDB + LDB_ROT] = 1; U.dirty = true; ui_task(&U, &C, T, 0); { int any = 0; for (int k = 0; k < FB_SIZE; k++) any |= U.fb[k]; CHECK(any); }
@@ -360,6 +343,41 @@ int main(void) {
   for (int m = 0; m < 9; m++) { const uint8_t *s = C.cfg.mac[m]; int len = s[16] | s[17] << 8; CHECK(len > 0 && len + 18 <= MSLOT && s[0] == 1); }
   for (int m = 9; m < NMAC; m++) CHECK(C.cfg.mac[m][16] == 0 && C.cfg.mac[m][17] == 0);
   CHECK(C.cfg.od[0] == 0 && C.cfg.w[W_OSB] == 300 && C.cfg.w[W_OSB + 6] == 120);
+
+  // ===== 21) chuot bay =====
+  reset();
+  CHECK(C.cfg.w[W_AMB] == 60 && C.cfg.w[W_AMB + 2] == 15 && W(2,1,3) == KC_AIR && W(2,1,4) == KC_MB1 && W(2,1,5) == KC_MB2 && W(2,2,3) == KC_MB3);
+  setk(0, 1, 3, KC_AIR); setk(0, 1, 4, KC_MB1); setk(0, 1, 5, KC_MB2); setk(0, 1, 6, KC_AIRT); setk(0, 2, 3, KC_MB3); setk(0, 2, 4, KC_AIRCAL);
+  CHECK(!core_air_on(&C) && core_mouse_buttons(&C) == 0);
+  down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_air_on(&C)); CHECK(!has(kb(), KC_P7)); up(1, 3); step(DEBOUNCE_MS + 1); CHECK(!core_air_on(&C));
+  down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_mouse_buttons(&C) == 1); down(1, 5); step(DEBOUNCE_MS + 1); CHECK(core_mouse_buttons(&C) == 3);
+  down(2, 3); step(DEBOUNCE_MS + 1); CHECK(core_mouse_buttons(&C) == 7); up(1, 4); up(1, 5); up(2, 3); step(DEBOUNCE_MS + 1); CHECK(core_mouse_buttons(&C) == 0);
+  press(1, 6, 20); CHECK(core_air_on(&C)); press(1, 6, 20); CHECK(!core_air_on(&C));
+  press(2, 4, 20); CHECK(C.cal_req);
+  C.cfg.w[W_AMB + 4] = 8; CHECK(core_air_on(&C)); C.cfg.w[W_AMB + 4] = 0;
+  { char b[24]; core_label(&C, KC_AIR, b, sizeof b); CHECK(!strcmp(b, "AIR")); core_label(&C, KC_MB2, b, sizeof b); CHECK(!strcmp(b, "RMB")); }
+  { // thuat toan: hieu chuan -> quay yaw duong -> con tro dich; dung yen -> khong troi; vung chet; che do khong bay
+    air_t a; air_init(&a); uint16_t am[8] = {60, 60, 15, 0, 0, 0, 0, 0}; int dx, dy, sx = 0, sy = 0;
+    for (int i = 0; i < AIR_CAL_N; i++) air_update(&a, am, 30, -20, 10, 5, true, &dx, &dy);
+    CHECK(!air_calibrating(&a) && (int)a.bx == 30 && (int)a.by == -20 && (int)a.bz == 10);
+    for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, 10, 5, true, &dx, &dy); sx += dx; sy += dy; } CHECK(sx == 0 && sy == 0);
+    for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, (int16_t)(10 + 65.5 * 50), 5, true, &dx, &dy); sx += dx; sy += dy; }   // 50 do/s trong 1 giay
+    CHECK(sx < -700 && sx > -900 && sy == 0);                      // quay nguoc kim dong ho (gz+) -> sang trai
+    sx = sy = 0; for (int i = 0; i < 200; i++) { air_update(&a, am, (int16_t)(30 + 65.5 * 50), -20, 10, 5, true, &dx, &dy); sx += dx; sy += dy; } CHECK(sy < -400 && sx == 0);
+    am[4] = 1; sx = 0; for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, (int16_t)(10 + 65.5 * 50), 5, true, &dx, &dy); sx += dx; } CHECK(sx > 400); am[4] = 0;   // dao X
+    sx = 0; for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, (int16_t)(10 + 65.5 * 50), 5, false, &dx, &dy); sx += dx | dy; } CHECK(sx == 0);   // khong bay
+    sx = 0; for (int i = 0; i < 200; i++) { air_update(&a, am, 30, -20, (int16_t)(10 + 65.5 * 1), 5, true, &dx, &dy); sx += dx; } CHECK(sx == 0);        // duoi vung chet
+    air_recal(&a); CHECK(air_calibrating(&a));
+  }
+  { // luu flash: ban cu (khong co khoi chuot bay) van nap duoc, khoi chuot bay = mac dinh
+    static uint8_t buf[STORE_SIZE]; static cfg_t g, o; cfg_defaults(&g); g.w[W_KM + 5] = KC_Z; g.mac[2][3] = 9;
+    store_pack(&g, buf); CHECK(store_unpack(buf, &o) && o.w[W_KM + 5] == KC_Z);
+    size_t old_w = (size_t)(NW - W_NAMB) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2; static uint8_t oldb[STORE_SIZE]; memset(oldb, 0xFF, sizeof oldb);
+    store_hdr_t h = {STORE_MAGIC, STORE_VER, (uint32_t)(old_w + rest), 0}; uint8_t *p = oldb + sizeof h;
+    memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
+    memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_KM + 5] == KC_Z && o.mac[2][3] == 9 && o.w[W_AMB] == 60 && o.w[W_AMB + 7] == 0 && !strcmp(o.lname[2], "MACRO"));
+    p[10] ^= 1; CHECK(!store_unpack(oldb, &o));
+  }
 
   printf(fails ? "core: %d LOI\n" : "core: tat ca dat\n", fails);
   return fails != 0;

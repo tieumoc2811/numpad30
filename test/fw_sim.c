@@ -7,6 +7,7 @@
 #include "pico_stub.h"
 
 i2c_inst_t dummy_i2c, *i2c0 = &dummy_i2c; PIO_t dummy_pio, *pio0 = &dummy_pio; pio_program_t ws2812_program;
+uint8_t sim_imu_reg; int16_t sim_gyro[3]; int sim_imu_present = 1; uint8_t sim_mb; int sim_mdx, sim_mdy, sim_mrep;
 uint8_t sim_flash[2 * 1024 * 1024]; int sim_flash_erases; static uint8_t raw_tx[32]; static int raw_txn;
 bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)id; if (itf == 1 && n == 32) { memcpy(raw_tx, r, 32); raw_txn++; } return true; }
 typedef struct { uint32_t t; void (*f)(void); } act_t; static act_t acts[64]; static int nacts;
@@ -15,6 +16,7 @@ typedef struct { uint32_t t; uint8_t mods, k[6]; } kbl_t; static kbl_t kbl[4096]
 typedef struct { uint32_t t; uint16_t u; } cnl_t; static cnl_t cnl[1024]; static int ncn;
 bool tud_hid_n_ready(uint8_t i) { (void)i; return true; }
 bool tud_hid_keyboard_report(uint8_t id, uint8_t mod, const uint8_t k[6]) { (void)id; kbl_t *e = &kbl[nkb++]; e->t = fake_ms; e->mods = mod; memcpy(e->k, k, 6); return true; }
+bool tud_hid_mouse_report(uint8_t id, uint8_t b, int8_t x, int8_t y, int8_t v, int8_t h) { (void)id; (void)v; (void)h; sim_mb |= b; sim_mdx += x; sim_mdy += y; sim_mrep++; return true; }
 bool tud_hid_report(uint8_t id, const void *r, uint16_t n) { (void)n; if (id == 2) { cnl[ncn].t = fake_ms; cnl[ncn++].u = *(const uint16_t *)r; } return true; }
 
 typedef struct { uint32_t t; int r, c, d; } ev_t; static ev_t evs[256]; static int nev; static uint32_t endt; static jmp_buf jb;
@@ -117,11 +119,25 @@ static int scenario_proto(void) {   // Raw HID: info, ghi phim co hieu luc ngay,
   CHECK(core.cfg.w[W_KM + POS_(1, 3)] == KC_P7 && find_key(KC_P7, 0) >= 0);
   return fails;
 }
+static void a_gyro_hold(void) { sim_gyro[2] = (int16_t)(65.5 * 100); }   // 100 do/s quanh Z
+static void a_air_cfg(void) { core.cfg.w[W_KM + POS_(1, 3)] = KC_AIR; core.cfg.w[W_KM + POS_(1, 4)] = KC_MB1; }
+static int scenario_air(void) {
+  nacts = 0; nev = 0; sim_mdx = sim_mdy = sim_mrep = 0; sim_gyro[0] = sim_gyro[1] = sim_gyro[2] = 40;
+  act_at(50, a_air_cfg);                            // (main() nap lai cau hinh luc khoi dong nen gan phim sau do)
+  act_at(1500, a_gyro_hold);                        // sau khi hieu chuan xong (~1 s), quay Z
+  tap(1700, 1, 3, 600);                             // giu AIR 1700..2300
+  tap(2500, 1, 4, 100);                             // chuot trai
+  endt = 3000; run();
+  CHECK(core.imu_ok == 1 && core.imu_id == 0x74);
+  CHECK(sim_mrep > 5); CHECK(sim_mdx < -300 && sim_mdx > -2500);   // gz+ -> sang trai, khi dang giu AIR
+  CHECK(sim_mdy == 0 && sim_mb == 1);                              // sim_mb gom moi nut da tung bam
+  return fails;
+}
 int main(int argc, char **argv) {
   (void)argv; int rc = 0;
-  for (int s = 0; s < 3; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
+  for (int s = 0; s < 4; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
     fflush(stdout); pid_t p = fork();
-    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : "Raw HID + luu flash"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : scenario_proto()); }
+    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : "chuot bay (gyro gia)"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : scenario_air()); }
     int st; waitpid(p, &st, 0); if (!WIFEXITED(st) || WEXITSTATUS(st)) rc = 1;
   }
   if (argc > 5) return 2;

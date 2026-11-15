@@ -2,7 +2,7 @@
 #include "pico/unique_id.h"
 
 // Giao dien 0: ban phim (report 1, co LED NumLock/CapsLock) + phim da phuong tien (report 2)
-static const uint8_t d_kb[] = { TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(1)), TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(2)) };
+static const uint8_t d_kb[] = { TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(1)), TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(2)), TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(3)) };
 // Giao dien 1: Raw HID, usage page 0xFF60 / usage 0x61 (app WebHID loc theo cap nay), 32 byte vao/ra, khong report ID
 static const uint8_t d_raw[] = {
   0x06, 0x60, 0xFF, 0x09, 0x61, 0xA1, 0x01,

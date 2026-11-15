@@ -13,11 +13,9 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | 2 | Ghi `n<=14` word (`[3+2i]`), co hieu luc ngay |
 | 3 | Luu toan bo cau hinh vao flash. Tra loi sau khi ghi xong (~0,3 s); `[0]=0xFF` neu ghi that bai |
 | 4 | Ve mac dinh trong RAM (phim, macro, du lieu OLED, ten layer); chua luu flash |
-| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1258), `[4]`=FW_VER (7), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=do dai ten layer toi da (10; 0 = firmware cu khong ho tro lenh 11/12) |
+| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1266), `[4]`=FW_VER (8), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien |
 | 6 / 7 | Doc / ghi `n<=28` byte macro, offset = `o*1020 + vi tri` (0..32639) |
 | 8 / 9 | Doc / ghi `n<=28` byte du lieu OLED, offset 0..8447 |
-| 11 | Doc ten layer: `out[1]` = layer (0..31); tra loi `[3..14]` = 12 byte ASCII, het chuoi la byte 0, rong = ten mac dinh |
-| 12 | Doi ten layer: `out[1]` = layer, `out[2]` = so ky tu (0..10, 0 = ve ten mac dinh), `[3..]` = ky tu. Chu thuong tu doi thanh HOA; ky tu ngoai `A-Z 0-9 khoang trang ! ( ) * + , - . / : = ?` hoac qua dai -> `[0]=0xFF`, ten cu giu nguyen. Co hieu luc ngay tren OLED; goi lenh 3 de luu flash |
 | 10 | Xem thu OLED: `out[1]` = 0 dung, 1 loi chao, 2 screensaver, 4 logo |
 
 ## Ban do word (uint16)
@@ -31,7 +29,9 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | Huong OLED tung layer | 1154..1185 | 0..3, >=4 = theo huong chung |
 | Man hinh | 1186..1193 | `[timeout giay (0=tat), toc do chu 1-10, loi chao bat, logo truoc loi chao, so lan chay 1-5, kieu saver 0-3, ms/khung, du phong]` |
 | Chuoi (SEQ) | 1194 + 8n + k | 8 bo x 8 buoc, o 0 = het danh sach |
-Tong NW = 1258. Ma o trong `r*7+c` khong co phim: (R2,C6) (R3,C0) (R3,C2) (R4,C4) (R4,C6).
+Khoi chuot bay `AMB` = word 1258..1265: [do nhay X, do nhay Y, vung chet (0.1 do/s), lam muot 0-9, co (bit0 dao X, bit1 dao Y, bit2 Y theo gy, bit3 luon bay), 3 du phong]. Ma phim: 0x7070 AIR (giu de bay), 0x7071 AIR bat/tat, 0x7072/73/74 chuot trai/phai/giua, 0x7075 hieu chuan gyro.
+
+Tong NW = 1266. Ma o trong `r*7+c` khong co phim: (R2,C6) (R3,C0) (R3,C2) (R4,C4) (R4,C6).
 
 LED onboard dung: `obMode` 0 theo layer / 1 cau vong / 2 mot mau (hue,sat) / 3 tho / 4 tat, do sang `obSang`, CapsLock = do. Cac hieu ung/den tung phim (word 0..5) chi luu giu.
 
@@ -49,7 +49,6 @@ LED onboard dung: `obMode` 0 theo layer / 1 cau vong / 2 mot mau (hue,sat) / 3 t
 | `0x7001` | LATCH; `0x7002..5` TG Space/Shift/Ctrl/Alt |
 | `0x7010..16` | lenh LED cua macropad15: nhan nhung bo qua |
 | `0x7020` | RENAME (doi ten layer tren OLED, toi da 10 ky tu, Enter luu, tu luu flash) |
-| `0x7800\|kc` | TK: bam 1 lan giu phim `kc` (0x04..0xE7, gom modifier), bam lan nua nha. Toi da 4 phim giu cung luc; day thi bo qua. Mat khi rut USB / reset (khong luu flash) |
 | `0x7060..63` | Morse cham / gach / xong / goi y |
 | `0x7100\|i` | MACRO i (0..31) |
 | `0x7200\|n` / `0x7280\|n` / `0x7300\|n` | SEQ tien / lui / dat lai (n = 0..7) |

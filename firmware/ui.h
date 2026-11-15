@@ -56,11 +56,10 @@ static void ui_txt_wrap(ui_t *u, int x, int y, int s, const char *t, int cpl, in
     ui_txt(u, x, y + l * 8 * s + l * s, s, ln, true);
   }
 }
-static void ui_frame(ui_t *u, const core_t *c, int i) {   // logo 128x32 (dang page cua SSD1306), luon ve ngang
+static void ui_frame(ui_t *u, const core_t *c, int i) {   // logo 128 x OLED_H (dang page cua SSD1306), luon ve ngang
   const uint8_t *f = c->cfg.od + OD_START + i * OD_FSZ;
   int sv = u->rot; u->rot = sv & 2;
-  int oy = (OLED_H - 32) / 2;
-  for (int x = 0; x < 128; x++) for (int y = 0; y < 32; y++) ui_px(u, x, y + oy, f[(y >> 3) * 128 + x] >> (y & 7) & 1);
+  for (int x = 0; x < 128; x++) for (int y = 0; y < OLED_H; y++) ui_px(u, x, y, f[(y >> 3) * 128 + x] >> (y & 7) & 1);
   u->rot = sv;
 }
 static int ui_text_len_px(const char *t) { return (int)strlen(t) * 12; }
@@ -107,24 +106,38 @@ static void ui_mode_top(ui_t *u, const char *ln, uint8_t host_leds) {   // hang 
 static void ui_morse_view(ui_t *u, const core_t *c, const char *ln, uint8_t host_leds) {
   ui_mode_top(u, ln, host_leds);
   int x = 0;   // ma dang go: cham = o vuong nho, gach = thanh dai
+  char o[24]; ui_morse_opts(c, o);
+  char ch = c->mo_len ? morse_find(c->mo_code) : 0;   // ky tu dang hien tren may tinh
+  char b[2] = {ch ? ui_up(ch) : '?', 0};
+#if OLED_H == 64
+  for (int i = 0; i < c->mo_len; i++) {
+    if (c->mo_code[i] == '-') { ui_box(u, x, 15, 14, 5, true); x += 18; } else { ui_box(u, x, 15, 5, 5, true); x += 10; }
+  }
+  if (!c->mo_len) ui_txt(u, 0, 14, 2, "MORSE", true);
+  ui_txt(u, 0, 30, 2, o[0] ? o : "-", true);
+  if (c->mo_len) ui_txt(u, 104, 28, 4, b, true);
+#else
   for (int i = 0; i < c->mo_len; i++) {
     if (c->mo_code[i] == '-') { ui_box(u, x, 15, 10, 4, true); x += 14; } else { ui_box(u, x, 15, 4, 4, true); x += 8; }
   }
   if (!c->mo_len) ui_txt(u, 0, 13, 1, "MORSE", true);
-  char o[24]; ui_morse_opts(c, o);
   ui_txt(u, 0, 24, 1, o[0] ? o : "-", true);
-  char ch = c->mo_len ? morse_find(c->mo_code) : 0;   // ky tu dang hien tren may tinh
-  if (c->mo_len) { char b[2] = {ch ? ui_up(ch) : '?', 0}; ui_txt(u, 104, 11, 3, b, true); }
+  if (c->mo_len) ui_txt(u, 104, 11, 3, b, true);
+#endif
 }
 static void ui_nokia_view(ui_t *u, const core_t *c, const char *ln, uint8_t host_leds, uint32_t now) {
   ui_mode_top(u, ln, host_leds);
   const char *g = NK_TAB[c->nk_key]; int n = (int)strlen(g);
   for (int i = 0; i < n; i++) {   // nhom ky tu cua phim, ky tu dang chon dao mau
     bool sel = i == c->nk_n; char b[2] = {ui_up(g[i]) == ' ' ? '_' : ui_up(g[i]), 0};
+#if OLED_H == 64
+    ui_box(u, i * 24, 18, 22, 28, sel); ui_txt(u, i * 24 + 3, 21, 3, b, !sel);
+#else
     ui_box(u, i * 14, 12, 13, 16, sel); ui_txt(u, i * 14 + 1, 13, 2, b, !sel);
+#endif
   }
   uint32_t el = now - c->nk_t; int w = el >= NOKIA_MS ? 0 : (int)(128u * (NOKIA_MS - el) / NOKIA_MS);   // thanh con lai truoc khi chot ky tu
-  ui_box(u, 0, 30, w, 2, true);
+  ui_box(u, 0, OLED_H - 2, w, 2, true);
 }
 static void ui_normal(ui_t *u, const core_t *c, uint8_t host_leds, uint32_t now) {
   char ln[16], lab[24];
@@ -132,7 +145,7 @@ static void ui_normal(ui_t *u, const core_t *c, uint8_t host_leds, uint32_t now)
   else { core_layer_name(c, core_top_layer(c), ln, sizeof ln); strcpy(lab, u->shown); if (c->latch_wait) strcpy(lab, "LATCH ?"); }
   bool mo = !c->rn_on && !c->latch_wait && ui_morse_on(c), nk = !c->rn_on && !c->latch_wait && ui_nokia_on(c, now);
   if (mo || nk) {
-    if (OLED_H == 32 && !(u->rot & 1)) { if (nk) ui_nokia_view(u, c, ln, host_leds, now); else ui_morse_view(u, c, ln, host_leds); return; }
+    if (!(u->rot & 1)) { if (nk) ui_nokia_view(u, c, ln, host_leds, now); else ui_morse_view(u, c, ln, host_leds); return; }
     if (nk) { lab[0] = ui_up(NK_TAB[c->nk_key][c->nk_n]); lab[1] = 0; if (lab[0] == ' ') lab[0] = '_'; }   // man doc / 64 hang: chi hien ky tu
     else { size_t k = 0; for (int i = 0; i < c->mo_len && k < 8; i++) lab[k++] = c->mo_code[i]; if (c->mo_len) { lab[k++] = ' '; lab[k++] = c->mo_shown ? ui_up(morse_find(c->mo_code)) : '?'; } lab[k] = 0; if (!k) strcpy(lab, "MORSE"); }
   }

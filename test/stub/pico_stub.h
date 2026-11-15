@@ -43,7 +43,17 @@ static inline void gpio_pull_up(uint g) { (void)g; } static inline void gpio_pul
 static inline void busy_wait_us_32(uint32_t u) { (void)u; }
 extern uint32_t fake_ms; static inline uint32_t time_us_32(void) { return fake_ms * 1000u; }
 extern int sim_i2c_writes; extern uint8_t sim_i2c_cmd[2];
-static inline int i2c_write_timeout_us(i2c_inst_t *i, uint8_t a, const uint8_t *s, size_t n, bool nostop, uint t) { (void)i; (void)a; (void)nostop; (void)t; sim_i2c_writes++; if (n == 2 && s[0] == 0x00 && (s[1] == 0xAE || s[1] == 0xAF)) { sim_i2c_cmd[0] = s[0]; sim_i2c_cmd[1] = s[1]; } return (int)n; }
+static inline void sleep_ms(uint32_t m) { (void)m; }
+extern uint8_t sim_imu_reg; extern int16_t sim_gyro[3]; extern int sim_imu_present;
+static inline int i2c_write_timeout_us(i2c_inst_t *i, uint8_t a, const uint8_t *s, size_t n, bool nostop, uint t) { (void)i; (void)nostop; (void)t;
+  if (a == 0x68) { if (!sim_imu_present) return -2; if (n >= 1) sim_imu_reg = s[0]; return (int)n; }
+  sim_i2c_writes++; if (n == 2 && s[0] == 0x00 && (s[1] == 0xAE || s[1] == 0xAF)) { sim_i2c_cmd[0] = s[0]; sim_i2c_cmd[1] = s[1]; } return (int)n; }
+static inline int i2c_read_timeout_us(i2c_inst_t *i, uint8_t a, uint8_t *d, size_t n, bool nostop, uint t) { (void)i; (void)a; (void)nostop; (void)t;
+  if (!sim_imu_present) return -2;
+  for (size_t k = 0; k < n; k++) d[k] = 0;
+  if (sim_imu_reg == 0x75) d[0] = 0x74;
+  else if (sim_imu_reg == 0x43 && n == 6) for (int k = 0; k < 3; k++) { d[2 * k] = (uint8_t)((uint16_t)sim_gyro[k] >> 8); d[2 * k + 1] = (uint8_t)sim_gyro[k]; }
+  return (int)n; }
 static inline void i2c_init(i2c_inst_t *i, uint b) { (void)i; (void)b; }
 extern int sim_boot; static inline void reset_usb_boot(uint32_t a, uint32_t b) { (void)a; (void)b; sim_boot++; }
 typedef int hid_report_type_t;
@@ -51,6 +61,7 @@ extern bool sim_suspended; extern int sim_wakeups;
 bool tud_hid_n_ready(uint8_t i);
 bool tud_hid_keyboard_report(uint8_t id, uint8_t mod, const uint8_t k[6]);
 bool tud_hid_report(uint8_t id, const void *r, uint16_t n);
+bool tud_hid_mouse_report(uint8_t id, uint8_t b, int8_t x, int8_t y, int8_t v, int8_t h);
 static inline bool tud_suspended(void) { return sim_suspended; }
 static inline bool tud_remote_wakeup(void) { sim_wakeups++; return true; }
 static inline void tusb_init(void) {}

@@ -13,12 +13,8 @@
 #define CMD_ODREAD 8      // doc byte du lieu OLED (n<=28)
 #define CMD_ODWRITE 9     // ghi byte du lieu OLED
 #define CMD_PREVIEW 10    // [10, n]: 0 dung, 1 loi chao, 2 screensaver, 4 logo
-#define CMD_LNREAD 11     // doc ten layer: [11, layer] -> r[3..14] = 12 byte (0 = ten mac dinh)
-#define CMD_LNWRITE 12    // ghi ten layer: [12, layer, n<=NAMELEN, ky tu...]; n = 0 -> ten mac dinh; co hieu luc ngay, luu bang CMD_SAVE
 #define PROTO_SAVE 1      // proto_cmd tra ve bit nay: caller phai luu flash roi moi gui tra loi
 #define PROTO_PREVIEW 2   // caller phai goi ui_cmd(out[1])
-
-static bool name_char_ok(char ch) { return (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || (ch && strchr(" !()*+,-./:=?", ch)); }
 
 static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
   memset(out, 0, 32);
@@ -38,7 +34,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
     case CMD_DEFAULTS: { cfg_t *g = &c->cfg; cfg_defaults(g); core_reset(c); } break;
     case CMD_INFO:
       out[1] = NLAYER; out[2] = NW & 255; out[3] = NW >> 8; out[4] = FW_VER; out[5] = 16; out[6] = NMAC;
-      out[7] = MSLOT & 255; out[8] = MSLOT >> 8; out[9] = OLED_H; out[10] = OD_NF; out[11] = OD_FSZ & 255; out[12] = OD_FSZ >> 8; out[13] = NAMELEN;
+      out[7] = MSLOT & 255; out[8] = MSLOT >> 8; out[9] = OLED_H; out[10] = OD_NF; out[11] = OD_FSZ & 255; out[12] = OD_FSZ >> 8; out[13] = c->imu_ok; out[14] = c->imu_id;
       break;
     case CMD_MREAD: case CMD_MWRITE:
       if (n > 28 || off + n > NMAC * MSLOT) { out[0] = 0xFF; break; }
@@ -48,19 +44,6 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
       if (n > 28 || off + n > OD_SIZE) { out[0] = 0xFF; break; }
       if (in[0] == CMD_ODREAD) memcpy(out + 3, c->cfg.od + off, n); else memcpy(c->cfg.od + off, in + 3, n);
       break;
-    case CMD_LNREAD:
-      if (in[1] >= NLAYER) { out[0] = 0xFF; break; }
-      memcpy(out + 3, c->cfg.lname[in[1]], 12);
-      break;
-    case CMD_LNWRITE: {
-      char nm[12] = {0}; bool ok = in[1] < NLAYER && n <= NAMELEN;
-      for (unsigned i = 0; ok && i < n; i++) {
-        char ch = (char)in[3 + i]; if (ch >= 'a' && ch <= 'z') ch -= 32;
-        if (!name_char_ok(ch)) ok = false; else nm[i] = ch;
-      }
-      if (!ok) { out[0] = 0xFF; break; }
-      memcpy(c->cfg.lname[in[1]], nm, 12);
-    } break;
     case CMD_PREVIEW: flags |= PROTO_PREVIEW; break;
     default: out[0] = 0xFF; break;
   }
@@ -73,7 +56,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
 #define STORE_SIZE (STORE_SECTORS * 4096)
 typedef struct { uint32_t magic, ver, len, crc; } store_hdr_t;
 _Static_assert(sizeof(store_hdr_t) + sizeof(cfg_t) <= STORE_SIZE, "cau hinh vuot vung flash");
-_Static_assert(NW == 1258 && NKEYS == 35, "ban do word khop app");
+_Static_assert(NW == 1266 && NKEYS == 35, "ban do word khop app");
 
 static uint32_t crc32_buf(const uint8_t *p, size_t n) {
   uint32_t c = 0xFFFFFFFFu;
@@ -87,8 +70,18 @@ static void store_pack(const cfg_t *g, uint8_t *buf) {    // buf: STORE_SIZE byt
 }
 static bool store_unpack(const uint8_t *buf, cfg_t *g) {   // dung neu hop le (magic, phien ban, kich thuoc, CRC)
   store_hdr_t h; memcpy(&h, buf, sizeof h);
-  if (h.magic != STORE_MAGIC || h.ver != STORE_VER || h.len != sizeof(cfg_t)) return false;
-  if (crc32_buf(buf + sizeof h, sizeof(cfg_t)) != h.crc) return false;
-  memcpy(g, buf + sizeof h, sizeof(cfg_t));
+  if (h.magic != STORE_MAGIC || h.ver != STORE_VER) return false;
+  if (h.len == sizeof(cfg_t)) {
+    if (crc32_buf(buf + sizeof h, sizeof(cfg_t)) != h.crc) return false;
+    memcpy(g, buf + sizeof h, sizeof(cfg_t));
+    return true;
+  }
+  // ban luu cua firmware cu (chua co khoi chuot bay, w[] ngan hon W_NAMB word): doc tung phan, khoi chuot bay lay mac dinh
+  size_t old_w = (size_t)(NW - W_NAMB) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2;
+  if (h.len != old_w + rest) return false;
+  if (crc32_buf(buf + sizeof h, h.len) != h.crc) return false;
+  const uint8_t *p = buf + sizeof h;
+  memcpy(g->w, p, old_w); memcpy((uint8_t *)g + (size_t)NW * 2, p + old_w, rest);
+  cfg_air_defaults(g);
   return true;
 }

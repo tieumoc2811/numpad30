@@ -13,6 +13,7 @@
 #include "ws2812.pio.h"
 #include "tusb.h"
 #include "ui.h"
+#include "airmouse.h"
 
 static const uint8_t row_pins[NROW] = ROW_PINS, col_pins[NCOL] = COL_PINS;
 static core_t core;
@@ -102,6 +103,34 @@ static void oled_init(void) {
   gpio_pull_up(OLED_SDA); gpio_pull_up(OLED_SCL);
   oled_try_init();
 }
+// ---------------- cam bien gyro MPU-6515 (chuot bay), chung I2C0 voi OLED ----------------
+static air_t air; static int air_px, air_py; static uint8_t m_sent;
+static bool imu_wr(uint8_t reg, uint8_t v) { uint8_t b[2] = {reg, v}; return i2c_write_timeout_us(i2c0, IMU_ADDR, b, 2, false, 4000) == 2; }
+static bool imu_rd(uint8_t reg, uint8_t *o, size_t n) {
+  return i2c_write_timeout_us(i2c0, IMU_ADDR, &reg, 1, true, 4000) == 1 && i2c_read_timeout_us(i2c0, IMU_ADDR, o, n, false, 4000) == (int)n;
+}
+static void imu_try_init(void) {
+  uint8_t id = 0;
+  core.imu_ok = 0;
+  if (!imu_wr(0x6B, 0x01)) return;                                  // danh thuc, nguon xung = PLL gyro X
+  sleep_ms(10);
+  if (!imu_rd(0x75, &id, 1) || id == 0x00 || id == 0xFF) return;    // WHO_AM_I (MPU-6515 ~0x74, MPU-6500 0x70)
+  imu_wr(0x1A, 0x03); imu_wr(0x19, 0x00); imu_wr(0x1B, 0x08);       // loc so 41 Hz, 1 kHz, gyro +-500 dps
+  imu_wr(0x6C, 0x07);                                               // tat gia toc ke (khong dung)
+  core.imu_ok = 1; core.imu_id = id; air_recal(&air);
+}
+static void imu_task(uint32_t now) {      // goi moi ms; doc moi IMU_POLL_MS
+  static uint32_t last, retry;
+  if (!core.imu_ok) { if (now - retry >= 2000) { retry = now; imu_try_init(); } return; }
+  if (core.cal_req) { core.cal_req = false; air_recal(&air); }
+  if (now - last < IMU_POLL_MS) return;
+  uint32_t dt = now - last; last = now;
+  uint8_t b[6];
+  if (!imu_rd(0x43, b, 6)) { core.imu_ok = 0; return; }
+  int16_t gx = (int16_t)(b[0] << 8 | b[1]), gy = (int16_t)(b[2] << 8 | b[3]), gz = (int16_t)(b[4] << 8 | b[5]);
+  int dx, dy; air_update(&air, &core.cfg.w[W_AMB], gx, gy, gz, dt, core_air_on(&core), &dx, &dy);
+  air_px += dx; air_py += dy;
+}
 static void oled_task(uint32_t now) {     // goi moi ms: moi lan gui toi da 1 page de khong chan quet phim / USB
   static uint32_t retry;
   if (!oled_ok) { if (now - retry >= 2000) { retry = now; oled_try_init(); } return; }
@@ -149,6 +178,11 @@ static void hid_task(void) {
   uint16_t cn = core_cons(&core);
   if (got && memcmp(&r, &sent, sizeof r)) { tud_hid_keyboard_report(1, r.mods, r.keys); sent = r; return; }
   if (cn != cons_sent) { tud_hid_report(2, &cn, sizeof cn); cons_sent = cn; return; }
+  uint8_t mb = core_mouse_buttons(&core);
+  if (mb != m_sent || air_px || air_py) {
+    int sx = air_px > 127 ? 127 : air_px < -127 ? -127 : air_px, sy = air_py > 127 ? 127 : air_py < -127 ? -127 : air_py;
+    tud_hid_mouse_report(3, mb, (int8_t)sx, (int8_t)sy, 0, 0); air_px -= sx; air_py -= sy; m_sent = mb; return;
+  }
   if (got && core_out_busy(&core)) core_out_ack(&core);   // bao cao cua muc hien tai da gui xong
 }
 static void raw_task(uint32_t now) {
@@ -164,7 +198,7 @@ static void raw_task(uint32_t now) {
 int main(void) {
   store_load();
   matrix_init(); core_reset(&core);
-  tusb_init(); oled_init(); led_init();
+  tusb_init(); oled_init(); led_init(); air_init(&air); imu_try_init();
   uint32_t last = 0, active = ms(); (void)active;
   ui_init(&ui, &core, ms());
   while (1) {
@@ -177,7 +211,7 @@ int main(void) {
       core_scan_update(&core, raw, now);
       if (core.boot_req) { oled_pwr(false); reset_usb_boot(0, 0); }
       if (core.save_req) { core.save_req = false; store_save(); }
-      oled_task(now); led_update(now);
+      imu_task(now); oled_task(now); led_update(now);
     }
     hid_task(); raw_task(now);
   }

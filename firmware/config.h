@@ -8,7 +8,9 @@
 #define OLED_SDA 12                          // I2C0 SDA
 #define OLED_SCL 13                          // I2C0 SCL
 #define OLED_ADDR 0x3C
-#define OLED_H 32                            // 32 = 128x32 (0.91"), 64 = 128x64 (0.96")
+#ifndef OLED_H
+#define OLED_H 32                            // 32 = 128x32 (0.91"), 64 = 128x64 (0.96"); doi bang -DOLED_H=64 hoac sua dong nay
+#endif
 #ifndef OLED_ROTATE
 #define OLED_ROTATE 1                        // 1 = OLED lap nguoc: tu xoay 180 do o moi huong (app "Ngang 0 do" = huong da bu nay). Test PC dung -DOLED_ROTATE=0
 #endif
@@ -24,5 +26,7 @@
 #define NOKIA_MS 600                         // multitap Nokia: bam lai cung phim trong khoang nay -> ky tu ke tiep
 #define TAP_HOLD_MS 10                       // phim "tap" tao ra (LT/TD) duoc giu it nhat so ms nay
 #define STORE_OFFSET (1024 * 1024)           // vi tri vung cau hinh trong flash (RP2350-Zero 2 MB)
-#define STORE_SECTORS 12                     // 12 x 4 KB = 48 KB cho cau hinh + macro + du lieu OLED
-#define FW_VER 7                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y
+#define STORE_SECTORS 14                     // 14 x 4 KB = 56 KB cho cau hinh + macro + du lieu OLED
+#define FW_VER 8                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I)
+#define IMU_ADDR 0x68                        // MPU-6515 / MPU-6500 (chan AD0 noi GND; noi 3V3 thi 0x69). Dung chung I2C0 voi OLED (GP12/GP13)
+#define IMU_POLL_MS 5                        // doc gyro 200 lan/giay

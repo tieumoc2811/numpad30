@@ -26,9 +26,10 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     __, KC_ESC, __, KC_END, KC_INS, KC_DEL, ___,
     KC_TAB, KC_SPACE, KC_ENTER, TL(2), __, KC_BOOT, __ },
   // ---- Layer 2: MACRO (bat/tat bang TL(2) o layer FN, phim 0): M1..M9 ----
+  // Cum chuot bay: R1C3 AIR (giu de bay), R1C4/R1C5/R2C3 chuot trai/phai/giua, R2C4 AIR bat/tat, R2C5 hieu chuan gyro
   { MACRO(0), MACRO(1), MACRO(2), ___, ___, ___, ___,
-    MACRO(3), MACRO(4), MACRO(5), ___, ___, ___, ___,
-    MACRO(6), MACRO(7), MACRO(8), ___, ___, ___, __,
+    MACRO(3), MACRO(4), MACRO(5), KC_AIR, KC_MB1, KC_MB2, ___,
+    MACRO(6), MACRO(7), MACRO(8), KC_MB3, KC_AIRT, KC_AIRCAL, __,
     __, ___, __, ___, ___, ___, ___,
     ___, ___, ___, ___, __, ___, __ },
 };
@@ -56,6 +57,10 @@ static void macro_slot_set(uint8_t *s, const char *name, const char *text, bool 
   uint16_t len = (uint16_t)(p - (s + 18)); s[16] = len & 255; s[17] = len >> 8;
 }
 
+static void cfg_air_defaults(cfg_t *g) {   // chuot bay: [nhay X, nhay Y, vung chet 0.1 do/s, lam muot, co]
+  static const uint16_t am[W_NAMB] = {60, 60, 15, 2, 0, 0, 0, 0};
+  for (int i = 0; i < W_NAMB; i++) g->w[W_AMB + i] = am[i];
+}
 static void cfg_defaults(cfg_t *g) {
   memset(g, 0, sizeof *g);
   for (int l = 0; l < NLAYER; l++) for (int i = 0; i < NKEYS; i++)
@@ -65,6 +70,7 @@ static void cfg_defaults(cfg_t *g) {
   static const uint16_t ld[W_NLD] = {0, 128, 200, 210, 255, 1, 0, 24, 0};   // [mode, toc do, sang, hue, sat, over, obMode, obSang, huong OLED]
   for (int i = 0; i < W_NLD; i++) g->w[W_LDB + i] = ld[i];
   for (int l = 0; l < NLAYER; l++) g->w[W_LRB + l] = 4;
+  cfg_air_defaults(g);
   static const uint16_t os[W_NOS] = {300, 5, 1, 0, 1, 0, 120, 0};
   for (int i = 0; i < W_NOS; i++) g->w[W_OSB + i] = os[i];
   for (int m = 0; m < (int)(sizeof def_macros / sizeof def_macros[0]); m++) macro_slot_set(g->mac[m], def_macros[m].name, def_macros[m].text, def_macros[m].enter);
