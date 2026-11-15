@@ -147,6 +147,7 @@ typedef struct {
   bool m_on; uint8_t m_idx, m_rep; uint16_t m_p, m_tp; kc_t mhold[6]; uint8_t mhn;
   int nk_key; uint8_t nk_n; uint32_t nk_t;
   char mo_code[8]; uint8_t mo_len, mo_shown, mo_hint, mo_hopt;
+  uint16_t buz_ms;                        // ms con lai cua tieng bip coi (Morse); 0 = im
   bool rn_on; char rn_buf[NAMELEN + 2]; uint8_t rn_len; uint8_t rn_layer; int rn_nk; uint8_t rn_n; uint32_t rn_t;
   bool boot_req, save_req;
   uint8_t mact[NKEYS];                    // phim chuot dang giu (KC_AIR / KC_MB1..3) cua phim i, 0 = khong
@@ -254,9 +255,10 @@ static int morse_press(core_t *c, bool dash) {
   if (ch) q_ascii(c, ch);
   for (int i = 0; i < hl; i++) q_ascii(c, h[i]);
   memcpy(c->mo_code, nc, c->mo_len + 2); c->mo_len++; c->mo_shown = ch != 0; c->mo_hint = (uint8_t)hl;
+  c->buz_ms = dash ? BUZ_DASH_MS : BUZ_DOT_MS;
   return 1;
 }
-static void morse_commit(core_t *c) { for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_len = 0; c->mo_code[0] = 0; c->mo_shown = 0; c->mo_hint = 0; }
+static void morse_commit(core_t *c) { if (c->mo_len) c->buz_ms = BUZ_OK_MS; for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_len = 0; c->mo_code[0] = 0; c->mo_shown = 0; c->mo_hint = 0; }
 static void morse_set_hint(core_t *c, bool on) {
   if (on == !!c->mo_hopt) return;
   if (!on) { if (q_room(c) < c->mo_hint) return; for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_hint = 0; c->mo_hopt = 0; return; }
@@ -473,6 +475,7 @@ static void on_release(core_t *c, int i, uint32_t now) {
 }
 static void core_scan_update(core_t *c, const uint8_t *raw, uint32_t now) {
   if (c->mwait) c->mwait--;
+  if (c->buz_ms) c->buz_ms--;
   bool rel[NKEYS] = {0}, prs[NKEYS] = {0};
   for (int i = 0; i < NKEYS; i++) {
     if (!!raw[i] == c->st[i]) c->cnt[i] = 0;
@@ -522,6 +525,7 @@ static uint16_t core_cons(const core_t *c) {
   if (c->latch_code && IS_CONS(c->latch_code)) return c->latch_code & 0x7FFF;
   return 0;
 }
+static inline bool core_buz(const core_t *c) { return c->buz_ms != 0; }   // true = coi dang phai keu
 static inline bool core_out_busy(const core_t *c) { return c->qn != 0; }
 static void core_out_ack(core_t *c) {   // goi sau moi bao cao da gui khi hang doi co muc
   if (!c->qn) return;

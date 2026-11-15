@@ -10,6 +10,8 @@ typedef unsigned int uint;
 #define GPIO_OUT 1
 #define GPIO_IN 0
 #define GPIO_FUNC_I2C 3
+#define GPIO_FUNC_PWM 4
+#define GPIO_FUNC_SIO 5
 typedef struct { int dummy; } i2c_inst_t; extern i2c_inst_t *i2c0;
 typedef struct { int dummy; } PIO_t; typedef PIO_t *PIO; extern PIO pio0;
 typedef struct { int dummy; } pio_sm_config; typedef struct { int dummy; } pio_program_t; extern pio_program_t ws2812_program;
@@ -42,6 +44,12 @@ static inline bool gpio_get(uint g) {
 static inline void gpio_pull_up(uint g) { (void)g; } static inline void gpio_pull_down(uint g) { (void)g; } static inline void gpio_set_function(uint g, int f) { (void)g; (void)f; }
 static inline void busy_wait_us_32(uint32_t u) { (void)u; }
 extern uint32_t fake_ms; static inline uint32_t time_us_32(void) { return fake_ms * 1000u; }
+// coi bao gia: ghi lai moi lan bat / tat PWM (thoi diem fake_ms << 1 | bat)
+extern uint32_t sim_buz_log[64]; extern int sim_buz_n; extern int sim_buz_on;
+static inline uint pwm_gpio_to_slice_num(uint g) { return (g >> 1) & 7; }
+static inline void pwm_set_clkdiv(uint s, float d) { (void)s; (void)d; } static inline void pwm_set_wrap(uint s, uint16_t w) { (void)s; (void)w; }
+static inline void pwm_set_gpio_level(uint g, uint16_t l) { (void)g; (void)l; }
+static inline void pwm_set_enabled(uint s, bool e) { (void)s; if (e != !!sim_buz_on) { sim_buz_on = e; if (sim_buz_n < 64) sim_buz_log[sim_buz_n++] = (fake_ms << 1) | (uint32_t)e; } }
 extern int sim_i2c_writes; extern uint8_t sim_i2c_cmd[2];
 static inline void sleep_ms(uint32_t m) { (void)m; }
 extern uint8_t sim_imu_reg; extern uint8_t sim_pwr2; extern int16_t sim_gyro[3]; extern int sim_imu_present;

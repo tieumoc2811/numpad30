@@ -11,6 +11,7 @@ uint8_t sim_imu_reg, sim_pwr2; int16_t sim_gyro[3]; int sim_imu_present = 1; uin
 uint8_t sim_flash[2 * 1024 * 1024]; int sim_flash_erases; static uint8_t raw_tx[32]; static int raw_txn;
 bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)id; if (itf == 1 && n == 32) { memcpy(raw_tx, r, 32); raw_txn++; } return true; }
 typedef struct { uint32_t t; void (*f)(void); } act_t; static act_t acts[64]; static int nacts;
+uint32_t sim_buz_log[64]; int sim_buz_n, sim_buz_on;
 uint32_t sim_led, fake_ms; uint8_t sim_down[NROW][NCOL]; int sim_rowhi[32]; int sim_i2c_writes, sim_boot, sim_wakeups; uint8_t sim_i2c_cmd[2]; bool sim_suspended;
 typedef struct { uint32_t t; uint8_t mods, k[6]; } kbl_t; static kbl_t kbl[4096]; static int nkb;
 typedef struct { uint32_t t; uint16_t u; } cnl_t; static cnl_t cnl[1024]; static int ncn;
@@ -150,11 +151,29 @@ static int scenario_air(void) {
   CHECK(sn3[2] == 0 && sim_mb == 1);                              // sim_mb gom moi nut da tung bam
   return fails;
 }
+static void a_morsemap(void) { core.cfg.w[W_KM + POS_(4, 6)] = KC_MDOT; core.cfg.w[W_KM + POS_(4, 4)] = KC_MDASH; core.cfg.w[W_KM + POS_(3, 2)] = KC_MOK; core.cfg.w[W_KM + POS_(2, 6)] = KC_LATCH; }
+static int scenario_buz(void) {   // coi bao: cham ngan, gach dai gap 3, OK tieng ngan; phim khac va OK luc rong thi im
+  act_at(20, a_morsemap);
+  tap(100, 2, 6, 20);                                  // LATCH: khong phai Morse -> im
+  tap(300, 4, 6, 20); tap(700, 4, 4, 20); tap(1100, 3, 2, 20); tap(1500, 3, 2, 20); tap(1700, 1, 3, 30);   // cham, gach, OK, OK luc rong, phim thuong
+  endt = 2000; run();
+  uint32_t on[8], off[8]; int n = 0, m = 0;
+  for (int i = 0; i < sim_buz_n; i++) { if (sim_buz_log[i] & 1) { if (n < 8) on[n++] = sim_buz_log[i] >> 1; } else if (m < 8) off[m++] = sim_buz_log[i] >> 1; }
+  printf("  coi: %d lan bat", n); for (int i = 0; i < n && i < m; i++) printf(" [%u ms @ %u]", off[i] - on[i], on[i]); printf("\n");
+  CHECK(n == 3 && m == 3);
+  if (n == 3 && m == 3) {
+    CHECK(on[0] >= 300 && on[0] < 330 && off[0] - on[0] >= BUZ_DOT_MS - 3 && off[0] - on[0] <= BUZ_DOT_MS + 3);
+    CHECK(on[1] >= 700 && on[1] < 730 && off[1] - on[1] >= BUZ_DASH_MS - 3 && off[1] - on[1] <= BUZ_DASH_MS + 3);
+    CHECK(on[2] >= 1100 && on[2] < 1130 && off[2] - on[2] >= BUZ_OK_MS - 3 && off[2] - on[2] <= BUZ_OK_MS + 3);
+  }
+  CHECK(!sim_buz_on);
+  return fails;
+}
 int main(int argc, char **argv) {
   (void)argv; int rc = 0;
-  for (int s = 0; s < 4; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
+  for (int s = 0; s < 5; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
     fflush(stdout); pid_t p = fork();
-    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : "chuot bay (gyro gia)"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : scenario_air()); }
+    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : "coi bao Morse"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : scenario_buz()); }
     int st; waitpid(p, &st, 0); if (!WIFEXITED(st) || WEXITSTATUS(st)) rc = 1;
   }
   if (argc > 5) return 2;

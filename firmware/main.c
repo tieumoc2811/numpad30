@@ -10,6 +10,7 @@
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
+#include "hardware/pwm.h"
 #include "ws2812.pio.h"
 #include "tusb.h"
 #include "ui.h"
@@ -36,6 +37,31 @@ static bool scan(uint8_t *raw) {   // tra ve true neu co phim dang bam
   }
   return any;
 }
+
+// ---------------- coi bao (Morse) ----------------
+#if BUZ_PIN >= 0
+static bool buz_state;
+static void buz_idle(void) { gpio_set_function(BUZ_PIN, GPIO_FUNC_SIO); gpio_set_dir(BUZ_PIN, GPIO_OUT); gpio_put(BUZ_PIN, BUZ_INVERT); }
+static void buz_init(void) { gpio_init(BUZ_PIN); buz_idle(); }
+static void buz_task(void) {   // goi moi ms: bat / tat coi theo core.buz_ms
+  bool on = core_buz(&core);
+  if (on == buz_state) return;
+  buz_state = on;
+#if BUZ_ACTIVE
+  gpio_put(BUZ_PIN, on ^ BUZ_INVERT);
+#else
+  uint sl = pwm_gpio_to_slice_num(BUZ_PIN);
+  if (on) {
+    uint32_t top = clock_get_hz(clk_sys) / 4 / BUZ_FREQ;               // chia xung 4 de wrap < 65536
+    pwm_set_clkdiv(sl, 4.0f); pwm_set_wrap(sl, (uint16_t)(top - 1));
+    gpio_set_function(BUZ_PIN, GPIO_FUNC_PWM); pwm_set_gpio_level(BUZ_PIN, (uint16_t)(top / 2)); pwm_set_enabled(sl, true);
+  } else { pwm_set_enabled(sl, false); buz_idle(); }
+#endif
+}
+#else
+static void buz_init(void) {}
+static void buz_task(void) {}
+#endif
 
 // ---------------- LED RGB onboard (WS2812) ----------------
 static void led_init(void) {
@@ -211,7 +237,7 @@ static void raw_task(uint32_t now) {
 
 int main(void) {
   store_load();
-  matrix_init(); core_reset(&core);
+  matrix_init(); buz_init(); core_reset(&core);
   tusb_init(); oled_init(); led_init(); air_init(&air); imu_try_init();
   uint32_t last = 0, active = ms(); (void)active;
   ui_init(&ui, &core, ms());
@@ -225,7 +251,7 @@ int main(void) {
       core_scan_update(&core, raw, now);
       if (core.boot_req) { oled_pwr(false); reset_usb_boot(0, 0); }
       if (core.save_req) { core.save_req = false; store_save(); }
-      imu_task(now); oled_task(now); led_update(now);
+      buz_task(); imu_task(now); oled_task(now); led_update(now);
     }
     hid_task(); raw_task(now);
   }

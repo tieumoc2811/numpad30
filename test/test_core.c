@@ -268,6 +268,15 @@ int main(void) {
     CHECK(crc32_buf((const uint8_t *)"123456789", 9) == 0xCBF43926u);
   }
 
+  // ===== 17a) coi bao Morse: bip khi bam Cham / Gach / OK =====
+  reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK); setk(0, 1, 6, KC_LATCH);
+  CHECK(!core_buz(&C));
+  press(1, 3, 5); { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); down(1, 3); for (int i = 0; i < 20; i++) { step(1); if (core_buz(&C)) n++; } CHECK(n > 0); }
+  { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); down(1, 3); step(8); up(1, 3); step(300);   // cham: bip ~BUZ_DOT_MS roi im
+    CHECK(!core_buz(&C)); reset(); setk(0, 1, 4, KC_MDASH); down(1, 4); step(8); for (int i = 0; i < 400; i++) { if (core_buz(&C)) n++; step(1); } CHECK(n >= BUZ_DASH_MS - 12 && n <= BUZ_DASH_MS); }
+  reset(); setk(0, 1, 5, KC_MOK); press(1, 5, 5); CHECK(!core_buz(&C));                                           // OK luc rong: im
+  reset(); setk(0, 1, 6, KC_LATCH); press(1, 6, 5); CHECK(!core_buz(&C));                                         // phim khac: im
+
   // ===== 17b) TK: bam 1 lan giu, bam lan nua nha =====
   reset(); setk(0, 4, 0, TK(KC_LSFT)); setk(0, 4, 2, TK(KC_A)); setk(0, 4, 3, TK(KC_Z)); setk(0, 0, 0, KC_P7);
   press(4, 0, 5); CHECK(kb().mods == 2 && !has(kb(), KC_A));                       // giu Shift sau khi nha phim vat ly
