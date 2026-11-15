@@ -53,6 +53,7 @@ LED onboard dung: `obMode` 0 theo layer / 1 cau vong / 2 mot mau (hue,sat) / 3 t
 | `0x7001` | LATCH; `0x7002..5` TG Space/Shift/Ctrl/Alt |
 | `0x7010..16` | lenh LED cua macropad15: nhan nhung bo qua |
 | `0x7020` | RENAME (doi ten layer tren OLED, toi da 10 ky tu, Enter luu, tu luu flash) |
+| `0x7800\|kc` | TK: bam 1 lan giu phim `kc` (0x04..0xE7, gom modifier), bam lan nua nha. Toi da 4 phim giu cung luc; day thi bo qua. Mat khi rut USB / reset (khong luu flash) |
 | `0x7060..63` | Morse cham / gach / xong / goi y |
 | `0x7100\|i` | MACRO i (0..31) |
 | `0x7200\|n` / `0x7280\|n` / `0x7300\|n` | SEQ tien / lui / dat lai (n = 0..7) |

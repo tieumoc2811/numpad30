@@ -44,7 +44,7 @@ typedef uint16_t kc_t;
 // 0x2000|(n<<8)|kc LT | 0x4000|n MO | 0x4100|n TL | 0x4200/0x4201 LY+/LY- | 0x5000|n TD | 0x6000|i Nokia
 // 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro | 0x7076/77 cuon len/xuong (giu = lap lai)
 // 0x7001 LATCH | 0x7002..5 TG Space/Shift/Ctrl/Alt | 0x7010..16 LED (bo qua) | 0x7020 RENAME | 0x7060..63 Morse
-// 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
+// 0x7800|kc TK (bam 1 lan giu phim kc, bam lan nua nha; toi da NTK phim cung luc) | 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
 #define KC_NO 0x0000
 #define KC_TRNS 0x0001
 #define C_(k) (0x0100 | (k))
@@ -81,6 +81,8 @@ typedef uint16_t kc_t;
 #define SEQ_B 0x7280
 #define SEQ_R 0x7300
 #define KC_BOOT 0x7F00
+#define TK(k) (0x7800 | (k))
+#define NTK 4                               // so phim toggle giu cung luc
 #define CONS(x) (0x8000 | (x))
 #define IS_BASIC(k) ((k) >= 0x04 && (k) <= 0xE7)
 #define IS_COMBO(k) ((k) >= 0x0100 && (k) <= 0x0FFF && (((k) & 0xFF) == 0 || IS_BASIC((k) & 0xFF)))
@@ -93,6 +95,7 @@ typedef uint16_t kc_t;
 #define IS_MOUSE(k) ((k) >= KC_AIR && (k) <= KC_WHDN)
 #define IS_MACRO(k) (((k) & 0xFF00) == 0x7100 && ((k) & 0xFF) < NMAC)
 #define IS_SEQ(k) ((((k) & 0xFFF8) == SEQ_F) || (((k) & 0xFFF8) == SEQ_B) || (((k) & 0xFFF8) == SEQ_R))
+#define IS_TK(k) (((k) & 0xFF00) == 0x7800 && IS_BASIC((k) & 0xFF))
 #define IS_CONS(k) ((k) & 0x8000)
 #define IS_HOLDABLE(k) (IS_BASIC(k) || IS_COMBO(k) || IS_CONS(k))
 
@@ -135,6 +138,7 @@ typedef struct {
   uint32_t toggled;                       // bit layer dang bat bang TL / LY+
   uint8_t tg;                             // bit0 Space bit1 Shift bit2 Ctrl bit3 Alt
   kc_t latch_code; bool latch_wait;
+  uint8_t tk[NTK];                        // phim dang giu bang TK (0 = o trong)
   int cbi; kc_t cbk; uint32_t cbt0;       // combo cho
   int dfi; kc_t dfk; uint8_t dfw;         // phim bi hoan lai de di sau 1 phim "tap" vua chot (bao cao rieng, dung thu tu)
   int8_t sq_cur[NSQ];
@@ -348,6 +352,11 @@ static void seq_step(core_t *c, kc_t *kp) {   // SEQ -> ma buoc ke tiep (0 = kho
   kc_t s = st[i];
   *kp = (s == KC_TRNS || IS_TD(s) || IS_SEQ(s)) ? 0 : s;
 }
+static void tk_toggle(core_t *c, uint8_t kc) {   // dang giu -> nha; chua giu -> giu (day thi bo qua)
+  int free_i = -1;
+  for (int j = 0; j < NTK; j++) { if (c->tk[j] == kc) { c->tk[j] = 0; return; } if (!c->tk[j] && free_i < 0) free_i = j; }
+  if (free_i >= 0) c->tk[free_i] = kc;
+}
 static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (!k || k == KC_TRNS) return;
   if (IS_SEQ(k)) { seq_step(c, &k); if (!k) return; }
@@ -362,6 +371,7 @@ static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   else if (k == KC_LYDN) layer_cycle(c, -1);
   else if (k == KC_LATCH) { if (c->latch_code) c->latch_code = 0; else c->latch_wait = true; }
   else if (k >= KC_TGSPC && k <= KC_TGALT) c->tg ^= 1u << (k - KC_TGSPC);
+  else if (IS_TK(k)) tk_toggle(c, (uint8_t)k);
   else if (k == KC_RENAME) { c->rn_on = true; c->rn_len = 0; c->rn_buf[0] = 0; c->rn_layer = (uint8_t)core_top_layer(c); c->rn_nk = -1; c->latch_wait = false; }
   else if (IS_NKK(k)) nokia_press(c, k & 0xFF, now);
   else if (IS_MORSE(k)) {
@@ -500,6 +510,7 @@ static bool core_kb(const core_t *c, kb_report_t *r) {   // false = dang cho giu
   static const kc_t tgk[4] = {KC_SPACE, KC_LSFT, KC_LCTL, KC_LALT};
   for (int b = 0; b < 4; b++) if (c->tg >> b & 1) rpt_add(r, &n, tgk[b]);
   if (c->latch_code && !IS_CONS(c->latch_code)) rpt_add(r, &n, c->latch_code);
+  for (int j = 0; j < NTK; j++) if (c->tk[j]) rpt_add(r, &n, c->tk[j]);
   for (int i = 0; i < c->mhn; i++) rpt_add(r, &n, c->mhold[i]);
   if (c->qn && c->qphase == 0) { const out_t *o = &c->q[c->qh]; r->mods |= o->mods; if (o->key) rpt_add(r, &n, o->key); }
   if (n == 7) memset(r->keys, 0x01, 6);
@@ -538,6 +549,7 @@ static void core_label(const core_t *c, kc_t k, char *o, int n) {
   else if (IS_LT(k)) { core_label(c, k & 0xFF, o, n); return; }
   else if (IS_TD(k)) { ADD("TD "); d[0] = '0' + (k & 3); ADD(d); }
   else if (IS_NKK(k)) { d[0] = (k & 0xFF) == 10 ? '.' : (k & 0xFF) == 9 ? '0' : '1' + (k & 0xFF); ADD("NOKIA "); ADD(d); }
+  else if (IS_TK(k)) { char s[16]; core_label(c, k & 0xFF, s, sizeof s); ADD("TOG "); ADD(s); }
   else if (k == KC_LATCH) ADD("LATCH");
   else if (k == KC_TGSPC) ADD("TG SPACE"); else if (k == KC_TGSFT) ADD("TG SHIFT"); else if (k == KC_TGCTL) ADD("TG CTRL"); else if (k == KC_TGALT) ADD("TG ALT");
   else if (k == KC_RENAME) ADD("RENAME");

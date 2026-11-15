@@ -28,7 +28,7 @@ Keymap, macro, OLED khong con nam trong ma nguon: `firmware/keymap.h` chi la **m
 
 Mac dinh: 3 layer **NUM** (numpad + Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D, mui ten), **FN** (giu `Num`; nha ngan = NumLock: F1-F9, media, Home/End/PgUp/PgDn/Ins/Del, `0` bat/tat layer MACRO, `.` = BOOTSEL), **MACRO** (M1-M9). Con lai la layer 3..31 (trong suot).
 
-Tinh nang: 32 layer, MO/TL/LY+/LY-/LT, 4 tap dance (cham/giu/cham 2 lan), 4 combo (30 ms), 8 bo chuoi SEQ x 8 buoc, LATCH, TG Space/Shift/Ctrl/Alt, Nokia multitap + RENAME (doi ten layer tren OLED), Morse (co goi y), 32 macro dang buoc (nhan/giu/nha/cho/go chuoi, lap), OLED: loi chao chu chay + logo dong 16 khung 128x32, screensaver 4 kieu, xoay 0/90/180/270 (chung hoac theo layer), LED RGB onboard (theo layer / cau vong / mot mau / tho / tat, CapsLock = do). Chong doi 5 ms, 6KRO, remote wakeup.
+Tinh nang: 32 layer, MO/TL/LY+/LY-/LT, 4 tap dance (cham/giu/cham 2 lan), 4 combo (30 ms), 8 bo chuoi SEQ x 8 buoc, LATCH, TG Space/Shift/Ctrl/Alt, TK (toggle giu bat ky phim, toi da 4), Nokia multitap + RENAME (doi ten layer tren OLED), Morse (co goi y), 32 macro dang buoc (nhan/giu/nha/cho/go chuoi, lap), OLED: loi chao chu chay + logo dong 16 khung 128x32, screensaver 4 kieu, xoay 0/90/180/270 (chung hoac theo layer), LED RGB onboard (theo layer / cau vong / mot mau / tho / tat, CapsLock = do). Chong doi 5 ms, 6KRO, remote wakeup.
 
 Ma phim, ban do word, giao thuc: `docs/PROTOCOL.md`. Cau truc ma: `core.h` (engine phim), `proto.h` (giao thuc + dong goi flash), `ui.h` (OLED), `keymap.h` (mac dinh), `main.c` (phan cung).
 

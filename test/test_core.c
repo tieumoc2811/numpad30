@@ -268,6 +268,21 @@ int main(void) {
     CHECK(crc32_buf((const uint8_t *)"123456789", 9) == 0xCBF43926u);
   }
 
+  // ===== 17b) TK: bam 1 lan giu, bam lan nua nha =====
+  reset(); setk(0, 4, 0, TK(KC_LSFT)); setk(0, 4, 2, TK(KC_A)); setk(0, 4, 3, TK(KC_Z)); setk(0, 0, 0, KC_P7);
+  press(4, 0, 5); CHECK(kb().mods == 2 && !has(kb(), KC_A));                       // giu Shift sau khi nha phim vat ly
+  step(200); CHECK(kb().mods == 2);                                                // van giu
+  press(4, 2, 5); CHECK(kb().mods == 2 && has(kb(), KC_A));                        // them A
+  press(0, 0, 5); { kb_report_t r = kb(); CHECK(r.mods == 2 && has(r, KC_A)); }   // phim thuong gop cung
+  press(4, 0, 5); CHECK(kb().mods == 0 && has(kb(), KC_A));                        // nha Shift, A van giu
+  press(4, 2, 5); CHECK(kb().mods == 0 && !has(kb(), KC_A));                       // nha A
+  for (int j = 0; j < NTK; j++) CHECK(C.tk[j] == 0);
+  reset(); for (int j = 0; j < 5; j++) setk(0, 0, j, TK(KC_A + j)); for (int j = 0; j < 5; j++) press(0, j, 5);   // day: toi da NTK phim
+  { kb_report_t r = kb(); CHECK(has(r, KC_A) && has(r, KC_A + 3) && !has(r, KC_A + 4)); }
+  core_reset(&C); CHECK(!has(kb(), KC_A));                                                                          // reset nha het
+  reset(); setk(0, 0, 0, 0x7800); setk(0, 0, 1, 0x7800 | 0x01); press(0, 0, 5); press(0, 1, 5); CHECK(kb().mods == 0 && !has(kb(), 0x01));   // ma sai
+  { char b[24]; core_label(&C, TK(KC_LSFT), b, sizeof b); CHECK(!strcmp(b, "TOG SHIFT")); core_label(&C, TK(KC_Z), b, sizeof b); CHECK(!strcmp(b, "TOG Z")); }
+
   // ===== 18) nhan OLED =====
   reset();
   { char b[24]; core_label(&C, C_(KC_C), b, sizeof b); CHECK(!strcmp(b, "CTL+C")); core_label(&C, A_(KC_TAB), b, sizeof b); CHECK(!strcmp(b, "ALT+TAB"));
