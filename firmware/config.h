@@ -27,7 +27,7 @@
 #define TAP_HOLD_MS 10                       // phim "tap" tao ra (LT/TD) duoc giu it nhat so ms nay
 #define STORE_OFFSET (1024 * 1024)           // vi tri vung cau hinh trong flash (RP2350-Zero 2 MB)
 #define STORE_SECTORS 14                     // 14 x 4 KB = 56 KB cho cau hinh + macro + du lieu OLED
-#define FW_VER 11                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I), >=9 lenh 11 doc gyro truc tiep, >=10 lenh 12 thu HID chuot, >=11 lenh 13/14 doc/ghi ten layer + phim cuon chuot
+#define FW_VER 12                             // bao cho app: >=5 co du lieu OLED, >=7 co Morse + goi y, >=8 co chuot bay (info[13]=cam bien OK, info[14]=WHO_AM_I), >=9 lenh 11 doc gyro truc tiep, >=10 lenh 12 thu HID chuot, >=11 lenh 13/14 doc/ghi ten layer + phim cuon chuot, >=12 coi bao Morse (khoi W_BZB, lenh 15 nghe thu, info[15])
 // ===== Coi bao (buzzer) cho che do Morse =====
 // Module coi 3 chan: GND -> GND, VCC -> 3V3 (hoac 5V/VBUS neu module can 5V), I/O -> BUZ_PIN. Phat tieng khi bam Cham / Gach / OK.
 #ifndef BUZ_PIN
@@ -39,9 +39,8 @@
 #ifndef BUZ_INVERT
 #define BUZ_INVERT 0                         // 1 = module kich bang muc THAP (chan I/O keo xuong de keu)
 #endif
+// Gia tri MAC DINH cua cai dat coi (app Studio doi duoc va luu flash, xem W_BZB):
 #define BUZ_FREQ 2700                        // Hz (tan so cong huong thuong gap cua coi 12 mm); chi dung khi BUZ_ACTIVE = 0
-#define BUZ_DOT_MS 70                        // do dai tieng "cham"; "gach" = 3 lan, dung ti le Morse
-#define BUZ_DASH_MS 210
-#define BUZ_OK_MS 40                         // tieng ngan khi chot ky tu bang phim OK
+#define BUZ_DOT_MS 70                        // do dai tieng "cham"; "gach" = 3 lan, "OK" = 4/7 lan (dung ti le Morse)
 #define IMU_ADDR 0x68                        // MPU-6515 / MPU-6500 (chan AD0 noi GND; noi 3V3 thi 0x69). Dung chung I2C0 voi OLED (GP12/GP13)
 #define IMU_POLL_MS 5                        // doc gyro 200 lan/giay

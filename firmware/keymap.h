@@ -61,6 +61,10 @@ static void cfg_air_defaults(cfg_t *g) {   // chuot bay: [nhay X, nhay Y, vung c
   static const uint16_t am[W_NAMB] = {60, 60, 15, 2, 0, 0, 0, 0};
   for (int i = 0; i < W_NAMB; i++) g->w[W_AMB + i] = am[i];
 }
+static void cfg_buz_defaults(cfg_t *g) {   // coi bao: [bat, tan so Hz, cham ms, am luong %]
+  static const uint16_t bz[W_NBZ] = {1, BUZ_FREQ, BUZ_DOT_MS, 100};
+  for (int i = 0; i < W_NBZ; i++) g->w[W_BZB + i] = bz[i];
+}
 static void cfg_defaults(cfg_t *g) {
   memset(g, 0, sizeof *g);
   for (int l = 0; l < NLAYER; l++) for (int i = 0; i < NKEYS; i++)
@@ -70,7 +74,7 @@ static void cfg_defaults(cfg_t *g) {
   static const uint16_t ld[W_NLD] = {0, 128, 200, 210, 255, 1, 0, 24, 0};   // [mode, toc do, sang, hue, sat, over, obMode, obSang, huong OLED]
   for (int i = 0; i < W_NLD; i++) g->w[W_LDB + i] = ld[i];
   for (int l = 0; l < NLAYER; l++) g->w[W_LRB + l] = 4;
-  cfg_air_defaults(g);
+  cfg_air_defaults(g); cfg_buz_defaults(g);
   static const uint16_t os[W_NOS] = {300, 5, 1, 0, 1, 0, 120, 0};
   for (int i = 0; i < W_NOS; i++) g->w[W_OSB + i] = os[i];
   for (int m = 0; m < (int)(sizeof def_macros / sizeof def_macros[0]); m++) macro_slot_set(g->mac[m], def_macros[m].name, def_macros[m].text, def_macros[m].enter);

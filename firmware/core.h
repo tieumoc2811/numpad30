@@ -28,7 +28,9 @@
 #define W_SQB (W_OSB + W_NOS)               // 1194: 8 bo x 8 buoc
 #define W_AMB (W_SQB + NSQ * NST)           // 1258: chuot bay, 8 word: [do nhay X, do nhay Y, vung chet (0.1 do/s), lam muot 0-9, co (bit0 dao X, bit1 dao Y, bit2 Y theo gy, bit3 luon bay), 3 du phong]
 #define W_NAMB 8
-#define NW (W_AMB + W_NAMB)                 // 1266
+#define W_BZB (W_AMB + W_NAMB)              // 1266: coi bao Morse, 4 word: [bat 0/1, tan so Hz (200-5000), do dai cham ms (20-300), am luong % (1-100)]
+#define W_NBZ 4
+#define NW (W_BZB + W_NBZ)                  // 1270
 #define LDB_ROT 8
 // ---- du lieu OLED (lenh 8/9): [0..143] header, [256 + i*512] khung i ----
 #define OD_NF 16
@@ -245,6 +247,10 @@ static int morse_hint(const char *code, char *o) {   // " [.i -a]"; tra do dai
   if (!nb) return 0;
   strcpy(o, " ["); strcat(o, b); strcat(o, "]"); return (int)strlen(o);
 }
+static inline bool buz_enabled(const cfg_t *g) { return g->w[W_BZB] != 0; }
+static inline uint32_t buz_freq(const cfg_t *g) { uint16_t v = g->w[W_BZB + 1]; return v < 200 || v > 5000 ? BUZ_FREQ : v; }
+static inline uint16_t buz_unit(const cfg_t *g) { uint16_t v = g->w[W_BZB + 2]; return v < 20 || v > 300 ? BUZ_DOT_MS : v; }   // "cham" (ms)
+static inline uint16_t buz_vol(const cfg_t *g) { uint16_t v = g->w[W_BZB + 3]; return v < 1 || v > 100 ? 100 : v; }
 static int morse_press(core_t *c, bool dash) {
   if (c->mo_len >= MORSE_MAX) return 0;
   char nc[10]; memcpy(nc, c->mo_code, c->mo_len); nc[c->mo_len] = dash ? '-' : '.'; nc[c->mo_len + 1] = 0;
@@ -255,10 +261,10 @@ static int morse_press(core_t *c, bool dash) {
   if (ch) q_ascii(c, ch);
   for (int i = 0; i < hl; i++) q_ascii(c, h[i]);
   memcpy(c->mo_code, nc, c->mo_len + 2); c->mo_len++; c->mo_shown = ch != 0; c->mo_hint = (uint8_t)hl;
-  c->buz_ms = dash ? BUZ_DASH_MS : BUZ_DOT_MS;
+  if (buz_enabled(&c->cfg)) c->buz_ms = dash ? 3 * buz_unit(&c->cfg) : buz_unit(&c->cfg);
   return 1;
 }
-static void morse_commit(core_t *c) { if (c->mo_len) c->buz_ms = BUZ_OK_MS; for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_len = 0; c->mo_code[0] = 0; c->mo_shown = 0; c->mo_hint = 0; }
+static void morse_commit(core_t *c) { if (c->mo_len && buz_enabled(&c->cfg)) c->buz_ms = (uint16_t)(buz_unit(&c->cfg) * 4 / 7); for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_len = 0; c->mo_code[0] = 0; c->mo_shown = 0; c->mo_hint = 0; }
 static void morse_set_hint(core_t *c, bool on) {
   if (on == !!c->mo_hopt) return;
   if (!on) { if (q_room(c) < c->mo_hint) return; for (int i = 0; i < c->mo_hint; i++) q_bs(c); c->mo_hint = 0; c->mo_hopt = 0; return; }

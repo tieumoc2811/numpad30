@@ -55,7 +55,7 @@ int main(void) {
   CHECK(W(0,3,6) == KC_PENT); CHECK(W(0,1,6) == KC_PPLS); CHECK(W(0,4,3) == KC_P0); CHECK(W(0,3,1) == KC_UP);
   CHECK(W(0,0,3) == 0x2153); CHECK(W(1,4,3) == TL(2)); CHECK(W(2,0,0) == MACRO(0)); CHECK(W(1,4,5) == KC_BOOT);
   CHECK(C.cfg.w[W_NLI] == 3); CHECK(W(5,0,0) == KC_TRNS); CHECK(W(31,1,3) == KC_TRNS);
-  CHECK(NW == 1266 && W_AMB == 1258 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
+  CHECK(NW == 1270 && W_AMB == 1258 && W_BZB == 1266 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
 
   // ===== 2) chong doi =====
   reset(); down(1, 3); step(4); CHECK(!has(kb(), KC_P7)); step(1); CHECK(has(kb(), KC_P7));
@@ -214,7 +214,7 @@ int main(void) {
   // ===== 16) giao thuc =====
   { reset(); uint8_t in[32], out[32];
     memset(in, 0, 32); in[0] = CMD_INFO; proto_cmd(&C, in, out);
-    CHECK(out[0] == 5 && out[1] == 32 && (out[2] | out[3] << 8) == 1266 && out[4] == FW_VER && out[5] == 16 && out[6] == 32 && (out[7] | out[8] << 8) == 1020 && out[9] == OLED_H && out[10] == 16 && (out[11] | out[12] << 8) == OD_FSZ);
+    CHECK(out[0] == 5 && out[1] == 32 && (out[2] | out[3] << 8) == 1270 && out[4] == FW_VER && out[5] == 16 && out[6] == 32 && (out[7] | out[8] << 8) == 1020 && out[9] == OLED_H && out[10] == 16 && (out[11] | out[12] << 8) == OD_FSZ);
     CHECK(FW_VER >= 7);
     // doc 14 word tai offset 0 va tai offset >255 (offset cao)
     memset(in, 0, 32); in[0] = CMD_READ; in[1] = 0; in[2] = 14; proto_cmd(&C, in, out);
@@ -255,7 +255,7 @@ int main(void) {
     memset(in, 0, 32); in[0] = CMD_SAVE; CHECK(proto_cmd(&C, in, out) == PROTO_SAVE);
     memset(in, 0, 32); in[0] = CMD_PREVIEW; in[1] = 4; CHECK(proto_cmd(&C, in, out) == PROTO_PREVIEW && out[1] == 4);
     // ve mac dinh
-    memset(in, 0, 32); in[0] = CMD_DEFAULTS; proto_cmd(&C, in, out); CHECK(W(0,1,3) == KC_P7 && C.cfg.w[NW - 1] == 0 && C.cfg.mac[3][1000] == 0 && C.cfg.od[OD_START + 5 * OD_FSZ + 300] == 0);
+    memset(in, 0, 32); in[0] = CMD_DEFAULTS; proto_cmd(&C, in, out); CHECK(W(0,1,3) == KC_P7 && C.cfg.w[NW - 1] == 100 && C.cfg.w[W_BZB] == 1 && C.cfg.mac[3][1000] == 0 && C.cfg.od[OD_START + 5 * OD_FSZ + 300] == 0);
   }
 
   // ===== 17) luu flash: dong goi / CRC =====
@@ -273,7 +273,7 @@ int main(void) {
   CHECK(!core_buz(&C));
   press(1, 3, 5); { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); down(1, 3); for (int i = 0; i < 20; i++) { step(1); if (core_buz(&C)) n++; } CHECK(n > 0); }
   { int n = 0; reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); down(1, 3); step(8); up(1, 3); step(300);   // cham: bip ~BUZ_DOT_MS roi im
-    CHECK(!core_buz(&C)); reset(); setk(0, 1, 4, KC_MDASH); down(1, 4); step(8); for (int i = 0; i < 400; i++) { if (core_buz(&C)) n++; step(1); } CHECK(n >= BUZ_DASH_MS - 12 && n <= BUZ_DASH_MS); }
+    CHECK(!core_buz(&C)); reset(); setk(0, 1, 4, KC_MDASH); down(1, 4); step(8); for (int i = 0; i < 400; i++) { if (core_buz(&C)) n++; step(1); } CHECK(n >= 3 * BUZ_DOT_MS - 12 && n <= 3 * BUZ_DOT_MS); }
   reset(); setk(0, 1, 5, KC_MOK); press(1, 5, 5); CHECK(!core_buz(&C));                                           // OK luc rong: im
   reset(); setk(0, 1, 6, KC_LATCH); press(1, 6, 5); CHECK(!core_buz(&C));                                         // phim khac: im
 
@@ -409,11 +409,26 @@ int main(void) {
   { // luu flash: ban cu (khong co khoi chuot bay) van nap duoc, khoi chuot bay = mac dinh
     static uint8_t buf[STORE_SIZE]; static cfg_t g, o; cfg_defaults(&g); g.w[W_KM + 5] = KC_Z; g.mac[2][3] = 9;
     store_pack(&g, buf); CHECK(store_unpack(buf, &o) && o.w[W_KM + 5] == KC_Z);
-    size_t old_w = (size_t)(NW - W_NAMB) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2; static uint8_t oldb[STORE_SIZE]; memset(oldb, 0xFF, sizeof oldb);
+    size_t old_w = (size_t)(NW - W_NAMB - W_NBZ) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2; static uint8_t oldb[STORE_SIZE]; memset(oldb, 0xFF, sizeof oldb);
     store_hdr_t h = {STORE_MAGIC, STORE_VER, (uint32_t)(old_w + rest), 0}; uint8_t *p = oldb + sizeof h;
     memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
-    memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_KM + 5] == KC_Z && o.mac[2][3] == 9 && o.w[W_AMB] == 60 && o.w[W_AMB + 7] == 0 && !strcmp(o.lname[2], "MACRO"));
+    memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_KM + 5] == KC_Z && o.mac[2][3] == 9 && o.w[W_AMB] == 60 && o.w[W_AMB + 7] == 0 && o.w[W_BZB] == 1 && o.w[W_BZB + 1] == BUZ_FREQ && !strcmp(o.lname[2], "MACRO"));
     p[10] ^= 1; CHECK(!store_unpack(oldb, &o));
+    // ban luu v11 (co chuot bay, chua co coi): giu chuot bay da chinh, coi = mac dinh
+    g.w[W_AMB] = 77; old_w = (size_t)(NW - W_NBZ) * 2; memset(oldb, 0xFF, sizeof oldb); h.len = (uint32_t)(old_w + rest);
+    memcpy(p, g.w, old_w); memcpy(p + old_w, (uint8_t *)&g + (size_t)NW * 2, rest); h.crc = crc32_buf(p, old_w + rest); memcpy(oldb, &h, sizeof h);
+    memset(&o, 0x55, sizeof o); CHECK(store_unpack(oldb, &o) && o.w[W_AMB] == 77 && o.w[W_BZB] == 1 && o.w[W_BZB + 2] == BUZ_DOT_MS && o.w[W_BZB + 3] == 100);
+    // cai dat coi luu va nap lai
+    g.w[W_BZB] = 0; g.w[W_BZB + 1] = 1800; store_pack(&g, buf); CHECK(store_unpack(buf, &o) && o.w[W_BZB] == 0 && o.w[W_BZB + 1] == 1800);
+  }
+  { // cai dat coi: tat, doi do dai, nghe thu, gia tri hong -> mac dinh
+    reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK);
+    CHECK(C.cfg.w[W_BZB] == 1 && buz_freq(&C.cfg) == BUZ_FREQ && buz_unit(&C.cfg) == BUZ_DOT_MS && buz_vol(&C.cfg) == 100);
+    C.cfg.w[W_BZB] = 0; press(1, 3, 5); CHECK(!core_buz(&C)); step(10); CHECK(!core_buz(&C));      // tat -> im
+    { uint8_t in[32] = {CMD_BUZTEST}, out[32] = {0}; proto_cmd(&C, in, out); CHECK(out[0] == CMD_BUZTEST && core_buz(&C) && C.buz_ms == 3 * BUZ_DOT_MS); }   // nghe thu van keu
+    reset(); setk(0, 1, 3, KC_MDOT); C.cfg.w[W_BZB + 2] = 100; down(1, 3); step(6); CHECK(C.buz_ms >= 92 && C.buz_ms <= 100);                 // cham 100 ms
+    C.cfg.w[W_BZB + 1] = 10; C.cfg.w[W_BZB + 2] = 5; C.cfg.w[W_BZB + 3] = 0; CHECK(buz_freq(&C.cfg) == BUZ_FREQ && buz_unit(&C.cfg) == BUZ_DOT_MS && buz_vol(&C.cfg) == 100);
+    { uint8_t in[32] = {CMD_INFO}, out[32] = {0}; proto_cmd(&C, in, out); CHECK(out[15] == ((BUZ_PIN >= 0 ? 1 : 0) | (BUZ_ACTIVE ? 2 : 0))); }
   }
 
   printf(fails ? "core: %d LOI\n" : "core: tat ca dat\n", fails);

@@ -17,6 +17,7 @@
 #define CMD_MOUSE 12      // [12, dx, dy] (int8): gui thang 1 bao cao chuot, khong qua gyro / phim AIR; tra loi [3] = 1 neu da gui
 #define PROTO_MOUSE 4     // proto_cmd tra ve bit nay: caller gui bao cao chuot (in[1], in[2]) roi dat out[3]
 #define CMD_LNREAD 13     // (v11) [13, layer] -> [3..14] ten layer tren OLED (12 byte, dem 0)
+#define CMD_BUZTEST 15    // (v12) [15]: keu thu 1 tieng "gach" theo cai dat coi hien tai (ke ca khi dang tat)
 #define CMD_LNWRITE 14    // (v11) [14, layer, len, chu...] (len <= NAMELEN): dat ten layer; luu flash bang lenh 3
 #define PROTO_SAVE 1      // proto_cmd tra ve bit nay: caller phai luu flash roi moi gui tra loi
 #define PROTO_PREVIEW 2   // caller phai goi ui_cmd(out[1])
@@ -40,6 +41,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
     case CMD_INFO:
       out[1] = NLAYER; out[2] = NW & 255; out[3] = NW >> 8; out[4] = FW_VER; out[5] = 16; out[6] = NMAC;
       out[7] = MSLOT & 255; out[8] = MSLOT >> 8; out[9] = OLED_H; out[10] = OD_NF; out[11] = OD_FSZ & 255; out[12] = OD_FSZ >> 8; out[13] = c->imu_ok; out[14] = c->imu_id;
+      out[15] = (BUZ_PIN >= 0 ? 1 : 0) | (BUZ_ACTIVE ? 2 : 0);   // bit0 co coi, bit1 coi chu dong (tan so / am luong khong co tac dung)
       break;
     case CMD_MREAD: case CMD_MWRITE:
       if (n > 28 || off + n > NMAC * MSLOT) { out[0] = 0xFF; break; }
@@ -60,6 +62,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
       #undef P16
     } break;
     case CMD_MOUSE: flags |= PROTO_MOUSE; break;
+    case CMD_BUZTEST: c->buz_ms = 3 * buz_unit(&c->cfg); break;
     case CMD_LNREAD:
       if (in[1] >= NLAYER) { out[0] = 0xFF; break; }
       memcpy(out + 3, c->cfg.lname[in[1]], 12);
@@ -83,7 +86,7 @@ static int proto_cmd(core_t *c, const uint8_t *in, uint8_t *out) {
 #define STORE_SIZE (STORE_SECTORS * 4096)
 typedef struct { uint32_t magic, ver, len, crc; } store_hdr_t;
 _Static_assert(sizeof(store_hdr_t) + sizeof(cfg_t) <= STORE_SIZE, "cau hinh vuot vung flash");
-_Static_assert(NW == 1266 && NKEYS == 35, "ban do word khop app");
+_Static_assert(NW == 1270 && NKEYS == 35, "ban do word khop app");
 
 static uint32_t crc32_buf(const uint8_t *p, size_t n) {
   uint32_t c = 0xFFFFFFFFu;
@@ -103,12 +106,16 @@ static bool store_unpack(const uint8_t *buf, cfg_t *g) {   // dung neu hop le (m
     memcpy(g, buf + sizeof h, sizeof(cfg_t));
     return true;
   }
-  // ban luu cua firmware cu (chua co khoi chuot bay, w[] ngan hon W_NAMB word): doc tung phan, khoi chuot bay lay mac dinh
-  size_t old_w = (size_t)(NW - W_NAMB) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2;
-  if (h.len != old_w + rest) return false;
-  if (crc32_buf(buf + sizeof h, h.len) != h.crc) return false;
-  const uint8_t *p = buf + sizeof h;
-  memcpy(g->w, p, old_w); memcpy((uint8_t *)g + (size_t)NW * 2, p + old_w, rest);
-  cfg_air_defaults(g);
-  return true;
+  // ban luu cua firmware cu (w[] ngan hon): thieu khoi coi bao (W_NBZ word) hoac thieu ca khoi chuot bay + coi bao; doc tung phan, khoi thieu lay mac dinh
+  for (int air = 0; air < 2; air++) {
+    size_t miss = W_NBZ + (air ? W_NAMB : 0), old_w = (size_t)(NW - miss) * 2, rest = sizeof(cfg_t) - (size_t)NW * 2;
+    if (h.len != old_w + rest) continue;
+    if (crc32_buf(buf + sizeof h, h.len) != h.crc) return false;
+    const uint8_t *p = buf + sizeof h;
+    memcpy(g->w, p, old_w); memcpy((uint8_t *)g + (size_t)NW * 2, p + old_w, rest);
+    if (air) cfg_air_defaults(g);
+    cfg_buz_defaults(g);
+    return true;
+  }
+  return false;
 }

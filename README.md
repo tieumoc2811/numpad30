@@ -58,8 +58,8 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 ## Coi bao Morse
 
 - Noi module coi 3 chan: GND -> GND, VCC -> 3V3 (hoac 5V / VBUS neu module ghi 5V), I/O -> **GP14**. Doi chan bang `BUZ_PIN` trong config.h (`-1` = tat han coi).
-- O che do Morse, phim **Cham** keu bip ngan (70 ms), **Gach** keu bip dai gap 3 (210 ms), **OK** keu bip rat ngan (40 ms) khi chot ky tu. Ma qua dai / khong gui duoc thi im.
-- Mac dinh `BUZ_ACTIVE 0`: chan I/O phat xung PWM 2700 Hz, chay duoc ca coi chu dong lan thu dong. Coi chu dong chi can muc cao thi doi `BUZ_ACTIVE 1`. Neu module kich bang muc thap (I/O keo xuong thi keu, im lang luc khoi dong thi keu lien tuc), doi `BUZ_INVERT 1`.
+- O che do Morse, phim **Cham** keu bip ngan (mac dinh 70 ms), **Gach** keu bip dai gap 3, **OK** keu bip ngan (4/7 lan cham) khi chot ky tu. Ma qua dai / khong gui duoc thi im. Bat / tat, tan so, do dai va am luong chinh trong app Studio (luu flash); `BUZ_FREQ` / `BUZ_DOT_MS` trong config.h chi la gia tri mac dinh.
+- Mac dinh `BUZ_ACTIVE 0`: chan I/O phat xung PWM (mac dinh 2700 Hz, doi trong app), chay duoc ca coi chu dong lan thu dong. Coi chu dong chi can muc cao thi doi `BUZ_ACTIVE 1`. Neu module kich bang muc thap (I/O keo xuong thi keu, im lang luc khoi dong thi keu lien tuc), doi `BUZ_INVERT 1`.
 - Can `hardware_pwm` (da them vao CMakeLists.txt).
 
 ## Chuot bay (MPU-6515)

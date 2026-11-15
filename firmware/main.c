@@ -52,9 +52,10 @@ static void buz_task(void) {   // goi moi ms: bat / tat coi theo core.buz_ms
 #else
   uint sl = pwm_gpio_to_slice_num(BUZ_PIN);
   if (on) {
-    uint32_t top = clock_get_hz(clk_sys) / 4 / BUZ_FREQ;               // chia xung 4 de wrap < 65536
+    uint32_t top = clock_get_hz(clk_sys) / 4 / buz_freq(&core.cfg);    // chia xung 4 de wrap < 65536
+    uint32_t lv = top / 2 * buz_vol(&core.cfg) / 100; if (lv < 1) lv = 1;   // am luong = do rong xung (toi da 50%)
     pwm_set_clkdiv(sl, 4.0f); pwm_set_wrap(sl, (uint16_t)(top - 1));
-    gpio_set_function(BUZ_PIN, GPIO_FUNC_PWM); pwm_set_gpio_level(BUZ_PIN, (uint16_t)(top / 2)); pwm_set_enabled(sl, true);
+    gpio_set_function(BUZ_PIN, GPIO_FUNC_PWM); pwm_set_gpio_level(BUZ_PIN, (uint16_t)lv); pwm_set_enabled(sl, true);
   } else { pwm_set_enabled(sl, false); buz_idle(); }
 #endif
 }

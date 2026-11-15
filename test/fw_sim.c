@@ -163,8 +163,8 @@ static int scenario_buz(void) {   // coi bao: cham ngan, gach dai gap 3, OK tien
   CHECK(n == 3 && m == 3);
   if (n == 3 && m == 3) {
     CHECK(on[0] >= 300 && on[0] < 330 && off[0] - on[0] >= BUZ_DOT_MS - 3 && off[0] - on[0] <= BUZ_DOT_MS + 3);
-    CHECK(on[1] >= 700 && on[1] < 730 && off[1] - on[1] >= BUZ_DASH_MS - 3 && off[1] - on[1] <= BUZ_DASH_MS + 3);
-    CHECK(on[2] >= 1100 && on[2] < 1130 && off[2] - on[2] >= BUZ_OK_MS - 3 && off[2] - on[2] <= BUZ_OK_MS + 3);
+    CHECK(on[1] >= 700 && on[1] < 730 && off[1] - on[1] >= 3 * BUZ_DOT_MS - 3 && off[1] - on[1] <= 3 * BUZ_DOT_MS + 3);
+    CHECK(on[2] >= 1100 && on[2] < 1130 && off[2] - on[2] >= BUZ_DOT_MS * 4 / 7 - 3 && off[2] - on[2] <= BUZ_DOT_MS * 4 / 7 + 3);
   }
   CHECK(!sim_buz_on);
   return fails;
