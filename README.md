@@ -129,3 +129,12 @@ R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
 - Phím Chấm / Gạch / Nokia đơn được xử lý sau tối đa `CHORD_MS`; tiếng bíp phím Nokia vẫn phát ngay.
 - Cờ gõ chữ (word dự phòng `W_AMB + 7`, đặt bằng Studio): bit0 = tắt Morse tự chốt, bit1 = Nokia số ở đầu (kiểu cũ). Mặc định 0 = Morse tự chốt bật, Nokia chữ trước số sau.
 - Morse tự chốt: nghỉ `max(400 ms, 8 × độ dài chấm)` sau nét cuối thì chốt, nghỉ 2,5 lần thì thêm Space (chỉ khi ký tự được chốt tự động).
+
+## v19b — giữ 1 phím + bấm phím kia (có thứ tự)
+Thêm vào v19, không đổi giao thức / cấu hình (FW_VER vẫn 19). Khác với chord (2 phím trong 40 ms): ở đây phím đầu **đã được gõ** (giữ quá `CHORD_MS`) rồi mới bấm phím thứ hai.
+- **Morse:** giữ **Chấm** + bấm **Gạch** = chốt ký tự rồi thêm **Space**. Giữ **Gạch** + bấm **Chấm** = **xoá** (huỷ ký tự đang gõ dở; không có thì xoá ký tự đứng trước). Phím giữ chỉ là phím bổ trợ: nét của nó bị hoàn tác (`morse_undo`), không ra chữ thừa.
+- **Nokia:** giữ **phím vừa gõ** + bấm phím khác = **Space** (chữ của phím giữ ở lại). Giữ **phím mới** + bấm lại **phím vừa gõ trước đó** = **xoá 1 ký tự** (chữ của phím giữ bị huỷ, xoá thêm ký tự trước nó).
+- Giữ nguyên phím giữ và bấm tiếp nhiều lần = lặp lại (nhiều Space / xoá nhiều ký tự). Bíp: Space = G6, xoá = C5 (Nokia); Morse 1 / 2 đơn vị chấm.
+- Đang giữ phím Chấm / Gạch thì Morse chưa tự chốt; nhả ra thì chốt như thường.
+- Phím khác loại (Morse với Nokia, hoặc phím thường) xen vào thì không phải cử chỉ. Lưu ý: gõ rất nhanh mà hai phím chồng nhau quá 40 ms sẽ bị hiểu là cử chỉ.
+- Code: `hold_gesture()`, `morse_undo()` trong `core.h`; test trong mục `v20)` của `test/test_core.c`.

@@ -221,6 +221,67 @@ int main(void) {
   press(1, 5, 6); step(10); press(1, 5, 6); drain(); CHECK(strchr(txt(), 'D'));
 
 
+  // ===== v19b) giu 1 phim + bam phim kia (co thu tu) =====
+  // Morse: giu Cham + bam Gach = chot + Space | giu Gach + bam Cham = xoa
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK);
+  press(1, 3, 6); press(1, 4, 6); step(CHORD_MS + 5);               // dang go dang ".-" (a)
+  down(1, 3); step(CHORD_MS + 30); CHECK(C.mo_len == 3);            // giu Cham: dang ra ".-." (r)
+  down(1, 4); step(10); up(1, 4); up(1, 3); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "a ") && C.mo_len == 0);                     // phim giu bi hoan tac, "a" duoc chot, roi Space
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK);
+  down(1, 3); step(CHORD_MS + 30); press(1, 4, 6); press(1, 4, 6); press(1, 4, 6); up(1, 3); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "   ") && C.mo_len == 0);                    // khong con chu 'e' cua phim giu; bam them = lap lai Space
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK);
+  press(1, 3, 6); press(1, 5, 6); press(1, 4, 6); press(1, 5, 6); drain(); CHECK(!strcmp(txt(), "et"));
+  down(1, 4); step(CHORD_MS + 30); press(1, 3, 6); up(1, 4); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "e") && C.mo_len == 0);                      // khong dang go: xoa ky tu truoc ('t'), 'e'/'t' cua phim giu khong ra
+  press(1, 3, 6); press(1, 5, 6); press(1, 4, 6); press(1, 5, 6); drain(); CHECK(!strcmp(txt(), "eet"));
+  down(1, 4); step(CHORD_MS + 30); press(1, 3, 6); press(1, 3, 6); up(1, 4); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "e"));                                       // giu Gach, bam Cham 2 lan = xoa 2 ky tu
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);
+  press(1, 3, 6); press(1, 3, 6); step(CHORD_MS + 5);                // dang go ".." (i)
+  down(1, 4); step(CHORD_MS + 30); press(1, 3, 6); up(1, 4); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "") && C.mo_len == 0);                       // dang go do: huy ca ky tu dang go
+  reset(); C.cfg.w[W_TYP] = 0; C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);
+  down(1, 3); step(1000); CHECK(C.mo_len == 1);                     // giu lau: chua tu chot (co the sap la cu chi)
+  press(1, 4, 6); up(1, 3); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), " ") && C.mo_len == 0);
+  reset(); C.cfg.w[W_TYP] = 0; C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT);
+  down(1, 3); step(1000); up(1, 3); step(DEBOUNCE_MS + 1); step(30); CHECK(C.mo_len == 0 && !strcmp(txt(), "e"));   // nha ra thi tu chot nhu thuong
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MDOT);
+  down(1, 3); step(CHORD_MS + 30); press(1, 5, 6); up(1, 3); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), "i"));   // 2 phim cung la Cham: khong phai cu chi
+  reset(); C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH);
+  down(1, 3); step(CHORD_MS + 30); down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C)); up(1, 4); up(1, 3); step(DEBOUNCE_MS + 1);
+  // Nokia: giu phim vua go + bam phim moi = Space | giu phim moi + bam phim vua go = xoa
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2)); setk(0, 1, 5, NKK(6));
+  down(1, 3); step(CHORD_MS + 30); down(1, 4); step(10); up(1, 4); step(DEBOUNCE_MS + 1); up(1, 3); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "2 "));                                      // "2" o lai, roi Space
+  press(1, 4, 6); drain(); CHECK(!strcmp(txt(), "2 3"));
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  down(1, 3); step(CHORD_MS + 30); press(1, 4, 6); press(1, 4, 6); up(1, 3); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "2  "));                                     // giu nguyen phim, bam them = lap lai Space
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  press(1, 3, 6); step(CHORD_MS + 5);                                // go "2"
+  down(1, 4); step(CHORD_MS + 30); CHECK(!strcmp(txt(), "23"));      // giu phim moi: ra "3"
+  down(1, 3); step(10); up(1, 3); step(DEBOUNCE_MS + 1); up(1, 4); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), ""));                                        // bam phim vua go: chu cua phim giu mat, xoa them 1 chu truoc = xoa 1 ky tu
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2)); setk(0, 1, 5, NKK(6));
+  press(1, 3, 6); step(NOKIA_MS + 10); press(1, 4, 6); step(NOKIA_MS + 10); press(1, 3, 6); step(NOKIA_MS + 10); drain(); CHECK(!strcmp(txt(), "232"));
+  down(1, 5); step(CHORD_MS + 30); CHECK(!strcmp(txt(), "2327"));    // giu phim moi: ra "7"; phim vua go truoc do la phim "2"
+  down(1, 3); step(10); up(1, 3); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), "23"));   // bam phim vua go: "7" mat + xoa 1 ky tu ("2")
+  down(1, 3); step(10); up(1, 3); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), "2"));    // giu nguyen phim, bam them = xoa tiep
+  down(1, 3); step(10); up(1, 3); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), ""));
+  up(1, 5); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), ""));   // nha phim giu: khong ra them gi
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2)); setk(0, 1, 5, NKK(6));
+  press(1, 3, 6); step(NOKIA_MS + 10); drain();                      // phim vua go = "2"
+  down(1, 5); step(CHORD_MS + 30); down(1, 4); step(10); up(1, 4); step(DEBOUNCE_MS + 1); up(1, 5); step(DEBOUNCE_MS + 1); drain();
+  CHECK(!strcmp(txt(), "27 "));                                     // phim bam them khong phai phim vua go truoc phim giu = Space, chu cua phim giu o lai
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2));
+  down(1, 3); step(CHORD_MS + 30); down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == note_hz(NK_CHORD_SP_NOTE)); up(1, 4); up(1, 3); step(DEBOUNCE_MS + 1);
+  step(NK_BEEP_MS + 10); press(1, 3, 6); step(CHORD_MS + 5); down(1, 4); step(CHORD_MS + 30); down(1, 3); step(DEBOUNCE_MS + 1); CHECK(core_buz(&C) && core_buz_hz(&C) == note_hz(NK_CHORD_DEL_NOTE));
+  up(1, 3); up(1, 4); step(DEBOUNCE_MS + 1);
+  reset(); setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(2)); setk(0, 1, 5, KC_A);
+  down(1, 3); step(CHORD_MS + 30); press(1, 5, 6); up(1, 3); step(DEBOUNCE_MS + 1); drain(); CHECK(!strcmp(txt(), "2a"));   // phim khac xen vao: khong phai cu chi
+
   // ===== v19c) Nokia so o cuoi + Morse tu chot =====
   reset(); C.cfg.w[W_TYP] = 0; setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(9)); setk(0, 1, 5, NKK(8));
   press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "d"));                                              // 1 lan bam = chu dau cua phim
