@@ -62,6 +62,30 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 - Mac dinh `BUZ_ACTIVE 0`: chan I/O phat xung PWM (mac dinh 2700 Hz, doi trong app), chay duoc ca coi chu dong lan thu dong. Coi chu dong chi can muc cao thi doi `BUZ_ACTIVE 1`. Neu module kich bang muc thap (I/O keo xuong thi keu, im lang luc khoi dong thi keu lien tuc), doi `BUZ_INVERT 1`.
 - Can `hardware_pwm` (da them vao CMakeLists.txt).
 
+## Nhac cu (v13): PIANO + TUNES
+
+Dung chinh coi Morse tren GP14 (xem muc tren) lam dan: **moi phim = 1 nốt** (layer PIANO) hoac **moi phim = 1 bai** (layer TUNES). Am don (1 coi = 1 nốt), nốt moi bam uu tien, nha thi quay ve nốt con giu.
+
+- **Can coi THU DONG** (passive) de doi cao do. Coi chu dong chi co 1 tong co dinh, layer dan se khong ra dung nốt.
+- Bat: giu `Num` + bam `Enter` (R3C6, o layer FN). Tat: lai giu `Num` + `Enter`. Giu `Num` o PIANO / TUNES van vao FN (bam nhanh khong lam gi, khong bat NumLock).
+- Cau hinh luu flash cu van la 3 layer: layer PIANO / TUNES chi xuat hien sau lenh "ve mac dinh" (app Studio) roi luu, hoac tu gan phim bang ma o `docs/PROTOCOL.md`.
+
+```
+        C0     C1     C2     C3     C4     C5     C6
+R0:    STOP    C#5    D#5   [Num]   F#5    G#5    A#5     phim den
+R1:     C5     D5     E5     F5     G5     A5     B5      phim trang
+R2:     C6     D6     E6     F6     G6     A6     --      quang tam tren
+R3:     --    Oct+    --    Giu/    Rung   Am     (FN)
+                            Tat dan       luong
+R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
+```
+
+- **Oct+ / Oct-**: +-3 quang tam. **Trans-/+**: chuyen giong +-11 nua cung. **Giu / Tat dan**: nốt keu deu khi giu, hoac tat dan ~0,7 s nhu gay dan. **Rung**: +-1,5 % ~6 Hz. **Am luong**: 100 / 50 / 25 % (nhan voi am luong chung trong app). **Am sac**: xung 50 / 25 / 12 %. Cac cai dat nay nam trong RAM, mat khi rut dien.
+- Mac dinh bat dau tu C5 (524 Hz) vi coi 12 mm yeu duoi ~400 Hz. Nốt thap nhat 32 Hz / cao nhat ~4,2 kHz (gioi han 24..108 MIDI); coi thuong chi nghe ro ~400 Hz - 5 kHz.
+- **TUNES** (R4C5 o PIANO): M1..M9 phat 9 bai (Ode to Joy, Twinkle, Jingle Bells, Fur Elise, Happy Birthday, Frere Jacques, Greensleeves, Mary Had a Little Lamb, Canon in D), phim `-` / `+` cham / nhanh (5 muc), R3C5 dung. Bam lai bai dang phat hoac bat ky phim nao khac = dung. Sua bai trong `firmware/tunes.h` (`{midi, do dai 1/16}`).
+- OLED hien ten nốt (`C+5` = Do thang quang tam 5, font khong co dau #) hoac ten bai.
+- Sua o v13: tan so PWM duoi ~570 Hz truoc day tran thanh ghi wrap 16 bit (bo chia xung co dinh /4); gio chia xung tu dong, nốt 32 Hz van dung.
+
 ## Chuot bay (MPU-6515)
 
 - Noi MPU-6515 chung I2C0 voi OLED: SDA -> GP12, SCL -> GP13, VCC -> 3V3, GND -> GND, AD0 -> GND (dia chi 0x68; AD0 -> 3V3 thi doi `IMU_ADDR` thanh 0x69 trong config.h). Gyro doc o +-500 dps, 200 lan/giay.

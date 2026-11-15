@@ -47,8 +47,9 @@ extern uint32_t fake_ms; static inline uint32_t time_us_32(void) { return fake_m
 // coi bao gia: ghi lai moi lan bat / tat PWM (thoi diem fake_ms << 1 | bat)
 extern uint32_t sim_buz_log[64]; extern int sim_buz_n; extern int sim_buz_on;
 static inline uint pwm_gpio_to_slice_num(uint g) { return (g >> 1) & 7; }
-static inline void pwm_set_clkdiv(uint s, float d) { (void)s; (void)d; } static inline void pwm_set_wrap(uint s, uint16_t w) { (void)s; (void)w; }
-static inline void pwm_set_gpio_level(uint g, uint16_t l) { (void)g; (void)l; }
+extern float sim_pwm_div; extern uint16_t sim_pwm_wrap, sim_pwm_lv;   // nhớ lại để test tinh tan so = 150 MHz / div / (wrap + 1)
+static inline void pwm_set_clkdiv(uint s, float d) { (void)s; sim_pwm_div = d; } static inline void pwm_set_wrap(uint s, uint16_t w) { (void)s; sim_pwm_wrap = w; }
+static inline void pwm_set_gpio_level(uint g, uint16_t l) { (void)g; sim_pwm_lv = l; }
 static inline void pwm_set_enabled(uint s, bool e) { (void)s; if (e != !!sim_buz_on) { sim_buz_on = e; if (sim_buz_n < 64) sim_buz_log[sim_buz_n++] = (fake_ms << 1) | (uint32_t)e; } }
 extern int sim_i2c_writes; extern uint8_t sim_i2c_cmd[2];
 static inline void sleep_ms(uint32_t m) { (void)m; }

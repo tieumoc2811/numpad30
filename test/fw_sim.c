@@ -11,7 +11,7 @@ uint8_t sim_imu_reg, sim_pwr2; int16_t sim_gyro[3]; int sim_imu_present = 1; uin
 uint8_t sim_flash[2 * 1024 * 1024]; int sim_flash_erases; static uint8_t raw_tx[32]; static int raw_txn;
 bool tud_hid_n_report(uint8_t itf, uint8_t id, const void *r, uint16_t n) { (void)id; if (itf == 1 && n == 32) { memcpy(raw_tx, r, 32); raw_txn++; } return true; }
 typedef struct { uint32_t t; void (*f)(void); } act_t; static act_t acts[64]; static int nacts;
-uint32_t sim_buz_log[64]; int sim_buz_n, sim_buz_on;
+uint32_t sim_buz_log[64]; int sim_buz_n, sim_buz_on; float sim_pwm_div; uint16_t sim_pwm_wrap, sim_pwm_lv;
 uint32_t sim_led, fake_ms; uint8_t sim_down[NROW][NCOL]; int sim_rowhi[32]; int sim_i2c_writes, sim_boot, sim_wakeups; uint8_t sim_i2c_cmd[2]; bool sim_suspended;
 typedef struct { uint32_t t; uint8_t mods, k[6]; } kbl_t; static kbl_t kbl[4096]; static int nkb;
 typedef struct { uint32_t t; uint16_t u; } cnl_t; static cnl_t cnl[1024]; static int ncn;
@@ -169,11 +169,33 @@ static int scenario_buz(void) {   // coi bao: cham ngan, gach dai gap 3, OK tien
   CHECK(!sim_buz_on);
   return fails;
 }
+static double pcap_hz[8]; static int pcap_on[8], pcap_lv[8], pcap_wrap[8]; static int pcap_n;
+static void a_pcap(void) { int i = pcap_n++; pcap_on[i] = sim_buz_on; pcap_hz[i] = sim_buz_on ? 150e6 / sim_pwm_div / ((double)sim_pwm_wrap + 1.0) : 0; pcap_lv[i] = sim_pwm_lv; pcap_wrap[i] = sim_pwm_wrap; }
+static int near_hz(double a, double b, double tol) { return (a > b ? a - b : b - a) <= tol; }
+static int scenario_piano(void) {   // nhac cu: Num giu + Enter bat PIANO, C5 / G5 / C3 (sau 2 lan Oct-) cho dung tan so PWM that, nha thi im
+  ev(100, 0, 3, 1); tap(450, 3, 6, 30); ev(520, 0, 3, 0);   // bat layer PIANO
+  tap(800, 1, 0, 300); tap(1300, 1, 4, 300);                // C5, G5
+  tap(1800, 4, 1, 30); tap(1900, 4, 1, 30);                 // Oct- x 2
+  tap(2200, 1, 0, 300);                                     // C5 - 24 = C3 (131 Hz: can chia xung lon moi vua wrap 16 bit)
+  act_at(900, a_pcap); act_at(1150, a_pcap); act_at(1400, a_pcap); act_at(2300, a_pcap); act_at(2600, a_pcap);
+  endt = 2800; run();
+  printf("  tan so: %.1f / im / %.1f / %.1f / im Hz\n", pcap_hz[0], pcap_hz[2], pcap_hz[3]);
+  CHECK(pcap_n == 5);
+  CHECK(pcap_on[0] && near_hz(pcap_hz[0], 524, 1.5));      // C5
+  CHECK(!pcap_on[1]);                                       // giua 2 nốt: im
+  CHECK(pcap_on[2] && near_hz(pcap_hz[2], 784, 1.5));      // G5
+  CHECK(pcap_on[3] && near_hz(pcap_hz[3], 131, 0.6));      // C3
+  CHECK(!pcap_on[4] && !sim_buz_on);
+  CHECK(pcap_lv[0] > 0 && pcap_lv[0] <= (pcap_wrap[0] + 1) / 2 + 1 && pcap_lv[0] >= (pcap_wrap[0] + 1) / 2 - 2);   // am luong day, am sac 50%
+  CHECK(pcap_wrap[3] > 0 && pcap_wrap[3] < 65536);
+  CHECK(find_key(KC_NUMLOCK, 0) < 0);                       // khong lo NumLock / phim HID nao ra ngoai
+  return fails;
+}
 int main(int argc, char **argv) {
   (void)argv; int rc = 0;
-  for (int s = 0; s < 5; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
+  for (int s = 0; s < 6; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
     fflush(stdout); pid_t p = fork();
-    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : "coi bao Morse"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : scenario_buz()); }
+    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : s == 4 ? "coi bao Morse" : "nhac cu (PIANO)"); fflush(stdout); exit(s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : s == 4 ? scenario_buz() : scenario_piano()); }
     int st; waitpid(p, &st, 0); if (!WIFEXITED(st) || WEXITSTATUS(st)) rc = 1;
   }
   if (argc > 5) return 2;

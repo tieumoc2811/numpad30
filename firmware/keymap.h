@@ -10,7 +10,7 @@
 #include "core.h"
 #define __ KC_NO
 #define ___ KC_TRNS
-#define NUM_DEFAULT_LAYERS 3
+#define NUM_DEFAULT_LAYERS 5
 
 static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
   // ---- Layer 0: NUM (numpad + phim tat) ----
@@ -23,7 +23,7 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
   { KC_F1, KC_F2, KC_F3, ___, CONS(CN_MUTE), CONS(CN_VOLD), CONS(CN_VOLU),
     KC_F4, KC_F5, KC_F6, CONS(CN_PREV), CONS(CN_PLAY), CONS(CN_NEXT), KC_BSPC,
     KC_F7, KC_F8, KC_F9, KC_HOME, KC_PGUP, KC_PGDN, __,
-    __, KC_ESC, __, KC_END, KC_INS, KC_DEL, ___,
+    __, KC_ESC, __, KC_END, KC_INS, KC_DEL, TL(3),
     KC_TAB, KC_SPACE, KC_ENTER, TL(2), __, KC_BOOT, __ },
   // ---- Layer 2: MACRO (bat/tat bang TL(2) o layer FN, phim 0): M1..M9 ----
   // Cum chuot bay: R1C3 AIR (giu de bay), R1C4/R1C5/R2C3 chuot trai/phai/giua, R2C4 AIR bat/tat, R2C5 hieu chuan gyro, R3C3/R3C4 cuon len/xuong
@@ -32,6 +32,20 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     MACRO(6), MACRO(7), MACRO(8), KC_MB3, KC_AIRT, KC_AIRCAL, __,
     __, ___, __, KC_WHUP, KC_WHDN, ___, ___,
     ___, ___, ___, ___, __, ___, __ },
+  // ---- Layer 3: PIANO (bat/tat bang giu Num + Enter): moi phim 1 nốt tren coi, am don ----
+  // Hang R0 = phim den (C# D# . F# G# A#), R1 = C5..B5 (phim trang), R2 = C6..G6 (quang tam tren); R0C0 dung / im, R3C1 Oct+, R4C1 Oct-, R4C0 / R4C2 chuyen giong -/+,
+  // R3C3 giu <-> tat dan, R3C4 rung, R3C5 am luong, R4C3 am sac, R4C5 sang layer TUNES. Num (R0C3) giu = FN, bam nhanh khong lam gi; R3C6 trong suot de FN+Enter tat layer.
+  { KC_PSTOP, NOTE(73), NOTE(75), LT(1, 0), NOTE(78), NOTE(80), NOTE(82),
+    NOTE(72), NOTE(74), NOTE(76), NOTE(77), NOTE(79), NOTE(81), NOTE(83),
+    NOTE(84), NOTE(86), NOTE(88), NOTE(89), NOTE(91), NOTE(93), __,
+    __, KC_OCTU, __, KC_PENV, KC_PVIB, KC_PVOL, ___,
+    KC_TRD, KC_OCTD, KC_TRU, KC_PTIM, __, TL(4), __ },
+  // ---- Layer 4: TUNES (R4C5 o layer PIANO): M1..M9 = 9 bai, phim - / + = cham / nhanh, R3C5 = dung, R4C5 = quay lai PIANO ----
+  { TUNE(0), TUNE(1), TUNE(2), LT(1, 0), __, __, KC_TMPD,
+    TUNE(3), TUNE(4), TUNE(5), __, __, __, KC_TMPU,
+    TUNE(6), TUNE(7), TUNE(8), __, __, __, __,
+    __, __, __, __, __, KC_PSTOP, ___,
+    __, __, __, __, __, TL(4), __ },
 };
 #undef __
 #undef ___
@@ -81,5 +95,5 @@ static void cfg_defaults(cfg_t *g) {
   const char *gr = "HELLO NUMPAD30", *sv = "NUMPAD30";
   g->od[16] = (uint8_t)strlen(gr); memcpy(g->od + 17, gr, strlen(gr));
   g->od[80] = (uint8_t)strlen(sv); memcpy(g->od + 81, sv, strlen(sv));
-  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO");
+  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "PIANO"); strcpy(g->lname[4], "TUNES");
 }

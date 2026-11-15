@@ -40,23 +40,27 @@ static bool scan(uint8_t *raw) {   // tra ve true neu co phim dang bam
 
 // ---------------- coi bao (Morse) ----------------
 #if BUZ_PIN >= 0
-static bool buz_state;
+static bool buz_state; static uint32_t buz_hz_set, buz_top;
 static void buz_idle(void) { gpio_set_function(BUZ_PIN, GPIO_FUNC_SIO); gpio_set_dir(BUZ_PIN, GPIO_OUT); gpio_put(BUZ_PIN, BUZ_INVERT); }
 static void buz_init(void) { gpio_init(BUZ_PIN); buz_idle(); }
-static void buz_task(void) {   // goi moi ms: bat / tat coi theo core.buz_ms
-  bool on = core_buz(&core);
-  if (on == buz_state) return;
-  buz_state = on;
+static void buz_task(void) {   // goi moi ms: bat / tat coi, doi tan so + do rong xung theo core_buz_hz / core_buz_amp (tieng bip Morse hoac nốt nhac)
+  uint32_t hz = core_buz_hz(&core), amp = hz ? core_buz_amp(&core) : 0;
+  bool on = hz != 0 && amp != 0;
 #if BUZ_ACTIVE
-  gpio_put(BUZ_PIN, on ^ BUZ_INVERT);
+  if (on == buz_state) return;
+  buz_state = on; gpio_put(BUZ_PIN, on ^ BUZ_INVERT);
 #else
   uint sl = pwm_gpio_to_slice_num(BUZ_PIN);
-  if (on) {
-    uint32_t top = clock_get_hz(clk_sys) / 4 / buz_freq(&core.cfg);    // chia xung 4 de wrap < 65536
-    uint32_t lv = top / 2 * buz_vol(&core.cfg) / 100; if (lv < 1) lv = 1;   // am luong = do rong xung (toi da 50%)
-    pwm_set_clkdiv(sl, 4.0f); pwm_set_wrap(sl, (uint16_t)(top - 1));
-    gpio_set_function(BUZ_PIN, GPIO_FUNC_PWM); pwm_set_gpio_level(BUZ_PIN, (uint16_t)lv); pwm_set_enabled(sl, true);
-  } else { pwm_set_enabled(sl, false); buz_idle(); }
+  if (!on) { if (buz_state) { buz_state = false; pwm_set_enabled(sl, false); buz_idle(); } return; }
+  if (!buz_state || hz != buz_hz_set) {   // doi tan so: chia xung de wrap < 65536 (ke ca nốt thap, ~260 Hz)
+    uint32_t clk = clock_get_hz(clk_sys);
+    float div = (float)clk / ((float)hz * 60000.0f); if (div < 1.0f) div = 1.0f;
+    uint32_t top = (uint32_t)((float)clk / (div * (float)hz) + 0.5f); if (top < 2) top = 2; if (top > 65536) top = 65536;
+    pwm_set_clkdiv(sl, div); pwm_set_wrap(sl, (uint16_t)(top - 1)); buz_top = top; buz_hz_set = hz;
+  }
+  uint32_t lv = buz_top / 2 * amp / 256; if (lv < 1) lv = 1;   // am luong + am sac = do rong xung (toi da 50%)
+  pwm_set_gpio_level(BUZ_PIN, (uint16_t)lv);
+  if (!buz_state) { gpio_set_function(BUZ_PIN, GPIO_FUNC_PWM); pwm_set_enabled(sl, true); buz_state = true; }
 #endif
 }
 #else

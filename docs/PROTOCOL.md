@@ -13,7 +13,7 @@ Tra loi: cung khung (echo `0..2`, `31`), du lieu tu `[3]`. Loi (tham so ngoai ra
 | 2 | Ghi `n<=14` word (`[3+2i]`), co hieu luc ngay |
 | 3 | Luu toan bo cau hinh vao flash. Tra loi sau khi ghi xong (~0,3 s); `[0]=0xFF` neu ghi that bai |
 | 4 | Ve mac dinh trong RAM (phim, macro, du lieu OLED, ten layer); chua luu flash |
-| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1270), `[4]`=FW_VER (11), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien, `[15]`=coi bao (v12): bit0 = co coi (`BUZ_PIN >= 0`), bit1 = coi chu dong (`BUZ_ACTIVE`, tan so / am luong khong co tac dung) |
+| 5 | Thong tin: `[1]`=32 layer, `[2..3]`=NW (1270), `[4]`=FW_VER (13), `[5]`=so hieu ung LED (16), `[6]`=so macro (32), `[7..8]`=MSLOT (1020), `[9]`=chieu cao OLED, `[10]`=OD_NF (16), `[11..12]`=OD_FSZ (512), `[13]`=cam bien chuot bay dang hoat dong (0/1), `[14]`=WHO_AM_I cua cam bien, `[15]`=coi bao (v12): bit0 = co coi (`BUZ_PIN >= 0`), bit1 = coi chu dong (`BUZ_ACTIVE`, tan so / am luong khong co tac dung) |
 | 6 / 7 | Doc / ghi `n<=28` byte macro, offset = `o*1020 + vi tri` (0..32639) |
 | 8 / 9 | Doc / ghi `n<=28` byte du lieu OLED, offset 0..8447 |
 | 10 | Xem thu OLED: `out[1]` = 0 dung, 1 loi chao, 2 screensaver, 4 logo |
@@ -69,3 +69,22 @@ LED onboard dung: `obMode` 0 theo layer / 1 cau vong / 2 mot mau (hue,sat) / 3 t
 
 ## Luu flash
 Vung `0x100000` (1 MB), 12 sector x 4 KB: `magic "NP30"`, ver, len, CRC32, roi toan bo `cfg_t` (word, macro, du lieu OLED, ten layer). Sai CRC/magic -> dung mac dinh.
+
+## Ma phim nhac cu (v13)
+Khong doi khoi cau hinh (NW van 1270); chi them ma phim, ghi vao o phim nhu moi ma khac:
+
+| Ma | Y nghia |
+|---|---|
+| `0x7400 \| m` | Nốt, `m` = so MIDI 0..127 (C4 = 60, C5 = 72, thuc te kep 24..108 sau khi dich quang tam / chuyen giong). Am don, khong gui phim HID |
+| `0x7480` / `0x7481` | Oct+ / Oct- (+-3) |
+| `0x7482` / `0x7483` | Trans+ / Trans- (+-11 nua cung) |
+| `0x7484` | STOP: dung bai, tat het nốt dang giu |
+| `0x7485` | Giu <-> tat dan (pluck) |
+| `0x7486` | Am sac (xung 50 / 25 / 12 %) |
+| `0x7487` | Rung bat / tat |
+| `0x7488` | Am luong 100 / 50 / 25 % |
+| `0x7489` | DEMO: phat bai ke tiep (vong 9 bai) |
+| `0x7500 \| n` | Phat bai n (0..8, xem `firmware/tunes.h`); bam lai khi dang phat = dung |
+| `0x7510` / `0x7511` | Tempo cham / nhanh (5 muc, 160..80 ms moi 1/16 nốt) |
+
+Mac dinh co them layer 3 `PIANO` va layer 4 `TUNES` (so layer mac dinh 3 -> 5); layer FN R3C6 = `TL(3)`. Layer PIANO dung `LT(1, 0)` o R0C3 (giu = FN, bam nhanh khong lam gi).
