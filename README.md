@@ -127,3 +127,5 @@ R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
 - Nokia: 2 phím số bất kỳ cùng lúc = Space; 2 lần liên tiếp = xoá 1 ký tự.
 - Hằng số trong `config.h`: `CHORD_MS` (40, cửa sổ "cùng lúc", phím đầu phải còn giữ), `CHORD2_MS` (450, cửa sổ chord đôi).
 - Phím Chấm / Gạch / Nokia đơn được xử lý sau tối đa `CHORD_MS`; tiếng bíp phím Nokia vẫn phát ngay.
+- Cờ gõ chữ (word dự phòng `W_AMB + 7`, đặt bằng Studio): bit0 = tắt Morse tự chốt, bit1 = Nokia số ở đầu (kiểu cũ). Mặc định 0 = Morse tự chốt bật, Nokia chữ trước số sau.
+- Morse tự chốt: nghỉ `max(400 ms, 8 × độ dài chấm)` sau nét cuối thì chốt, nghỉ 2,5 lần thì thêm Space (chỉ khi ký tự được chốt tự động).

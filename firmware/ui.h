@@ -127,7 +127,7 @@ static void ui_morse_view(ui_t *u, const core_t *c, const char *ln, uint8_t host
 }
 static void ui_nokia_view(ui_t *u, const core_t *c, const char *ln, uint8_t host_leds, uint32_t now) {
   ui_mode_top(u, ln, host_leds);
-  const char *g = NK_TAB[c->nk_key]; int n = (int)strlen(g);
+  const char *g = nk_tab(&c->cfg, c->nk_key); int n = (int)strlen(g);
   for (int i = 0; i < n; i++) {   // nhom ky tu cua phim, ky tu dang chon dao mau
     bool sel = i == c->nk_n; char b[2] = {ui_up(g[i]) == ' ' ? '_' : ui_up(g[i]), 0};
 #if OLED_H == 64
@@ -146,7 +146,7 @@ static void ui_normal(ui_t *u, const core_t *c, uint8_t host_leds, uint32_t now)
   bool mo = !c->rn_on && !c->latch_wait && ui_morse_on(c), nk = !c->rn_on && !c->latch_wait && ui_nokia_on(c, now);
   if (mo || nk) {
     if (!(u->rot & 1)) { if (nk) ui_nokia_view(u, c, ln, host_leds, now); else ui_morse_view(u, c, ln, host_leds); return; }
-    if (nk) { lab[0] = ui_up(NK_TAB[c->nk_key][c->nk_n]); lab[1] = 0; if (lab[0] == ' ') lab[0] = '_'; }   // man doc / 64 hang: chi hien ky tu
+    if (nk) { lab[0] = ui_up(nk_tab(&c->cfg, c->nk_key)[c->nk_n]); lab[1] = 0; if (lab[0] == ' ') lab[0] = '_'; }   // man doc / 64 hang: chi hien ky tu
     else { size_t k = 0; for (int i = 0; i < c->mo_len && k < 8; i++) lab[k++] = c->mo_code[i]; if (c->mo_len) { lab[k++] = ' '; lab[k++] = c->mo_shown ? ui_up(morse_find(c->mo_code)) : '?'; } lab[k] = 0; if (!k) strcpy(lab, "MORSE"); }
   }
   if (u->rot & 1) {   // doc: chu 1x, xuong dong

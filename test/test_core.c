@@ -37,7 +37,8 @@ static void up(int r, int c) { raw[POS(r, c)] = 0; }
 static void press(int r, int c, int hold) { down(r, c); step(hold); up(r, c); step(DEBOUNCE_MS + 1); }
 static kb_report_t kb(void) { kb_report_t r; core_kb(&C, &r); return r; }
 static int has(kb_report_t r, uint8_t k) { for (int i = 0; i < 6; i++) if (r.keys[i] == k) return 1; return 0; }
-static void reset(void) { cfg_defaults(&C.cfg); core_reset(&C); memset(raw, 0, sizeof raw); T = 1000; nev = 0; ntext = 0; text[0] = 0; ncons = 0; last_cons = 0; memset(&last_rpt, 0, sizeof last_rpt); }
+static void reset(void) { cfg_defaults(&C.cfg); C.cfg.w[W_TYP] = 3; core_reset(&C);   // v19: cac test cu chay o che do cu (so o dau, Morse khong tu chot); test moi tu dat W_TYP = 0
+  memset(raw, 0, sizeof raw); T = 1000; nev = 0; ntext = 0; text[0] = 0; ncons = 0; last_cons = 0; memset(&last_rpt, 0, sizeof last_rpt); }
 static const char *txt(void) { text[ntext] = 0; return text; }
 static void drain(void) { step(CHORD_MS + 2); for (int g = 0; g < 8000 && (C.qn || C.m_on); g++) step(1); step(20); }   // v19: cho het CHORD_MS de phim Morse / Nokia don duoc chot
 static void setk(int l, int r, int c, kc_t k) { C.cfg.w[W_KM + l * NKEYS + POS(r, c)] = k; }
@@ -218,6 +219,32 @@ int main(void) {
   reset(); setk(0, 1, 3, NKK(10)); setk(0, 1, 4, NKK(9)); setk(0, 1, 5, NKK(1));
   press(1, 3, 6); step(10); press(1, 4, 6); step(10); press(1, 4, 6); step(NOKIA_MS + 20);          // ". " bang phim 0 (0 roi chu cach)
   press(1, 5, 6); step(10); press(1, 5, 6); drain(); CHECK(strchr(txt(), 'D'));
+
+
+  // ===== v19c) Nokia so o cuoi + Morse tu chot =====
+  reset(); C.cfg.w[W_TYP] = 0; setk(0, 1, 3, NKK(1)); setk(0, 1, 4, NKK(9)); setk(0, 1, 5, NKK(8));
+  press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "d"));                                              // 1 lan bam = chu dau cua phim
+  step(NOKIA_MS + 20); press(1, 3, 6); step(10); press(1, 3, 6); step(10); press(1, 3, 6); step(10); press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "d2"));   // d e f 2 (so o cuoi)
+  step(NOKIA_MS + 20); press(1, 5, 6); step(10); press(1, 5, 6); step(10); press(1, 5, 6); drain(); CHECK(!strcmp(txt(), "d2" "9"));   // y z 9
+  reset(); C.cfg.w[W_TYP] = 0; setk(0, 1, 4, NKK(9));
+  press(1, 4, 6); drain(); CHECK(!strcmp(txt(), " ")); step(NOKIA_MS + 20); press(1, 4, 6); step(10); press(1, 4, 6); drain(); CHECK(!strcmp(txt(), " 0"));   // phim 0: cach roi 0
+  reset(); C.cfg.w[W_TYP] = 2; setk(0, 1, 3, NKK(1)); press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "2"));   // bit1 = so o dau (kieu cu)
+  reset(); C.cfg.w[W_TYP] = 0; setk(0, 1, 3, KC_RENAME); setk(0, 1, 4, NKK(3)); setk(0, 1, 5, KC_ENTER);
+  press(1, 3, 6); press(1, 4, 6); step(NOKIA_MS + 20); press(1, 4, 6); step(10); press(1, 4, 6); step(10); press(1, 4, 6); step(10); press(1, 4, 6); step(NOKIA_MS + 20); CHECK(!strcmp(C.rn_buf, "J4"));   // doi ten: j, k, l, 4
+  // Morse tu chot
+  reset(); C.cfg.w[W_TYP] = 0; C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK);
+  press(1, 3, 6); step(10); press(1, 4, 6); step(300); CHECK(C.mo_len == 2 && !strcmp(txt(), "a"));   // nghi ngan: chua chot
+  step(400); CHECK(C.mo_len == 0 && !strcmp(txt(), "a"));                                            // nghi >= 560 ms: tu chot (khong them chu)
+  step(1200); drain(); CHECK(!strcmp(txt(), "a "));                                                   // nghi them: Space tu dong
+  step(3000); drain(); CHECK(!strcmp(txt(), "a "));                                                   // chi 1 Space
+  press(1, 3, 6); step(10); press(1, 3, 6); step(1000); press(1, 4, 6); drain(); CHECK(!strcmp(txt(), "a it"));   // bam tiep sau khi tu chot: ky tu moi (. . roi nghi 1 s roi -)
+  reset(); C.cfg.w[W_TYP] = 0; C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK); setk(0, 1, 6, KC_BSPC);
+  press(1, 3, 6); press(1, 5, 6); step(3000); drain(); CHECK(!strcmp(txt(), "e"));                    // chot bang tay: khong co Space tu dong
+  reset(); C.cfg.w[W_TYP] = 0; C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); setk(0, 1, 6, KC_BSPC);
+  press(1, 3, 6); step(700); press(1, 6, 6); step(3000); drain(); CHECK(!strcmp(txt(), ""));          // tu chot roi Backspace: huy Space tu dong
+  reset(); C.cfg.w[W_TYP] = 1; C.mo_hopt = 0; setk(0, 1, 3, KC_MDOT); press(1, 3, 6); step(3000); drain(); CHECK(C.mo_len == 1 && !strcmp(txt(), "e"));   // bit0 = tat tu chot
+  reset(); C.cfg.w[W_TYP] = 0; C.cfg.w[W_BZB + 2] = 200; setk(0, 1, 3, KC_MDOT); press(1, 3, 6); step(1000); CHECK(C.mo_len == 1); step(700); CHECK(C.mo_len == 0);   // don vi cham 200 ms -> chot sau 1600 ms
+  reset(); C.cfg.w[W_TYP] = 0; C.mo_hopt = 1; setk(0, 1, 3, KC_MDOT); press(1, 3, 6); drain(); CHECK(!strcmp(txt(), "e [.i -a]")); step(700); drain(); CHECK(!strcmp(txt(), "e"));   // goi y duoc xoa khi tu chot
 
   // ===== 11) Morse =====
   reset(); setk(0, 1, 3, KC_MDOT); setk(0, 1, 4, KC_MDASH); setk(0, 1, 5, KC_MOK); setk(0, 1, 6, KC_MHINT);
