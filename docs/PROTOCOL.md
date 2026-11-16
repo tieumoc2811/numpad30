@@ -88,9 +88,9 @@ Khong doi khoi cau hinh (luc do NW = 1270; v17 them khoi Nokia, xem tren); chi t
 | `0x7488` | Am luong 100 / 50 / 25 % |
 | `0x7489` | DEMO: phat bai ke tiep (vong qua tat ca 20 bai) |
 | `0x7500 \| n` | Phat bai n (n = 0..15, xem `firmware/tunes.h`); bam lai khi dang phat = dung |
-| `0x7600 \| n` | (v16, v21) Phat bai n = 16..27 (cung bang bai nhu tren). Chi nhan n >= 16; `0x7600 \| n` voi n < 16 khong hop le (dung ma `0x7500 \| n`) |
+| `0x7600 \| n` | (v16, v21, v22) Phat bai n = 16..62 (cung bang bai nhu tren). Chi nhan n >= 16; `0x7600 \| n` voi n < 16 khong hop le (dung ma `0x7500 \| n`) |
 | `0x7510` / `0x7511` | Tempo cham / nhanh (5 muc, 160..80 ms moi 1/16 nốt) |
-| `0x7512` / `0x7513` | (v20) Bai TRUOC / bai KE TIEP trong danh sach 28 bai (vong tron, v21; v20: 20 bai), phat ngay; chua chon gi: ke = bai 1, truoc = bai 20. Khong dung bai dang phat truoc khi doi |
+| `0x7512` / `0x7513` | (v20) Bai TRUOC / bai KE TIEP trong danh sach 63 bai (vong tron, v22; v21: 28 bai; v20: 20 bai), phat ngay; chua chon gi: ke = bai 1, truoc = bai 63. Khong dung bai dang phat truoc khi doi |
 | `0x7514` | (v20) PLAY / STOP: dang phat = dung; dang im = phat lai bai dang chon (bai chon / phat gan nhat; chua co: bai 1) |
 | `0x7515` | (v20) Tempo vong tron 5 muc (cham -> nhanh -> ve cham) |
 
@@ -99,4 +99,4 @@ Mac dinh (v20): layer 3 `MUSIC` gop PIANO + TUNES + NOTES cu (so layer mac dinh 
 Khi bai dang phat, OLED (man ngang) hien: dong tren = ten bai + `T<tempo 1..5>` + `<so bai>/20`; giua = nốt vua qua (nho), nốt dang phat (lon), 4 nốt ke tiep (2 x 2); day = thanh tien do. Ten nốt: `<chu><+ neu thang><quang tam>`, vd `C5`, `F+5`, `-` = nghi. Cung quy uoc voi nhan phim `NOTE(m)` (C5 = MIDI 72).
 
 ## Bai khoi dong (v14)
-Word `OSB + 7` = 1193 (truoc day la o du phong): `0` tat (mac dinh, cau hinh cu van dung), `1..28` (v21; v16: `1..20`; truoc day 1..9) = phat bai tuong ung (n = gia tri - 1, bang bai trong `firmware/tunes.h`) tren coi ngay khi cap dien. Gia tri ngoai khoang -> im. Bam phim bat ky thi dung bai. Can coi THU DONG tren GP14. Doi bang lenh ghi (2) nhu moi word man hinh, luu flash bang lenh 3; co hieu luc o lan cap dien ke tiep.
+Word `OSB + 7` = 1193 (truoc day la o du phong): `0` tat (mac dinh, cau hinh cu van dung), `1..63` (v22; v21: `1..28`; v16: `1..20`; truoc day 1..9) = phat bai tuong ung (n = gia tri - 1, bang bai trong `firmware/tunes.h`) tren coi ngay khi cap dien. Gia tri ngoai khoang -> im. Bam phim bat ky thi dung bai. Can coi THU DONG tren GP14. Doi bang lenh ghi (2) nhu moi word man hinh, luu flash bang lenh 3; co hieu luc o lan cap dien ke tiep.

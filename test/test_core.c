@@ -710,9 +710,11 @@ int main(void) {
     CHECK(note_hz(60) == 262 && note_hz(69) == 440 && note_hz(72) == 524 && note_hz(81) == 880 && note_hz(84) == 1048 && note_hz(48) == 131);   // C4, A4, C5, A5, C6, C3
     CHECK(!IS_HOLDABLE(NOTE(72)) && IS_NOTE(NOTE(127)) && !IS_NOTE(0x7480) && IS_PCTL(KC_DEMO) && !IS_PCTL(0x748A) && IS_TUNE(TUNE(8)) && IS_TUNE(TUNE(NTUNE - 1)) && !IS_TUNE(TUNE(NTUNE)) && !IS_MACRO(NOTE(72)));
     // v16: ma bai mo rong: n < 16 -> 0x7500|n (nhu cu), n >= 16 -> 0x7600|n; bi danh 0x76xx voi n < 16 va tempo khong tinh la bai
-    CHECK(NTUNE == 28 && TUNE(0) == 0x7500 && TUNE(15) == 0x750F && TUNE(16) == 0x7610 && TUNE(19) == 0x7613 && TUNE(27) == 0x761B && IS_TUNE(0x7613) && IS_TUNE(0x761B) && TUNE_IDX(0x761B) == 27 && TUNE_IDX(0x7613) == 19 && TUNE_IDX(0x7503) == 3);
+    CHECK(NTUNE == 63 && TUNE(0) == 0x7500 && TUNE(15) == 0x750F && TUNE(16) == 0x7610 && TUNE(19) == 0x7613 && TUNE(27) == 0x761B && TUNE(28) == 0x761C && TUNE(62) == 0x763E && IS_TUNE(0x7613) && IS_TUNE(0x761B) && IS_TUNE(0x763E) && TUNE_IDX(0x763E) == 62 && TUNE_IDX(0x761B) == 27 && TUNE_IDX(0x7613) == 19 && TUNE_IDX(0x7503) == 3);
     CHECK(!IS_TUNE(0x7603) && !IS_TUNE(0x760F) && !IS_TUNE(0x7600 | NTUNE) && !IS_TUNE(0x76FF) && !IS_TUNE(KC_TMPD) && !IS_TUNE(KC_TMPU) && !IS_HOLDABLE(TUNE(19)) && IS_PIANO(TUNE(19)));
-    { char b[32]; core_label(&C, TUNE(18), b, sizeof b); CHECK(!strcmp(b, "DECK HALLS")); core_label(&C, TUNE(19), b, sizeof b); CHECK(!strcmp(b, "MERRY XMAS")); core_label(&C, TUNE(9), b, sizeof b); CHECK(!strcmp(b, "OLD MACDONALD")); }
+    { char b[32]; core_label(&C, TUNE(18), b, sizeof b); CHECK(!strcmp(b, "DECK HALLS")); core_label(&C, TUNE(19), b, sizeof b); CHECK(!strcmp(b, "MERRY XMAS")); core_label(&C, TUNE(9), b, sizeof b); CHECK(!strcmp(b, "OLD MACDONALD")); core_label(&C, TUNE(28), b, sizeof b); CHECK(!strcmp(b, "MOUNTAIN KING")); core_label(&C, TUNE(62), b, sizeof b); CHECK(!strcmp(b, "SKIP TO LOU")); }
+    // v22: 63 bai - ten <= 13 ky tu (vua OLED), moi bai co nốt, khong bai nao dai qua 8 phut o tempo cham nhat
+    { int bad = 0; for (int n = 0; n < NTUNE; n++) { if (!TUNE_TAB[n].name || strlen(TUNE_TAB[n].name) > 13 || TUNE_TAB[n].len < 8) bad++; long ms = 0; for (int i = 0; i < TUNE_TAB[n].len; i++) ms += TUNE_TAB[n].p[i].d; if (ms * 160 > 480000L) bad++; } CHECK(bad == 0); }
     // am don: nốt moi uu tien, nha thi quay ve nốt truoc; nhieu hon 8 nốt khong hong
     reset(); setk(0, 1, 0, NOTE(72)); setk(0, 1, 1, NOTE(74)); setk(0, 1, 2, NOTE(76));
     CHECK(core_note(&C) == 0 && !core_buz(&C) && core_buz_hz(&C) == 0);
