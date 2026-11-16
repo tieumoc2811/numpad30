@@ -33,8 +33,8 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     __, ___, __, KC_WHUP, KC_WHDN, ___, ___,
     ___, ___, ___, ___, __, ___, __ },
   // ---- Layer 3: MUSIC (v20, gop PIANO + TUNES + TUNES 2 + NOTES; bat / tat bang giu Num + Enter): dan + nghe nhac + choi lai ----
-  // 24 phim = 24 nốt, du de choi lai DUNG TAT CA 20 bai o quang tam goc (G4..G6, khong can Oct). 4 phim dieu khien:
-  //   R0C0 PLAY/STOP | R4C3 BAI TRUOC | R4C5 BAI SAU (phat ngay, vong tron 20 bai) | R3C4 TEMPO vong 5 muc. Num (R0C3) giu = FN; R3C6 trong suot de FN+Enter tat layer.
+  // 24 phim = 24 nốt, du de choi lai DUNG TAT CA 28 bai o quang tam goc (G4..G6, khong can Oct). 4 phim dieu khien:
+  //   R0C0 PLAY/STOP | R4C3 BAI TRUOC | R4C5 BAI SAU (phat ngay, vong tron 28 bai) | R3C4 TEMPO vong 5 muc. Num (R0C3) giu = FN; R3C6 trong suot de FN+Enter tat layer.
   // R0 = phim den quang 5 (C#5 D#5 . F#5 G#5 A#5), R1 = C5..B5, R2 = C6..A6, R3 = den quang 6 (C1 = C#6, C3 = D#6, C5 = F#6), R4C0..C2 = G4 A4 B4 (nốt tran thap cua mot so bai).
   // Khi bai dang phat, OLED hien TEN BAI + nốt dang phat (lon) + 4 nốt ke tiep + nốt truoc. Bam nốt bat ky = dung bai de tu choi.
   { KC_TPLAY, NOTE(73), NOTE(75), LT(1, 0), NOTE(78), NOTE(80), NOTE(82),

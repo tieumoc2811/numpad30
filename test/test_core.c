@@ -710,8 +710,8 @@ int main(void) {
     CHECK(note_hz(60) == 262 && note_hz(69) == 440 && note_hz(72) == 524 && note_hz(81) == 880 && note_hz(84) == 1048 && note_hz(48) == 131);   // C4, A4, C5, A5, C6, C3
     CHECK(!IS_HOLDABLE(NOTE(72)) && IS_NOTE(NOTE(127)) && !IS_NOTE(0x7480) && IS_PCTL(KC_DEMO) && !IS_PCTL(0x748A) && IS_TUNE(TUNE(8)) && IS_TUNE(TUNE(NTUNE - 1)) && !IS_TUNE(TUNE(NTUNE)) && !IS_MACRO(NOTE(72)));
     // v16: ma bai mo rong: n < 16 -> 0x7500|n (nhu cu), n >= 16 -> 0x7600|n; bi danh 0x76xx voi n < 16 va tempo khong tinh la bai
-    CHECK(NTUNE == 20 && TUNE(0) == 0x7500 && TUNE(15) == 0x750F && TUNE(16) == 0x7610 && TUNE(19) == 0x7613 && IS_TUNE(0x7613) && TUNE_IDX(0x7613) == 19 && TUNE_IDX(0x7503) == 3);
-    CHECK(!IS_TUNE(0x7603) && !IS_TUNE(0x760F) && !IS_TUNE(0x7614) && !IS_TUNE(0x76FF) && !IS_TUNE(KC_TMPD) && !IS_TUNE(KC_TMPU) && !IS_HOLDABLE(TUNE(19)) && IS_PIANO(TUNE(19)));
+    CHECK(NTUNE == 28 && TUNE(0) == 0x7500 && TUNE(15) == 0x750F && TUNE(16) == 0x7610 && TUNE(19) == 0x7613 && TUNE(27) == 0x761B && IS_TUNE(0x7613) && IS_TUNE(0x761B) && TUNE_IDX(0x761B) == 27 && TUNE_IDX(0x7613) == 19 && TUNE_IDX(0x7503) == 3);
+    CHECK(!IS_TUNE(0x7603) && !IS_TUNE(0x760F) && !IS_TUNE(0x7600 | NTUNE) && !IS_TUNE(0x76FF) && !IS_TUNE(KC_TMPD) && !IS_TUNE(KC_TMPU) && !IS_HOLDABLE(TUNE(19)) && IS_PIANO(TUNE(19)));
     { char b[32]; core_label(&C, TUNE(18), b, sizeof b); CHECK(!strcmp(b, "DECK HALLS")); core_label(&C, TUNE(19), b, sizeof b); CHECK(!strcmp(b, "MERRY XMAS")); core_label(&C, TUNE(9), b, sizeof b); CHECK(!strcmp(b, "OLD MACDONALD")); }
     // am don: nốt moi uu tien, nha thi quay ve nốt truoc; nhieu hon 8 nốt khong hong
     reset(); setk(0, 1, 0, NOTE(72)); setk(0, 1, 1, NOTE(74)); setk(0, 1, 2, NOTE(76));
