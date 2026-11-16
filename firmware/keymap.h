@@ -10,7 +10,7 @@
 #include "core.h"
 #define __ KC_NO
 #define ___ KC_TRNS
-#define NUM_DEFAULT_LAYERS 7
+#define NUM_DEFAULT_LAYERS 4
 
 static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
   // ---- Layer 0: NUM (numpad + phim tat) ----
@@ -19,7 +19,7 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     C_(KC_S), A_(KC_TAB), G_(KC_D), KC_P4, KC_P5, KC_P6, __,
     __, KC_UP, __, KC_P1, KC_P2, KC_P3, KC_PENT,
     KC_LEFT, KC_DOWN, KC_RIGHT, KC_P0, __, KC_PDOT, __ },
-  // ---- Layer 1: FN (giu phim Num): F1-F9, media, dieu huong; phim 0 bat/tat layer MACRO; phim . = BOOTSEL ----
+  // ---- Layer 1: FN (giu phim Num): F1-F9, media, dieu huong; phim 0 bat/tat layer MACRO; Enter = bat/tat layer MUSIC; phim . = BOOTSEL ----
   { KC_F1, KC_F2, KC_F3, ___, CONS(CN_MUTE), CONS(CN_VOLD), CONS(CN_VOLU),
     KC_F4, KC_F5, KC_F6, CONS(CN_PREV), CONS(CN_PLAY), CONS(CN_NEXT), KC_BSPC,
     KC_F7, KC_F8, KC_F9, KC_HOME, KC_PGUP, KC_PGDN, __,
@@ -32,35 +32,16 @@ static const kc_t def_layers[NUM_DEFAULT_LAYERS][NKEYS] = {
     MACRO(6), MACRO(7), MACRO(8), KC_MB3, KC_AIRT, KC_AIRCAL, __,
     __, ___, __, KC_WHUP, KC_WHDN, ___, ___,
     ___, ___, ___, ___, __, ___, __ },
-  // ---- Layer 3: PIANO (bat/tat bang giu Num + Enter): moi phim 1 nốt tren coi, am don ----
-  // Hang R0 = phim den (C# D# . F# G# A#), R1 = C5..B5 (phim trang), R2 = C6..G6 (quang tam tren); R0C0 dung / im, R3C1 Oct+, R4C1 Oct-, R4C0 / R4C2 chuyen giong -/+,
-  // R3C3 giu <-> tat dan, R3C4 rung, R3C5 am luong, R4C3 am sac, R4C5 sang layer TUNES. Num (R0C3) giu = FN, bam nhanh khong lam gi; R3C6 trong suot de FN+Enter tat layer.
-  { KC_PSTOP, NOTE(73), NOTE(75), LT(1, 0), NOTE(78), NOTE(80), NOTE(82),
+  // ---- Layer 3: MUSIC (v20, gop PIANO + TUNES + TUNES 2 + NOTES; bat / tat bang giu Num + Enter): dan + nghe nhac + choi lai ----
+  // 24 phim = 24 nốt, du de choi lai DUNG TAT CA 20 bai o quang tam goc (G4..G6, khong can Oct). 4 phim dieu khien:
+  //   R0C0 PLAY/STOP | R4C3 BAI TRUOC | R4C5 BAI SAU (phat ngay, vong tron 20 bai) | R3C4 TEMPO vong 5 muc. Num (R0C3) giu = FN; R3C6 trong suot de FN+Enter tat layer.
+  // R0 = phim den quang 5 (C#5 D#5 . F#5 G#5 A#5), R1 = C5..B5, R2 = C6..A6, R3 = den quang 6 (C1 = C#6, C3 = D#6, C5 = F#6), R4C0..C2 = G4 A4 B4 (nốt tran thap cua mot so bai).
+  // Khi bai dang phat, OLED hien TEN BAI + nốt dang phat (lon) + 4 nốt ke tiep + nốt truoc. Bam nốt bat ky = dung bai de tu choi.
+  { KC_TPLAY, NOTE(73), NOTE(75), LT(1, 0), NOTE(78), NOTE(80), NOTE(82),
     NOTE(72), NOTE(74), NOTE(76), NOTE(77), NOTE(79), NOTE(81), NOTE(83),
     NOTE(84), NOTE(86), NOTE(88), NOTE(89), NOTE(91), NOTE(93), __,
-    __, KC_OCTU, __, KC_PENV, KC_PVIB, KC_PVOL, ___,
-    KC_TRD, KC_OCTD, KC_TRU, KC_PTIM, __, TL(4), __ },
-  // ---- Layer 4: TUNES trang 1 (R4C5 o layer PIANO): M1..M9 = 9 bai goc, phim - / + = cham / nhanh, R3C5 = dung, R4C2 (mui ten phai) = trang 2, R4C5 = quay lai PIANO ----
-  { TUNE(0), TUNE(1), TUNE(2), LT(1, 0), __, __, KC_TMPD,
-    TUNE(3), TUNE(4), TUNE(5), __, __, __, KC_TMPU,
-    TUNE(6), TUNE(7), TUNE(8), __, __, __, __,
-    __, __, __, __, __, KC_PSTOP, ___,
-    __, __, TL(5), TL(6), __, TL(4), __ },
-  // ---- Layer 5: TUNES trang 2 (xep len tren trang 1): 11 bai thieu nhi / dan ca (bai 10..20). M1..M9 = bai 10..18, R1C3 / R1C4 = bai 19 / 20 ----
-  // R4C0 (mui ten trai) = ve trang 1 (TL(5) tat chinh no), - / + = cham / nhanh, R3C5 = dung. Muon them trang 3: gan TL(6) vao R4C2 cua trang nay va them 1 layer
-  { TUNE(9), TUNE(10), TUNE(11), LT(1, 0), __, __, KC_TMPD,
-    TUNE(12), TUNE(13), TUNE(14), TUNE(18), TUNE(19), __, KC_TMPU,
-    TUNE(15), TUNE(16), TUNE(17), __, __, __, __,
-    __, __, __, __, __, KC_PSTOP, ___,
-    TL(5), __, __, __, __, __, __ },
-  // ---- Layer 6: NOTES (v16): choi nhac bang khoi so numpad, kieu "so": 1..7 = Do Re Mi Fa Sol La Si (C5..B5), 8 = Do cao, 9 = Re cao, 0 = nghi (STOP) ----
-  // Vao: o layer TUNES trang 1 bam R4C3 (vi tri phim 0); thoat: bam R4C5 (phim .). Khoi M ben trai = nốt thang (#): R0C0 C#5, R0C1 D#5, R1C0 F#5, R1C1 G#5, R1C2 A#5, R2C0 C#6, R2C1 D#6.
-  // R0C4 / R0C5 = Oct- / Oct+ (phim / va *), R0C6 / R1C6 = Trans- / Trans+ (phim - va +), R3C1 giu <-> tat dan, R4C0 am sac, R4C1 rung, R4C2 am luong. R3C6 trong suot de FN+Enter tat layer.
-  { NOTE(73), NOTE(75), __, LT(1, 0), KC_OCTD, KC_OCTU, KC_TRD,
-    NOTE(78), NOTE(80), NOTE(82), NOTE(83), NOTE(84), NOTE(86), KC_TRU,
-    NOTE(85), NOTE(87), __, NOTE(77), NOTE(79), NOTE(81), __,
-    __, KC_PENV, __, NOTE(72), NOTE(74), NOTE(76), ___,
-    KC_PTIM, KC_PVIB, KC_PVOL, KC_PSTOP, __, TL(6), __ },
+    __, NOTE(85), __, NOTE(87), KC_TCYC, NOTE(90), ___,
+    NOTE(67), NOTE(69), NOTE(71), KC_TPREV, __, KC_TNEXT, __ },
 };
 #undef __
 #undef ___
@@ -118,5 +99,5 @@ static void cfg_defaults(cfg_t *g) {
   const char *gr = "HELLO NUMPAD30", *sv = "NUMPAD30";
   g->od[16] = (uint8_t)strlen(gr); memcpy(g->od + 17, gr, strlen(gr));
   g->od[80] = (uint8_t)strlen(sv); memcpy(g->od + 81, sv, strlen(sv));
-  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "PIANO"); strcpy(g->lname[4], "TUNES"); strcpy(g->lname[5], "TUNES 2"); strcpy(g->lname[6], "NOTES");
+  strcpy(g->lname[0], "NUM"); strcpy(g->lname[1], "FN"); strcpy(g->lname[2], "MACRO"); strcpy(g->lname[3], "MUSIC");
 }

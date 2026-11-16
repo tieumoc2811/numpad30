@@ -26,7 +26,7 @@ R4: Left Down Right 0    .   .  .      (. = o trong; 0 o C3, dau cham o C5)
 ## Cau hinh (v2)
 Keymap, macro, OLED khong con nam trong ma nguon: `firmware/keymap.h` chi la **mac dinh** (lan dau, hoac lenh "ve mac dinh"). Sau do app Studio sua tat ca qua USB (giao dien Raw HID usage page 0xFF60) va luu vao flash o 1 MB.
 
-Mac dinh: 3 layer **NUM** (numpad + Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D, mui ten), **FN** (giu `Num`; nha ngan = NumLock: F1-F9, media, Home/End/PgUp/PgDn/Ins/Del, `0` bat/tat layer MACRO, `.` = BOOTSEL), **MACRO** (M1-M9). Con lai la layer 3..31 (trong suot).
+Mac dinh: 4 layer **NUM** (numpad + Ctrl+C/V/X/Z/Y/A/S, Alt+Tab, Win+D, mui ten), **FN** (giu `Num`; nha ngan = NumLock: F1-F9, media, Home/End/PgUp/PgDn/Ins/Del, `0` bat/tat layer MACRO, `Enter` bat/tat layer MUSIC, `.` = BOOTSEL), **MACRO** (M1-M9), **MUSIC** (piano + 20 bai nhac, xem muc Layer MUSIC). Con lai la layer 4..31 (trong suot).
 
 Tinh nang: 32 layer, MO/TL/LY+/LY-/LT, 4 tap dance (cham/giu/cham 2 lan), 4 combo (30 ms), 8 bo chuoi SEQ x 8 buoc, LATCH, TG Space/Shift/Ctrl/Alt, TK (toggle giu bat ky phim, toi da 4), Nokia multitap + RENAME (doi ten layer tren OLED), Morse (co goi y), 32 macro dang buoc (nhan/giu/nha/cho/go chuoi, lap), OLED: loi chao chu chay + logo dong 16 khung 128x32, screensaver 4 kieu, xoay 0/90/180/270 (chung hoac theo layer), LED RGB onboard (theo layer / cau vong / mot mau / tho / tat, CapsLock = do). Chong doi 5 ms, 6KRO, remote wakeup.
 
@@ -70,43 +70,32 @@ Giu nut BOOT tren board, cam USB, chep `numpad30.uf2` vao o RPI-RP2350. Can SDK 
 - Mac dinh `BUZ_ACTIVE 0`: chan I/O phat xung PWM (mac dinh 2700 Hz, doi trong app), chay duoc ca coi chu dong lan thu dong. Coi chu dong chi can muc cao thi doi `BUZ_ACTIVE 1`. Neu module kich bang muc thap (I/O keo xuong thi keu, im lang luc khoi dong thi keu lien tuc), doi `BUZ_INVERT 1`.
 - Can `hardware_pwm` (da them vao CMakeLists.txt).
 
-## Nhac cu (v13): PIANO + TUNES
+## Layer MUSIC (v20): piano + 20 bai nhac + nghe / nho nốt / choi lai
 
-Dung chinh coi Morse tren GP14 (xem muc tren) lam dan: **moi phim = 1 nốt** (layer PIANO) hoac **moi phim = 1 bai** (layer TUNES). Am don (1 coi = 1 nốt), nốt moi bam uu tien, nha thi quay ve nốt con giu.
+Tu v20 cac layer PIANO / TUNES / TUNES 2 / NOTES duoc **gop thanh 1 layer `MUSIC`** (layer 3, so layer mac dinh la 4: NUM, FN, MACRO, MUSIC). Dung chinh coi Morse tren GP14 lam dan; am don (1 coi = 1 nốt), nốt moi bam uu tien, nha thi quay ve nốt con giu. **Can coi THU DONG** (passive) de doi cao do.
 
-- **Can coi THU DONG** (passive) de doi cao do. Coi chu dong chi co 1 tong co dinh, layer dan se khong ra dung nốt.
-- Bat: giu `Num` + bam `Enter` (R3C6, o layer FN). Tat: lai giu `Num` + `Enter`. Giu `Num` o PIANO / TUNES van vao FN (bam nhanh khong lam gi, khong bat NumLock).
-- Cau hinh luu flash cu van la 3 layer: layer PIANO / TUNES / TUNES 2 chi xuat hien sau lenh "ve mac dinh" (app Studio) roi luu, hoac tu gan phim bang ma o `docs/PROTOCOL.md`. Layer mac dinh hien la 7 (v16, truoc la 5): sau khi nap firmware moi, can "ve mac dinh" + luu de co trang TUNES 2 va phim mui ten R4C2 o trang 1.
+- Bat: giu `Num` + bam `Enter` (R3C6, o layer FN). Tat: lai giu `Num` + `Enter`. Giu `Num` o MUSIC van vao FN (bam nhanh khong lam gi, khong bat NumLock).
+- **Nghe va ghi nho**: bam `BAI SAU` / `BAI TRUOC` (2 phim) de chuyen qua lai trong danh sach 20 bai (vong tron, bam la phat ngay). Khi bai dang phat, **OLED hien ten bai, nốt dang phat (chu lon, vd `E5`), 4 nốt ke tiep, nốt vua qua, so bai `03/20`, tempo `T3` va thanh tien do**. Ten nốt giong het nhan phim: `C5` = phim C5, `F+5` = Fa thang quang tam 5 (font OLED khong co dau #).
+- **Choi lai**: ca 24 nốt can thiet deu co phim rieng o quang tam goc, nen **moi nốt cua ca 20 bai** deu bam duoc truc tiep (test tu dong kiem tra dieu nay). Bam nốt bat ky khi dang phat = dung bai de tu choi; `PLAY/STOP` phat lai tu dau bai dang chon, hoac dung.
+- Bai dang phat khong lam man hinh vao screensaver. Het bai tu dung, OLED ve man thuong.
 
 ```
-        C0     C1     C2     C3     C4     C5     C6
-R0:    STOP    C#5    D#5   [Num]   F#5    G#5    A#5     phim den
-R1:     C5     D5     E5     F5     G5     A5     B5      phim trang
-R2:     C6     D6     E6     F6     G6     A6     --      quang tam tren
-R3:     --    Oct+    --    Giu/    Rung   Am     (FN)
-                            Tat dan       luong
-R4:   Trans-  Oct-  Trans+  Am sac  --    TUNES   --
+        C0       C1     C2     C3      C4      C5     C6
+R0:   PLAY/STOP  C#5    D#5   [Num]    F#5     G#5    A#5     phim den quang 5
+R1:     C5       D5     E5     F5      G5      A5     B5      phim trang quang 5
+R2:     C6       D6     E6     F6      G6      A6     --      phim trang quang 6
+R3:     --       C#6    --     D#6    TEMPO    F#6    (FN)    phim den quang 6; R3C4 = tempo vong
+R4:     G4       A4     B4    BAI TRUOC  --   BAI SAU  --      G4 A4 B4 = nốt thap cua mot so bai
 ```
 
-- **Oct+ / Oct-**: +-3 quang tam. **Trans-/+**: chuyen giong +-11 nua cung. **Giu / Tat dan**: nốt keu deu khi giu, hoac tat dan ~0,7 s nhu gay dan. **Rung**: +-1,5 % ~6 Hz. **Am luong**: 100 / 50 / 25 % (nhan voi am luong chung trong app). **Am sac**: xung 50 / 25 / 12 %. Cac cai dat nay nam trong RAM, mat khi rut dien.
-- Mac dinh bat dau tu C5 (524 Hz) vi coi 12 mm yeu duoi ~400 Hz. Nốt thap nhat 32 Hz / cao nhat ~4,2 kHz (gioi han 24..108 MIDI); coi thuong chi nghe ro ~400 Hz - 5 kHz.
-- **TUNES** (R4C5 o PIANO): 20 bai chia 2 trang, phim `-` / `+` cham / nhanh (5 muc), R3C5 dung. Bam lai bai dang phat hoac bat ky phim nao khac = dung. Sua / them bai trong `firmware/tunes.h` (`{midi, do dai 1/16}`).
-  - **Trang 1 (TUNES)**: M1..M9 = Ode to Joy, Twinkle, Jingle Bells, Fur Elise, Happy Birthday, Frere Jacques, Greensleeves, Mary Had a Little Lamb, Canon in D. Phim mui ten phai `R4C2` sang trang 2, `R4C5` ve PIANO.
-  - **Trang 2 (TUNES 2, v16)**: M1..M9 = Old MacDonald, Row Your Boat, London Bridge, Cross Buns (Hot Cross Buns), Yankee Doodle, Lightly Row, Au Clair de la Lune, Surprise Symphony (Haydn), Silent Night; `R1C3` = Deck the Halls, `R1C4` = We Wish You a Merry Christmas. Phim mui ten trai `R4C0` ve trang 1.
-  - Tat ca la ban nhac dan gian / co truyen (het ban quyen). Nhac thieu nhi Viet Nam hien dai (vd. Chu ech con, Chau len ba...) con ban quyen tac gia nen khong dua vao san; muon them thi tu nhap nốt vao `tunes.h`.
-  - Moi bai dung 1 phim; muon them bai thu 21 tro len: them mang nốt + 1 dong `TUNE_OF(...)` vao `TUNE_TAB`, doi `NTUNE`, roi gan phim `TUNE(n)` (xem `firmware/keymap.h`).
-- **NOTES (v16) - choi nhac bang khoi so numpad, kieu "so"**: vao tu layer TUNES trang 1 bam `R4C3` (vi tri phim `0`), thoat bam `R4C5` (phim `.`).
-  ```
-        C0     C1     C2     C3     C4     C5     C6
-  R0:   C#5    D#5    --    [Num]   Oct-   Oct+   Trans-     (/ va * = Oct- / Oct+)
-  R1:   F#5    G#5    A#5    7=Si   8=Do'  9=Re'  Trans+
-  R2:   C#6    D#6    --     4=Fa   5=Sol  6=La    --
-  R3:   --    Giu/    --     1=Do   2=Re   3=Mi    (FN)
-              tat dan
-  R4:  Am sac  Rung  Am luong 0=Nghi  --    (thoat) --
-  ```
-  Phim `1..7` = Do Re Mi Fa Sol La Si (C5..B5), `8` = Do cao (C6), `9` = Re cao (D6), `0` = nghi / dung. Khoi M ben trai la cac nốt thang (#) de choi duoc ca cung thang. `-` / `+` chuyen giong, `/` / `*` doi quang tam. Layer mac dinh la 7 (v16): can "ve mac dinh" + luu de co layer NOTES.
-- OLED hien ten nốt (`C+5` = Do thang quang tam 5, font khong co dau #) hoac ten bai.
+- `PLAY/STOP` (R0C0): dang phat = dung; dang im = phat lai bai dang chon (chua chon: bai 1).
+- `BAI TRUOC` (R4C3, phim `0`) / `BAI SAU` (R4C5, phim `.`): chon bai truoc / ke, vong tron 1 -> 20 -> 1, phat ngay. Chua chon gi: BAI SAU = bai 1, BAI TRUOC = bai 20.
+- `TEMPO` (R3C4, phim `2`): doi tempo vong tron 5 muc (160 / 135 / 115 / 95 / 80 ms moi 1/16 nốt; mac dinh muc 3) -> cham de nghe ro nốt, roi tang dan. Doi tempo co hieu luc tu nốt ke tiep, khong dung bai. Tempo luu trong RAM (mat khi rut dien).
+- Nốt thap nhat cua cac bai la G4 (392 Hz), cao nhat G6 (1568 Hz). Coi 12 mm yeu duoi ~400 Hz; coi thuong chi nghe ro ~400 Hz - 5 kHz. Cac bai duoc dich len 1 quang tam so voi ban viet trong `tunes.h` (nho vay, nốt hien tren OLED = dung nốt phim dang mang ten do).
+- Cac ma phim cu van con va gan duoc trong Studio: Oct+/- (+-3 quang tam), Trans+/- (+-11 nua cung), Giu / Tat dan, Rung, Am luong, Am sac, STOP, DEMO, tempo -/+ va phim `TUNE(n)` (moi bai 1 phim). Layer mac dinh khong con du phim cho cac phim nay; muon dung, gan vao layer 4 tro len (layer trong suot) hoac doi phim trong layer MUSIC.
+- Sua / them bai trong `firmware/tunes.h` (`{midi, do dai 1/16}`); them bai thu 21 tro len: them mang nốt + 1 dong `TUNE_OF(...)` vao `TUNE_TAB`, doi `NTUNE`. Tat ca la ban nhac dan gian / co truyen (het ban quyen). Nhac thieu nhi Viet Nam hien dai (vd. Chu ech con, Chau len ba...) con ban quyen tac gia nen khong dua vao san.
+- 20 bai: 1 Ode to Joy, 2 Twinkle, 3 Jingle Bells, 4 Fur Elise, 5 Happy Birthday, 6 Frere Jacques, 7 Greensleeves, 8 Mary Had a Little Lamb, 9 Canon in D, 10 Old MacDonald, 11 Row Your Boat, 12 London Bridge, 13 Cross Buns, 14 Yankee Doodle, 15 Lightly Row, 16 Au Clair de la Lune, 17 Surprise Symphony, 18 Silent Night, 19 Deck the Halls, 20 We Wish You a Merry Christmas.
+- **Nang cap tu v19:** cau hinh da luu trong flash la 7 layer cu (PIANO / TUNES / TUNES 2 / NOTES). Firmware v20 van chay cau hinh do binh thuong (ma phim khong doi, 4 phim moi chi co khi gan), nhung de co layer MUSIC gop thi bam **"Ve mac dinh"** roi **"Luu vao thiet bi"** trong app Studio v20 ("Ve mac dinh" dat lai ca keymap, macro, LED, OLED ve mac dinh: hay xuat ho so truoc).
 - Sua o v13: tan so PWM duoi ~570 Hz truoc day tran thanh ghi wrap 16 bit (bo chia xung co dinh /4); gio chia xung tu dong, nốt 32 Hz van dung.
 
 - **Bai khoi dong (v14, v16: 1..20)**: chon 1 trong 20 bai de coi phat khi cap dien (app Studio, tab Coi bao -> "Bai khoi dong", nho "Luu vao thiet bi"). Mac dinh tat. Bam phim bat ky de dung. Word `OSB+7`, xem `docs/PROTOCOL.md`.

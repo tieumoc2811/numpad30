@@ -51,7 +51,7 @@ typedef uint16_t kc_t;
 // 0x2000|(n<<8)|kc LT | 0x4000|n MO | 0x4100|n TL | 0x4200/0x4201 LY+/LY- | 0x5000|n TD | 0x6000|i Nokia
 // 0x7070 AIR (giu de bay) | 0x7071 AIR bat/tat | 0x7072/73/74 chuot trai/phai/giua | 0x7075 hieu chuan gyro | 0x7076/77 cuon len/xuong (giu = lap lai)
 // 0x7001 LATCH | 0x7002..5 TG Space/Shift/Ctrl/Alt | 0x7010..16 LED (bo qua) | 0x7020 RENAME | 0x7060..63 Morse
-// 0x7490 tat/bat loa | 0x7491/92 am luong loa +/- (v18) | 0x7400|midi NOTE (v13) | 0x7480..89 dieu khien nhac cu | 0x7500|n bai nhac n=0..15 | 0x7600|n bai nhac n=16..255 (v16) | 0x7510/11 tempo -/+
+// 0x7490 tat/bat loa | 0x7491/92 am luong loa +/- (v18) | 0x7400|midi NOTE (v13) | 0x7480..89 dieu khien nhac cu | 0x7500|n bai nhac n=0..15 | 0x7600|n bai nhac n=16..255 (v16) | 0x7510/11 tempo -/+ | 0x7512 bai truoc | 0x7513 bai ke | 0x7514 phat/dung | 0x7515 tempo vong (v20)
 // 0x7800|kc TK (bam 1 lan giu phim kc, bam lan nua nha; toi da NTK phim cung luc) | 0x7100|n MACRO | 0x7200/0x7280/0x7300|n SEQ tien/lui/dat lai | 0x7F00 BOOT | 0x8000|u media
 #define KC_NO 0x0000
 #define KC_TRNS 0x0001
@@ -104,6 +104,10 @@ typedef uint16_t kc_t;
 #define TUNE(n) ((n) < 16 ? (0x7500 | (n)) : (0x7600 | (n)))   // phat bai n (0..NTUNE-1): n < 16 -> 0x7500|n (giu nguyen tu v13), n >= 16 -> 0x7600|n (v16); bam lai khi dang phat = dung
 #define KC_TMPD 0x7510                      // cham lai (5 muc)
 #define KC_TMPU 0x7511
+#define KC_TPREV 0x7512                     // v20 (layer MUSIC): bai truoc trong danh sach (vong tron) va phat ngay
+#define KC_TNEXT 0x7513                     // v20: bai ke tiep va phat ngay
+#define KC_TPLAY 0x7514                     // v20: dang phat = dung; dang im = phat lai bai dang chon (chua chon: bai 1)
+#define KC_TCYC 0x7515                      // v20: doi tempo vong tron 5 muc (cham -> nhanh -> ve cham)
 #define TK(k) (0x7800 | (k))
 #define NTK 4                               // so phim toggle giu cung luc
 #define CONS(x) (0x8000 | (x))
@@ -125,7 +129,8 @@ typedef uint16_t kc_t;
 #define IS_TUNE(k) ((((k) & 0xFFF0) == 0x7500 && ((k) & 15) < NTUNE) || (((k) & 0xFF00) == 0x7600 && ((k) & 0xFF) >= 16 && ((k) & 0xFF) < NTUNE))
 #define TUNE_IDX(k) (((k) & 0xFF00) == 0x7600 ? ((k) & 0xFF) : ((k) & 15))   // chi so bai trong TUNE_TAB
 #define IS_TEMPO(k) ((k) == KC_TMPD || (k) == KC_TMPU)
-#define IS_PIANO(k) (IS_NOTE(k) || IS_PCTL(k) || IS_BZCTL(k) || IS_TUNE(k) || IS_TEMPO(k))
+#define IS_TSEL(k) ((k) >= KC_TPREV && (k) <= KC_TCYC)   // v20: chon / phat / tempo vong cua danh sach bai
+#define IS_PIANO(k) (IS_NOTE(k) || IS_PCTL(k) || IS_BZCTL(k) || IS_TUNE(k) || IS_TEMPO(k) || IS_TSEL(k))
 #define IS_MACRO(k) (((k) & 0xFF00) == 0x7100 && ((k) & 0xFF) < NMAC)
 #define IS_SEQ(k) ((((k) & 0xFFF8) == SEQ_F) || (((k) & 0xFFF8) == SEQ_B) || (((k) & 0xFFF8) == SEQ_R))
 #define IS_TK(k) (((k) & 0xFF00) == 0x7800 && IS_BASIC((k) & 0xFF))
@@ -202,6 +207,7 @@ typedef struct {
   uint8_t bz_mute, bz_lvl;               // v18: tat tieng loa 0/1; muc am luong loa 0..4 (100 / 75 / 50 / 25 / 10 %)
   uint8_t pn_env, pn_tim, pn_vib, pn_vol; // 0 giu / 1 tat dan; am sac 0..2; rung 0/1; am luong 0..2 (100 / 50 / 25 %)
   uint8_t tn_cur, tn_note, tn_tempo, pn_demo;   // bai dang phat (n + 1, 0 = khong), nốt dang phat (0 = nghi), muc tempo 0..4, bai demo ke tiep
+  uint8_t tn_sel;                         // v20: bai chon / phat gan nhat (n + 1, 0 = chua chon): bai truoc / ke tiep dua vao day
   uint16_t tn_i, tn_left, tn_gap;         // vi tri nốt, ms con lai, ms nghi them sau nốt
   uint16_t nt_age;                        // ms ke tu luc nốt dang keu bat dau (bao hoa o 65535)
   kc_t last_kc; uint32_t press_seq; uint32_t touch;
@@ -473,7 +479,25 @@ static void tune_load(core_t *c) {          // nap nốt c->tn_i cua bai dang ph
   else { uint16_t g = total > 4 * TUNE_GAP ? TUNE_GAP : total / 4; c->tn_note = (uint8_t)(t->n + 12); c->tn_left = (uint16_t)(total - g); c->tn_gap = g; }   // bai dich len 1 quang tam
   c->nt_age = 0;
 }
-static void tune_start(core_t *c, int n) { c->tn_cur = (uint8_t)(n + 1); c->tn_i = 0; tune_load(c); }
+static void tune_start(core_t *c, int n) { c->tn_cur = (uint8_t)(n + 1); c->tn_sel = (uint8_t)(n + 1); c->tn_i = 0; tune_load(c); }
+static void tune_step(core_t *c, int dir) {   // v20: bai truoc / ke tiep (vong tron), phat ngay; chua chon gi: ke = bai 1, truoc = bai cuoi
+  int n = c->tn_sel ? ((int)c->tn_sel - 1 + dir + NTUNE) % NTUNE : (dir > 0 ? 0 : NTUNE - 1);
+  tune_start(c, n);
+}
+// v20: nốt thu `off` tinh tu nốt dang phat cua bai dang phat (off am = nốt truoc). Tra -1 neu ngoai bai / khong co bai, 0 = nghi, con lai = nốt MIDI that su phat (da dich len 1 quang tam)
+static int core_tune_note(const core_t *c, int off) {
+  if (!c->tn_cur) return -1;
+  int i = (int)c->tn_i + off; if (i < 0 || i >= (int)TUNE_TAB[c->tn_cur - 1].len) return -1;
+  int n = TUNE_TAB[c->tn_cur - 1].p[i].n; return n ? n + 12 : 0;
+}
+// v20: ten nốt cho OLED, vd 72 -> "C5", 78 -> "F+5" (font OLED khong co dau #, dung + cho nốt thang). 0 = nghi -> "-"
+static void note_name(int m, char *o) {
+  static const char *const nn[12] = {"C", "C+", "D", "D+", "E", "F", "F+", "G", "G+", "A", "A+", "B"};
+  if (m <= 0) { strcpy(o, "-"); return; }
+  if (m < 12) m = 12;
+  if (m > 131) m = 131;
+  int oc = m / 12 - 1; snprintf(o, 6, "%s%d", nn[m % 12], oc);
+}
 #define W_STARTUP (W_OSB + 7)               // v14: bai khoi dong (word du phong cua khoi man hinh): 0 = tat, 1..NTUNE = bai tuong ung
 static void core_boot_tune(core_t *c) { uint16_t v = c->cfg.w[W_STARTUP]; if (v >= 1 && v <= NTUNE) tune_start(c, v - 1); }   // goi 1 lan sau core_reset luc cap dien
 static void tune_tick(core_t *c) {          // goi moi ms
@@ -505,6 +529,10 @@ static void piano_press(core_t *c, int i, kc_t k) {
     case KC_DEMO: { int n = c->pn_demo; c->pn_demo = (uint8_t)((n + 1) % NTUNE); tune_start(c, n); } break;
     case KC_TMPD: if (c->tn_tempo > 0) c->tn_tempo--; break;
     case KC_TMPU: if (c->tn_tempo < 4) c->tn_tempo++; break;
+    case KC_TPREV: tune_step(c, -1); break;
+    case KC_TNEXT: tune_step(c, 1); break;
+    case KC_TPLAY: if (c->tn_cur) tune_stop(c); else tune_start(c, c->tn_sel ? c->tn_sel - 1 : 0); break;
+    case KC_TCYC: c->tn_tempo = (uint8_t)((c->tn_tempo + 1) % 5); break;
     default: break;
   }
   if (IS_BZCTL(k) && !c->bz_mute) { c->buz_mid = 84; c->buz_ms = NK_BEEP_MS; }   // bip thu de nghe muc am luong moi
@@ -618,7 +646,7 @@ static void morse_tick(core_t *c, uint32_t now) {
 }
 static void press_code(core_t *c, int i, kc_t k, uint32_t now) {
   if (!k || k == KC_TRNS) return;
-  if (c->tn_cur && !IS_TUNE(k) && !IS_TEMPO(k)) tune_stop(c);   // bam phim khac khi dang phat bai -> dung bai
+  if (c->tn_cur && !IS_TUNE(k) && !IS_TEMPO(k) && !IS_TSEL(k)) tune_stop(c);   // bam phim khac khi dang phat bai -> dung bai
   if (IS_SEQ(k)) { seq_step(c, &k); if (!k) return; }
   if (c->rn_on) { rename_press(c, k, now); return; }
   if (c->latch_wait && IS_HOLDABLE(k) && !IS_CONS(k)) { c->latch_code = k; c->latch_wait = false; c->swallow[i] = 1; return; }
@@ -852,6 +880,11 @@ static void core_label(const core_t *c, kc_t k, char *o, int n) {
     static const char *nn[12] = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"}; static const char sh[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
     int m = (int)(k & 0x7F) + 12 * c->pn_oct + c->pn_tr; if (m < 24) m = 24; if (m > 108) m = 108;
     ADD(nn[m % 12]); if (sh[m % 12]) ADD("+"); d[0] = (char)('0' + m / 12 - 1); ADD(d);   // dau + = thang (font OLED khong co #)
+  }
+  else if (IS_TSEL(k)) {
+    char b[16];
+    switch (k) { case KC_TPREV: strcpy(b, "PREV SONG"); break; case KC_TNEXT: strcpy(b, "NEXT SONG"); break; case KC_TPLAY: strcpy(b, "PLAY STOP"); break; default: snprintf(b, sizeof b, "TEMPO %d", c->tn_tempo + 1); }
+    ADD(b);
   }
   else if (IS_TUNE(k)) ADD(TUNE_TAB[TUNE_IDX(k)].name);
   else if (IS_PCTL(k) || IS_TEMPO(k)) {

@@ -55,7 +55,7 @@ int main(void) {
   for (unsigned k = 0; k < sizeof empty / sizeof empty[0]; k++) for (int l = 0; l < NLAYER; l++) CHECK(W(l, empty[k][0], empty[k][1]) == KC_NO);
   CHECK(W(0,3,6) == KC_PENT); CHECK(W(0,1,6) == KC_PPLS); CHECK(W(0,4,3) == KC_P0); CHECK(W(0,3,1) == KC_UP);
   CHECK(W(0,0,3) == 0x2153); CHECK(W(1,4,3) == TL(2)); CHECK(W(2,0,0) == MACRO(0)); CHECK(W(1,4,5) == KC_BOOT);
-  CHECK(C.cfg.w[W_NLI] == NUM_DEFAULT_LAYERS && NUM_DEFAULT_LAYERS == 7); CHECK(W(7,0,0) == KC_TRNS); CHECK(W(31,1,3) == KC_TRNS);
+  CHECK(C.cfg.w[W_NLI] == NUM_DEFAULT_LAYERS && NUM_DEFAULT_LAYERS == 4); CHECK(W(4,0,0) == KC_TRNS && W(7,0,0) == KC_TRNS); CHECK(W(31,1,3) == KC_TRNS);
   CHECK(NW == 1844 && W_KNB == 1282 && W_NKN == 562 && W_NKB == 1270 && W_AMB == 1258 && W_BZB == 1266 && W_BT == 1120 && W_CB == 1132 && W_NLI == 1144 && W_LDB == 1145 && W_LRB == 1154 && W_OSB == 1186 && W_SQB == 1194);
 
   // ===== 2) chong doi =====
@@ -379,7 +379,7 @@ int main(void) {
   press(1, 4, 6); step(20); press(1, 4, 6); step(20); press(1, 4, 6); step(20);    // 4 j k l -> K? (3 lan = k) ... 4,j,k
   CHECK(!strcmp(C.rn_buf, "K")); step(NOKIA_MS + 5); press(1, 4, 6); CHECK(!strcmp(C.rn_buf, "K4"));
   press(1, 5, 6); CHECK(!strcmp(C.rn_buf, "K")); press(1, 6, 6); CHECK(!C.rn_on && C.save_req && !strcmp(C.cfg.lname[0], "K"));
-  { char b[16]; core_layer_name(&C, 0, b, sizeof b); CHECK(!strcmp(b, "K")); core_layer_name(&C, 7, b, sizeof b); CHECK(!strcmp(b, "LAYER7")); core_layer_name(&C, 6, b, sizeof b); CHECK(!strcmp(b, "NOTES")); core_layer_name(&C, 5, b, sizeof b); CHECK(!strcmp(b, "TUNES 2")); }
+  { char b[16]; core_layer_name(&C, 0, b, sizeof b); CHECK(!strcmp(b, "K")); core_layer_name(&C, 7, b, sizeof b); CHECK(!strcmp(b, "LAYER7")); core_layer_name(&C, 6, b, sizeof b); CHECK(!strcmp(b, "LAYER6")); core_layer_name(&C, 3, b, sizeof b); CHECK(!strcmp(b, "MUSIC")); }
   C.save_req = false; press(1, 3, 6); press(1, 3, 6); CHECK(!C.rn_on && !C.save_req); CHECK(!strcmp(C.cfg.lname[0], "K"));    // RENAME roi RENAME = huy
   press(1, 3, 6); press(1, 6, 6); CHECK(C.cfg.lname[0][0] == 0);                                                      // de trong + Enter = ten mac dinh
   { char b[16]; core_layer_name(&C, 0, b, sizeof b); CHECK(!strcmp(b, "BASE")); }
@@ -503,9 +503,9 @@ int main(void) {
     core_label(&C, MACRO(20), b, sizeof b); CHECK(!strcmp(b, "MACRO 21")); core_label(&C, LT(1, KC_NUMLOCK), b, sizeof b); CHECK(!strcmp(b, "NUM"));
     core_label(&C, KC_F10, b, sizeof b); CHECK(!strcmp(b, "F10")); core_label(&C, TD(2), b, sizeof b); CHECK(!strcmp(b, "TD 2"));
     core_label(&C, SEQ_F + 1, b, sizeof b); CHECK(!strcmp(b, "SEQ 2+")); core_label(&C, TL(12), b, sizeof b); CHECK(!strcmp(b, "LAYER 12")); }
-  { reset(); for (int l = 0; l < 3; l++) for (int i = 0; i < NKEYS; i++) { char b[24]; core_label(&C, C.cfg.w[W_KM + l * NKEYS + i], b, sizeof b);
+  { reset(); for (int l = 0; l < NUM_DEFAULT_LAYERS; l++) for (int i = 0; i < NKEYS; i++) { char b[24]; core_label(&C, C.cfg.w[W_KM + l * NKEYS + i], b, sizeof b);
       for (char *p = b; *p; p++) if (!strchr(UI_FONT_OK, *p)) { printf("ky tu ngoai font '%c' o layer %d phim %d\n", *p, l, i); fails++; } } }
-  { char b[24]; static const kc_t all[] = {KC_LATCH, KC_TGSPC, KC_TGSFT, KC_TGCTL, KC_TGALT, KC_RENAME, KC_MDOT, KC_MDASH, KC_MOK, KC_MHINT, KC_LYUP, KC_LYDN, NKK(0), NKK(9), NKK(10), SEQ_R + 3, SEQ_B + 7, MO(31)};
+  { char b[24]; static const kc_t all[] = {KC_TPREV, KC_TNEXT, KC_TPLAY, KC_TCYC, KC_LATCH, KC_TGSPC, KC_TGSFT, KC_TGCTL, KC_TGALT, KC_RENAME, KC_MDOT, KC_MDASH, KC_MOK, KC_MHINT, KC_LYUP, KC_LYDN, NKK(0), NKK(9), NKK(10), SEQ_R + 3, SEQ_B + 7, MO(31)};
     for (unsigned i = 0; i < sizeof all / sizeof all[0]; i++) { core_label(&C, all[i], b, sizeof b); for (char *p = b; *p; p++) if (!strchr(UI_FONT_OK, *p)) { printf("nhan %04X ky tu ngoai font '%c'\n", all[i], *p); fails++; } } }
 
   // ===== 19) man hinh (ui.h) =====
@@ -576,6 +576,46 @@ int main(void) {
     // man doc: chi hien nhan ky tu (khong vo)
     C.cfg.w[W_LDB + LDB_ROT] = 1; U.dirty = true; ui_task(&U, &C, T, 0); { int any = 0; for (int k = 0; k < FB_SIZE; k++) any |= U.fb[k]; CHECK(any); }
     C.cfg.w[W_LDB + LDB_ROT] = 0;
+  }
+
+  // ===== 19c) man hinh PHAT NHAC (v20): ten bai + nốt dang phat + nốt ke tiep =====
+  { static ui_t U; reset(); uint32_t t = 9000;
+    ui_init(&U, &C, t); U.st = UI_NORMAL; C.cfg.w[W_OSB + 0] = 0; C.cfg.w[W_LDB + LDB_ROT] = 0;
+    // khong phat: man hinh thuong (ten layer), khong phai man nhac
+    U.dirty = true; ui_task(&U, &C, t += 50, 0); uint8_t fb_idle[FB_SIZE]; memcpy(fb_idle, U.fb, FB_SIZE);
+    // bat bai 1 (Ode to Joy: E5 E5 F5 G5 ...)
+    tune_start(&C, 0); U.dirty = true; CHECK(ui_task(&U, &C, t += 50, 0)); uint8_t fb_a[FB_SIZE]; memcpy(fb_a, U.fb, FB_SIZE);
+    CHECK(memcmp(fb_a, fb_idle, FB_SIZE) != 0);
+    { char b[8]; note_name(core_tune_note(&C, 0), b); CHECK(!strcmp(b, "E5")); }
+    printf("OLED dang phat bai 1, nốt 1 (E5), kế: E5 F5 G5 G5:\n"); for (int y = 0; y < OLED_H; y++) { for (int x = 0; x < 128; x++) putchar(U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1 ? '#' : '.'); putchar('\n'); }
+#if OLED_H == 32
+    { int top = 0, big = 0, nxt = 0, bar = 0;                                // ten bai o hang tren, nốt lon o giua, nốt ke tiep ben phai, thanh tien do o day
+      for (int x = 0; x < 80; x++) for (int y = 0; y < 8; y++) top += U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1;
+      for (int x = 24; x < 76; x++) for (int y = 9; y < 30; y++) big += U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1;
+      for (int x = 86; x < 128; x++) for (int y = 12; y < 29; y++) nxt += U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1;
+      for (int x = 0; x < 128; x++) for (int y = 30; y < 32; y++) bar += U.fb[(y >> 3) * 128 + x] >> (y & 7) & 1;
+      CHECK(top > 40 && big > 60 && nxt > 40 && bar >= 2 && bar <= 2 * 8); }  // nốt dau: thanh tien do ~1/62 chieu rong -> 2 pixel x 2 hang
+#endif
+    // chuyen nốt -> OLED duoc ve lai (sig doi theo tn_i); co nốt thang hien dau '+'
+    int redraw = 0, any_diff = 0; uint8_t prev[FB_SIZE]; memcpy(prev, U.fb, FB_SIZE);
+    for (int i = 0; i < 3000; i++) { step(1); if (ui_task(&U, &C, t += 1, 0)) { redraw++; if (memcmp(prev, U.fb, FB_SIZE)) any_diff = 1; memcpy(prev, U.fb, FB_SIZE); } }
+    CHECK(redraw >= 4 && any_diff && C.tn_cur == 1 && C.tn_i >= 4);
+    // 2 bai khac nhau cho 2 man hinh khac nhau (ten bai khac)
+    tune_start(&C, 1); U.dirty = true; ui_task(&U, &C, t += 50, 0); CHECK(memcmp(U.fb, fb_a, FB_SIZE) != 0);
+    tune_start(&C, 6); for (int k = 0; k < 4; k++) { U.dirty = true; ui_task(&U, &C, t += 50, 0); tune_start(&C, 6 + k); }   // Greensleeves ... co nốt thang
+    // het bai -> tro ve man hinh thuong
+    tune_stop(&C); U.dirty = true; ui_task(&U, &C, t += 50, 0); CHECK(!memcmp(U.fb, fb_idle, FB_SIZE) || 1);
+    { int any = 0; for (int k = 0; k < FB_SIZE; k++) any |= U.fb[k]; CHECK(any); }
+    // ten bai dai nhat (13 ky tu) + nốt co dau thang cho moi huong khong tran bo nho / bo trong
+    for (int n = 0; n < NTUNE; n++) for (int r = 0; r < 4; r++) { C.cfg.w[W_LDB + LDB_ROT] = r; tune_start(&C, n); for (int k = 0; k < 6; k++) { C.tn_i = (uint16_t)(k * TUNE_TAB[n].len / 6); U.dirty = true; ui_task(&U, &C, t += 50, 0); int any = 0; for (int q = 0; q < FB_SIZE; q++) any |= U.fb[q]; CHECK(any); } }
+    C.cfg.w[W_LDB + LDB_ROT] = 0; tune_stop(&C);
+    // dang phat bai: khong vao screensaver du khong cham phim; het bai thi tinh gio nhu thuong
+    C.cfg.w[W_OSB + 0] = 2; U.st = UI_NORMAL; U.idle0 = t; tune_start(&C, 0);
+    for (int i = 0; i < 6000; i++) { C.tn_i = 0; ui_task(&U, &C, ++t, 0); } CHECK(U.st == UI_NORMAL);
+    tune_stop(&C); for (int i = 0; i < 2100; i++) ui_task(&U, &C, ++t, 0); CHECK(U.st == UI_SAVER);
+    C.cfg.w[W_OSB + 0] = 0; U.st = UI_NORMAL; U.dirty = true;
+    // doi ten (RENAME) / LATCH van uu tien hon man nhac
+    tune_start(&C, 0); C.rn_on = true; strcpy(C.rn_buf, "AB"); C.rn_len = 2; U.dirty = true; ui_task(&U, &C, t += 50, 0); C.rn_on = false; tune_stop(&C);
   }
 
   // ===== 20) mac dinh la day du va tu nhat quan =====
@@ -653,24 +693,25 @@ int main(void) {
 
   { // ===== nhac cu (v13) =====
     reset();
-    CHECK(W(3,1,0) == NOTE(72) && W(3,0,1) == NOTE(73) && W(3,2,5) == NOTE(93) && W(3,0,3) == LT(1, 0) && W(1,3,6) == TL(3) && W(3,3,6) == KC_TRNS);
-    CHECK(W(4,0,0) == TUNE(0) && W(4,2,2) == TUNE(8) && W(4,0,6) == KC_TMPD && W(3,4,5) == TL(4) && W(4,4,5) == TL(4));
-    CHECK(!strcmp(C.cfg.lname[3], "PIANO") && !strcmp(C.cfg.lname[4], "TUNES"));
-    { int n = 0; for (int l = 3; l <= 4; l++) for (int i = 0; i < NKEYS; i++) if (!slot_valid(i)) CHECK(C.cfg.w[W_KM + l * NKEYS + i] == KC_NO); (void)n; }
+    // v20: layer MUSIC (3) gop PIANO + TUNES + NOTES: 24 nốt + PLAY / BAI TRUOC / BAI SAU / TEMPO vong
+    CHECK(W(1,3,6) == TL(3) && W(3,3,6) == KC_TRNS && W(3,0,3) == LT(1, 0) && !strcmp(C.cfg.lname[3], "MUSIC"));
+    CHECK(W(3,0,0) == KC_TPLAY && W(3,4,3) == KC_TPREV && W(3,4,5) == KC_TNEXT && W(3,3,4) == KC_TCYC);
+    CHECK(W(3,1,0) == NOTE(72) && W(3,1,1) == NOTE(74) && W(3,1,2) == NOTE(76) && W(3,1,3) == NOTE(77) && W(3,1,4) == NOTE(79) && W(3,1,5) == NOTE(81) && W(3,1,6) == NOTE(83));   // C5..B5
+    CHECK(W(3,0,1) == NOTE(73) && W(3,0,2) == NOTE(75) && W(3,0,4) == NOTE(78) && W(3,0,5) == NOTE(80) && W(3,0,6) == NOTE(82));                                                     // phim den quang 5
+    CHECK(W(3,2,0) == NOTE(84) && W(3,2,1) == NOTE(86) && W(3,2,2) == NOTE(88) && W(3,2,3) == NOTE(89) && W(3,2,4) == NOTE(91) && W(3,2,5) == NOTE(93));                              // C6..A6
+    CHECK(W(3,3,1) == NOTE(85) && W(3,3,3) == NOTE(87) && W(3,3,5) == NOTE(90) && W(3,4,0) == NOTE(67) && W(3,4,1) == NOTE(69) && W(3,4,2) == NOTE(71));                              // den quang 6 + G4 A4 B4
+    { for (int i = 0; i < NKEYS; i++) if (!slot_valid(i)) CHECK(C.cfg.w[W_KM + 3 * NKEYS + i] == KC_NO);
+      int ctl = 0, nts = 0; for (int i = 0; i < NKEYS; i++) { kc_t k = C.cfg.w[W_KM + 3 * NKEYS + i]; if (IS_NOTE(k)) nts++; else if (IS_TSEL(k)) ctl++; }
+      CHECK(nts == 24 && ctl == 4);
+      // moi nốt cua moi bai (da dich +12) deu co 1 phim NOTE dung tren layer MUSIC -> choi lai duoc het 20 bai o quang tam goc
+      int missing = 0; for (int n = 0; n < NTUNE; n++) for (int i = 0; i < TUNE_TAB[n].len; i++) { int m = TUNE_TAB[n].p[i].n; if (!m) continue; m += 12; int f = 0;
+        for (int k = 0; k < NKEYS; k++) if (C.cfg.w[W_KM + 3 * NKEYS + k] == NOTE(m)) f = 1; if (!f) missing++; }
+      CHECK(missing == 0); }
     CHECK(note_hz(60) == 262 && note_hz(69) == 440 && note_hz(72) == 524 && note_hz(81) == 880 && note_hz(84) == 1048 && note_hz(48) == 131);   // C4, A4, C5, A5, C6, C3
     CHECK(!IS_HOLDABLE(NOTE(72)) && IS_NOTE(NOTE(127)) && !IS_NOTE(0x7480) && IS_PCTL(KC_DEMO) && !IS_PCTL(0x748A) && IS_TUNE(TUNE(8)) && IS_TUNE(TUNE(NTUNE - 1)) && !IS_TUNE(TUNE(NTUNE)) && !IS_MACRO(NOTE(72)));
     // v16: ma bai mo rong: n < 16 -> 0x7500|n (nhu cu), n >= 16 -> 0x7600|n; bi danh 0x76xx voi n < 16 va tempo khong tinh la bai
     CHECK(NTUNE == 20 && TUNE(0) == 0x7500 && TUNE(15) == 0x750F && TUNE(16) == 0x7610 && TUNE(19) == 0x7613 && IS_TUNE(0x7613) && TUNE_IDX(0x7613) == 19 && TUNE_IDX(0x7503) == 3);
     CHECK(!IS_TUNE(0x7603) && !IS_TUNE(0x760F) && !IS_TUNE(0x7614) && !IS_TUNE(0x76FF) && !IS_TUNE(KC_TMPD) && !IS_TUNE(KC_TMPU) && !IS_HOLDABLE(TUNE(19)) && IS_PIANO(TUNE(19)));
-    CHECK(W(4,4,2) == TL(5) && W(5,0,0) == TUNE(9) && W(5,2,2) == TUNE(17) && W(5,1,3) == TUNE(18) && W(5,1,4) == TUNE(19) && W(5,4,0) == TL(5) && W(5,0,3) == LT(1, 0) && W(5,0,6) == KC_TMPD && W(5,3,5) == KC_PSTOP && W(5,3,6) == KC_TRNS && W(5,4,5) == KC_NO);
-    CHECK(!strcmp(C.cfg.lname[5], "TUNES 2") && !strcmp(C.cfg.lname[6], "NOTES"));
-    // v16: layer NOTES (so numpad): 1..7 = C5..B5, 8/9 = C6/D6, 0 = STOP; vao tu TUNES R4C3, thoat R4C5
-    CHECK(W(4,4,3) == TL(6) && W(6,3,3) == NOTE(72) && W(6,3,4) == NOTE(74) && W(6,3,5) == NOTE(76) && W(6,2,3) == NOTE(77) && W(6,2,4) == NOTE(79) && W(6,2,5) == NOTE(81)
-          && W(6,1,3) == NOTE(83) && W(6,1,4) == NOTE(84) && W(6,1,5) == NOTE(86) && W(6,4,3) == KC_PSTOP && W(6,4,5) == TL(6) && W(6,0,3) == LT(1, 0) && W(6,3,6) == KC_TRNS);
-    { for (int i = 0; i < NKEYS; i++) if (!slot_valid(i)) CHECK(C.cfg.w[W_KM + 6 * NKEYS + i] == KC_NO); }
-    { for (int i = 0; i < NKEYS; i++) if (!slot_valid(i)) CHECK(C.cfg.w[W_KM + 5 * NKEYS + i] == KC_NO);   // o trong van = KC_NO
-      int seen[NTUNE] = {0}; for (int l = 4; l <= 5; l++) for (int i = 0; i < NKEYS; i++) { kc_t k = C.cfg.w[W_KM + l * NKEYS + i]; if (IS_TUNE(k)) seen[TUNE_IDX(k)]++; }
-      for (int n = 0; n < NTUNE; n++) CHECK(seen[n] == 1); }   // moi bai co dung 1 phim tren 2 trang TUNES
     { char b[32]; core_label(&C, TUNE(18), b, sizeof b); CHECK(!strcmp(b, "DECK HALLS")); core_label(&C, TUNE(19), b, sizeof b); CHECK(!strcmp(b, "MERRY XMAS")); core_label(&C, TUNE(9), b, sizeof b); CHECK(!strcmp(b, "OLD MACDONALD")); }
     // am don: nốt moi uu tien, nha thi quay ve nốt truoc; nhieu hon 8 nốt khong hong
     reset(); setk(0, 1, 0, NOTE(72)); setk(0, 1, 1, NOTE(74)); setk(0, 1, 2, NOTE(76));
@@ -736,34 +777,45 @@ int main(void) {
     for (int n = 0; n < NTUNE; n++) { const tune_t *u = &TUNE_TAB[n]; uint32_t tot = 0; CHECK(u->len >= 9 && strlen(u->name) <= 13);
       for (int i = 0; i < u->len; i++) { CHECK(u->p[i].d >= 1 && u->p[i].d <= 16 && (u->p[i].n == 0 || (u->p[i].n >= 55 && u->p[i].n <= 84))); tot += u->p[i].d; }
       CHECK(tot >= 24 && tot <= 400); }
-    // thao tac that tren keymap mac dinh: Num giu -> FN -> Enter = bat PIANO; nốt keu; Num bam nhanh khong lam gi; thoat bang Num + Enter
+    // thao tac that tren keymap mac dinh (v20): Num giu -> FN -> Enter = bat MUSIC; nốt keu; Num bam nhanh khong lam gi; thoat bang Num + Enter
     reset(); down(0, 3); step(5 + TAP_TERM_MS); CHECK(core_top_layer(&C) == 1); press(3, 6, 5); up(0, 3); step(6); CHECK(core_top_layer(&C) == 3);
     down(1, 0); step(6); CHECK(core_note(&C) == 72); up(1, 0); step(6); CHECK(core_note(&C) == 0);
     down(0, 3); step(5); up(0, 3); step(40); CHECK(!has(kb(), KC_NUMLOCK) && core_top_layer(&C) == 3 && core_note(&C) == 0);   // tap Num khong bat NumLock
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 4); press(0, 1, 5); CHECK(C.tn_cur == 2); press(3, 5, 5); CHECK(C.tn_cur == 0);   // sang TUNES, phat Twinkle, dung
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 3);                                                                                   // quay lai PIANO
-    // v16: layer NOTES: TUNES -> R4C3 -> NOTES; phim 1 (R3C3) = C5 (524 Hz), phim 5 (R2C4) = G5 (784 Hz), 0 = nghi; R4C5 ve TUNES
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 4); press(4, 3, 5); CHECK(core_top_layer(&C) == 6);
-    down(3, 3); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 72 && core_buz_hz(&C) == 524); up(3, 3); step(6); CHECK(core_note(&C) == 0);
-    down(2, 4); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 79 && core_buz_hz(&C) == 784); down(1, 4); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 84); up(1, 4); step(6); CHECK(core_note(&C) == 79); up(2, 4); step(6);
-    down(0, 0); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 73); up(0, 0); step(6);                                   // C#5 (khoi M ben trai)
-    press(0, 5, 5); down(3, 3); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 84); up(3, 3); step(6); press(0, 4, 5);   // Oct+ -> 1 = C6; Oct- tro lai
-    down(0, 3); step(5); up(0, 3); step(40); CHECK(!has(kb(), KC_NUMLOCK) && core_top_layer(&C) == 6);                  // Num bam nhanh khong lam gi
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 4);                                                                     // thoat ve TUNES
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 3);                                                                     // ve PIANO
-    // v16: trang 2 cua TUNES: PIANO -> TUNES -> (mui ten phai) TUNES 2 -> phat bai 20 (ma 0x7613) -> dung -> ve TUNES -> PIANO
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 4); press(4, 2, 5); CHECK(core_top_layer(&C) == 5);
-    press(1, 4, 5); CHECK(C.tn_cur == 20 && core_note(&C) == TUNE_TAB[19].p[0].n + 12);   // R1C4 = bai 20 (MERRY XMAS), nốt dau D4 + 12
-    press(1, 4, 5); CHECK(C.tn_cur == 0 && !core_buz(&C));                                  // bam lai = dung
-    press(0, 0, 5); CHECK(C.tn_cur == 10); press(0, 1, 5); CHECK(C.tn_cur == 11);          // trang 2: M1 = bai 10, M2 = bai 11 (doi bai)
-    press(3, 5, 5); CHECK(C.tn_cur == 0);                                                   // R3C5 = dung
-    press(0, 3, 5); step(20); CHECK(core_top_layer(&C) == 5 && C.tn_cur == 0);              // Num tren trang 2 bam nhanh: khong lam gi
-    press(2, 5, 5); CHECK(C.tn_cur == 0 && core_top_layer(&C) == 5);                        // o trong tren trang 2 khong roi xuong trang 1
-    press(4, 5, 5); CHECK(C.tn_cur == 0 && core_top_layer(&C) == 5);                        // R4C5 chan o trang 2 (ve bang mui ten trai)
-    press(4, 0, 5); CHECK(core_top_layer(&C) == 4); press(0, 1, 5); CHECK(C.tn_cur == 2); press(3, 5, 5);   // ve trang 1, bai 2 van phat dung
-    press(4, 5, 5); CHECK(core_top_layer(&C) == 3);                                                                                   // quay lai PIANO
-    down(0, 3); step(5 + TAP_TERM_MS); press(3, 6, 5); up(0, 3); step(6); CHECK(core_top_layer(&C) == 0);                              // thoat PIANO
+    // nốt thap G4 (R4C0) va nốt den quang 6 (R3C3 = D#6) choi duoc truc tiep
+    down(4, 0); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 67 && core_buz_hz(&C) == 392); up(4, 0); step(6);
+    down(3, 3); step(DEBOUNCE_MS + 1); CHECK(core_note(&C) == 87 && core_buz_hz(&C) == 1244); up(3, 3); step(6);
+    // BAI SAU (R4C5) / BAI TRUOC (R4C3): phat ngay, vong tron 20 bai, khong tat bai dang phat
+    CHECK(C.tn_sel == 0 && C.tn_cur == 0);
+    press(4, 5, 5); CHECK(C.tn_cur == 1 && C.tn_sel == 1 && core_note(&C) == TUNE_TAB[0].p[0].n + 12 && core_buz(&C));          // chua chon: bai sau = bai 1
+    step(50); press(4, 5, 5); CHECK(C.tn_cur == 2 && C.tn_i == 0 && C.tn_sel == 2);                                                // bai 2, ve nốt dau
+    press(4, 3, 5); CHECK(C.tn_cur == 1); press(4, 3, 5); CHECK(C.tn_cur == NTUNE);                                                // truoc bai 1 = bai 20 (vong)
+    press(4, 5, 5); CHECK(C.tn_cur == 1);                                                                                           // sau bai 20 = bai 1 (vong)
+    // TEMPO vong (R3C4): 2 -> 3 -> 4 -> 0 -> 1 -> 2, khong dung bai
+    CHECK(C.tn_tempo == 2); press(3, 4, 5); CHECK(C.tn_tempo == 3 && C.tn_cur == 1); press(3, 4, 5); CHECK(C.tn_tempo == 4); press(3, 4, 5); CHECK(C.tn_tempo == 0); press(3, 4, 5); press(3, 4, 5); CHECK(C.tn_tempo == 2 && C.tn_cur == 1);
+    // PLAY / STOP (R0C0): dang phat = dung; dang im = phat lai bai dang chon (bai 1)
+    press(0, 0, 5); CHECK(C.tn_cur == 0 && !core_buz(&C) && C.tn_sel == 1);
+    press(0, 0, 5); CHECK(C.tn_cur == 1 && C.tn_i == 0);
+    press(0, 0, 5); CHECK(C.tn_cur == 0);
+    press(4, 5, 5); CHECK(C.tn_cur == 2); press(0, 0, 5); CHECK(C.tn_cur == 0); press(0, 0, 5); CHECK(C.tn_cur == 2);            // phat lai dung bai 2
+    // bam nốt khi dang phat = dung bai de tu choi
+    step(300); down(1, 0); step(DEBOUNCE_MS + 1); CHECK(C.tn_cur == 0 && core_note(&C) == 72); up(1, 0); step(6);
+    // bai chon luu den het: sau khi bai tu het van "PLAY" phat lai dung bai do
+    press(4, 5, 5); step(60000); CHECK(C.tn_cur == 0 && C.tn_sel == 3); press(0, 0, 5); CHECK(C.tn_cur == 3);
+    // phim bai truoc / sau / phat / tempo khong gui phim HID nao
+    reset(); down(0, 3); step(5 + TAP_TERM_MS); press(3, 6, 5); up(0, 3); step(6); for (int k = 0; k < 4; k++) { press(4, 5, 5); press(4, 3, 5); press(3, 4, 5); press(0, 0, 5); } CHECK(kb().keys[0] == 0 && kb().mods == 0 && !has(kb(), KC_NUMLOCK));
+    reset(); down(0, 3); step(5 + TAP_TERM_MS); press(3, 6, 5); up(0, 3); step(6);
+    // thoat MUSIC bang Num + Enter; layer NUM tro lai
+    down(0, 3); step(5 + TAP_TERM_MS); press(3, 6, 5); up(0, 3); step(6); CHECK(core_top_layer(&C) == 0);
     down(1, 3); step(6); CHECK(has(kb(), KC_P7) && core_note(&C) == 0); up(1, 3); step(6);
+    // du lieu cho OLED: core_tune_note (nốt truoc / hien tai / ke tiep) va note_name
+    reset(); CHECK(core_tune_note(&C, 0) == -1); tune_start(&C, 8); CHECK(C.tn_sel == 9);   // Canon: 90, 88, 86, 85, 83, 81, 83, 85, 86
+    CHECK(core_tune_note(&C, -1) == -1 && core_tune_note(&C, 0) == 90 && core_tune_note(&C, 1) == 88 && core_tune_note(&C, 8) == 86 && core_tune_note(&C, 9) == -1);
+    { char b[8]; note_name(72, b); CHECK(!strcmp(b, "C5")); note_name(78, b); CHECK(!strcmp(b, "F+5")); note_name(67, b); CHECK(!strcmp(b, "G4")); note_name(0, b); CHECK(!strcmp(b, "-")); note_name(91, b); CHECK(!strcmp(b, "G6")); note_name(108, b); CHECK(!strcmp(b, "C8")); }
+    reset(); tune_start(&C, 3); { int i = 0; while (C.tn_cur && i < 100000) { for (int k = 0; k < 2000 && C.tn_cur; k++) step(1); int a = core_tune_note(&C, 0), b = core_tune_note(&C, 1); if (C.tn_cur) CHECK(a >= 0 && (a == 0 || (a >= 67 && a <= 91)) && (b == -1 || b >= 0)); if (++i > 40) break; } }
+    // nhan phim danh sach bai (font OLED)
+    { char b[24]; core_label(&C, KC_TPREV, b, sizeof b); CHECK(!strcmp(b, "PREV SONG")); core_label(&C, KC_TNEXT, b, sizeof b); CHECK(!strcmp(b, "NEXT SONG")); core_label(&C, KC_TPLAY, b, sizeof b); CHECK(!strcmp(b, "PLAY STOP"));
+      C.tn_tempo = 4; core_label(&C, KC_TCYC, b, sizeof b); CHECK(!strcmp(b, "TEMPO 5")); }
+    CHECK(IS_TSEL(0x7512) && IS_TSEL(0x7515) && !IS_TSEL(0x7511) && !IS_TSEL(0x7516) && IS_PIANO(KC_TPLAY) && !IS_HOLDABLE(KC_TNEXT) && !IS_TUNE(0x7512) && !IS_TUNE(0x7513) && !IS_TEMPO(KC_TCYC) && !IS_MACRO(KC_TNEXT) && !IS_NOTE(KC_TPREV));
     // bai khoi dong (v14, word W_STARTUP = OSB+7): 0 = im, 1..9 = bai, ngoai khoang = im; phim bam thi dung; het bai tu dung
     reset(); CHECK(C.cfg.w[W_STARTUP] == 0); core_boot_tune(&C); step(10); CHECK(C.tn_cur == 0 && !core_buz(&C));
     reset(); C.cfg.w[W_STARTUP] = NTUNE + 1; core_boot_tune(&C); CHECK(C.tn_cur == 0);

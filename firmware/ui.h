@@ -139,8 +139,46 @@ static void ui_nokia_view(ui_t *u, const core_t *c, const char *ln, uint8_t host
   uint32_t el = now - c->nk_t; int w = el >= NOKIA_MS ? 0 : (int)(128u * (NOKIA_MS - el) / NOKIA_MS);   // thanh con lai truoc khi chot ky tu
   ui_box(u, 0, OLED_H - 2, w, 2, true);
 }
+// ---- man hinh PHAT NHAC (v20): ten bai, nốt dang phat (lon), 4 nốt ke tiep, nốt vua qua, thanh tien do ----
+// Ten nốt dung dung quy uoc cua phim: "C5" = phim NOTE(72) o layer MUSIC (quang tam goc), "F+5" = Fa thang (font khong co dau #).
+static void ui_note_txt(ui_t *u, int x, int y, int s, int off, const core_t *c) {   // ve nốt thu `off` so voi nốt dang phat; ngoai bai thi bo trong
+  int m = core_tune_note(c, off); if (m < 0) return;
+  char b[8]; note_name(m, b); ui_txt(u, x, y, s, b, true);
+}
+static void ui_music_view(ui_t *u, const core_t *c) {
+  const tune_t *t = &TUNE_TAB[c->tn_cur - 1];
+  char idx[12], tp[8], b[8];
+  snprintf(idx, sizeof idx, "%02d/%d", c->tn_cur, NTUNE); snprintf(tp, sizeof tp, "T%d", c->tn_tempo + 1);
+  int len = (int)t->len, done = ((int)c->tn_i + 1) * 128 / (len ? len : 1);
+  note_name(core_tune_note(c, 0), b);
+  if (u->rot & 1) {   // man doc (lw = OLED_H): ten bai xuong dong, nốt hien tai, nốt ke tiep xep doc
+    int lw = OLED_H, cpl = OLED_H == 32 ? 5 : 10;
+    ui_txt_wrap(u, 0, 0, 1, t->name, cpl, 3);
+    ui_txt(u, 0, 28, 1, idx, true); ui_txt(u, 0, 38, 1, tp, true);
+    int s = ui_tw(b, 3) <= lw ? 3 : ui_tw(b, 2) <= lw ? 2 : 1;
+    ui_txt(u, 0, 52, s, b, true);
+    ui_note_txt(u, 0, 52 + 7 * s + 6, 1, -1, c);
+    for (int k = 1; k <= 4; k++) ui_note_txt(u, 0, 52 + 7 * s + 6 + 10 * k, 1, k, c);
+    ui_box(u, 0, 125, lw * (done > 128 ? 128 : done) / 128, 3, true);
+    return;
+  }
+#if OLED_H == 64
+  ui_txt(u, 0, 0, 1, t->name, true); ui_txt(u, 84, 0, 1, tp, true); ui_txt(u, 99, 0, 1, idx, true);
+  ui_note_txt(u, 0, 34, 1, -1, c);                         // nốt vua qua (nho)
+  ui_txt(u, 22, 22, 4, b, true);                           // nốt dang phat (lon: toi da 68 px, het o x = 90)
+  for (int k = 1; k <= 3; k++) ui_note_txt(u, 94, 14 + 17 * (k - 1), 2, k, c);   // 3 nốt ke tiep
+  ui_box(u, 0, 60, done > 128 ? 128 : done, 4, true);
+#else
+  ui_txt(u, 0, 0, 1, t->name, true); ui_txt(u, 82, 0, 1, tp, true); ui_txt(u, 99, 0, 1, idx, true);
+  ui_note_txt(u, 0, 17, 1, -1, c);                         // nốt vua qua (nho, ben trai)
+  ui_txt(u, 24, 9, 3, b, true);                             // nốt dang phat (lon)
+  for (int k = 1; k <= 4; k++) ui_note_txt(u, 86 + ((k - 1) & 1) * 22, 12 + ((k - 1) >> 1) * 10, 1, k, c);   // 4 nốt ke tiep (2 x 2)
+  ui_box(u, 0, 30, done > 128 ? 128 : done, 2, true);       // tien do bai
+#endif
+}
 static void ui_normal(ui_t *u, const core_t *c, uint8_t host_leds, uint32_t now) {
   char ln[16], lab[24];
+  if (c->tn_cur && !c->rn_on && !c->latch_wait) { ui_music_view(u, c); return; }   // v20: dang phat bai -> man hinh nhac
   if (c->rn_on) { strcpy(ln, "NAME"); strcpy(lab, c->rn_buf); strcat(lab, "_"); }
   else { core_layer_name(c, core_top_layer(c), ln, sizeof ln); strcpy(lab, u->shown); if (c->latch_wait) strcpy(lab, "LATCH ?"); }
   bool mo = !c->rn_on && !c->latch_wait && ui_morse_on(c), nk = !c->rn_on && !c->latch_wait && ui_nokia_on(c, now);
@@ -182,11 +220,13 @@ static bool ui_task(ui_t *u, const core_t *c, uint32_t now, uint8_t host_leds) {
     if (u->st == UI_SAVER || u->st == UI_LOGO) { u->st = UI_NORMAL; u->pv = false; u->blank = false; u->dirty = true; }
   }
   if (c->last_kc) core_label(c, c->last_kc, u->shown, sizeof u->shown);
+  if (c->tn_cur) u->idle0 = now;   // v20: dang phat bai thi khong vao screensaver
   // dieu kien vao screensaver
   uint16_t to = ui_osw(c, 0);
   if (u->st == UI_NORMAL && to && !c->rn_on && !c->latch_wait && now - u->idle0 >= (uint32_t)to * 1000u) { u->st = UI_SAVER; u->t0 = now; u->pv = false; u->dirty = true; }
   uint32_t sig = (uint32_t)u->st * 0x9E3779B1u ^ c->press_seq * 31u ^ (uint32_t)layer << 8 ^ host_leds << 16 ^ (uint32_t)c->rn_on << 20
                ^ (uint32_t)c->latch_wait << 21 ^ (uint32_t)rot << 22 ^ (uint32_t)c->rn_len << 24 ^ (c->rn_len ? (uint32_t)c->rn_buf[c->rn_len - 1] << 4 : 0)
+               ^ (uint32_t)(c->tn_cur ? c->tn_cur * 0x2545F491u ^ (uint32_t)c->tn_i * 0x9E3779B1u ^ (uint32_t)c->tn_tempo << 5 : 0)
                ^ (uint32_t)ui_morse_on(c) << 28 ^ (uint32_t)c->mo_len << 29 ^ (ui_nokia_on(c, now) ? 0x40000000u ^ (uint32_t)((now - c->nk_t) / UI_FRAME_MS) * 2654435761u : 0);
   bool anim = u->st != UI_NORMAL;
   if (sig == u->sig && !u->dirty && !(anim && now - u->last_draw >= UI_FRAME_MS)) return false;

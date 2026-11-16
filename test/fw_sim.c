@@ -172,20 +172,31 @@ static int scenario_buz(void) {   // coi bao: cham ngan, gach dai gap 3, OK tien
 static double pcap_hz[8]; static int pcap_on[8], pcap_lv[8], pcap_wrap[8]; static int pcap_n;
 static void a_pcap(void) { int i = pcap_n++; pcap_on[i] = sim_buz_on; pcap_hz[i] = sim_buz_on ? 150e6 / sim_pwm_div / ((double)sim_pwm_wrap + 1.0) : 0; pcap_lv[i] = sim_pwm_lv; pcap_wrap[i] = sim_pwm_wrap; }
 static int near_hz(double a, double b, double tol) { return (a > b ? a - b : b - a) <= tol; }
-static int scenario_piano(void) {   // nhac cu: Num giu + Enter bat PIANO, C5 / G5 / C3 (sau 2 lan Oct-) cho dung tan so PWM that, nha thi im
-  ev(100, 0, 3, 1); tap(450, 3, 6, 30); ev(520, 0, 3, 0);   // bat layer PIANO
+static void a_octd(void) { core.cfg.w[W_KM + 3 * NKEYS + POS_(4, 1)] = KC_OCTD; }   // layer MUSIC mac dinh khong con Oct-: gan tam vao R4C1 de thu nốt thap (C3)
+static int ioc[4];
+static void a_ioc(void) { static int i; ioc[i++ & 3] = sim_i2c_writes; }
+static int scenario_piano(void) {   // nhac cu (layer MUSIC v20): Num giu + Enter bat MUSIC, C5 / G5 / C3 cho dung tan so PWM that; BAI SAU phat bai 1 + OLED ve lai; PLAY dung
+  ev(100, 0, 3, 1); tap(450, 3, 6, 30); ev(520, 0, 3, 0);   // bat layer MUSIC
   tap(800, 1, 0, 300); tap(1300, 1, 4, 300);                // C5, G5
+  act_at(1700, a_octd);
   tap(1800, 4, 1, 30); tap(1900, 4, 1, 30);                 // Oct- x 2
   tap(2200, 1, 0, 300);                                     // C5 - 24 = C3 (131 Hz: can chia xung lon moi vua wrap 16 bit)
   act_at(900, a_pcap); act_at(1150, a_pcap); act_at(1400, a_pcap); act_at(2300, a_pcap); act_at(2600, a_pcap);
-  endt = 2800; run();
-  printf("  tan so: %.1f / im / %.1f / %.1f / im Hz\n", pcap_hz[0], pcap_hz[2], pcap_hz[3]);
-  CHECK(pcap_n == 5);
+  tap(3000, 4, 5, 30);                                      // BAI SAU: chua chon gi -> bai 1 (Ode to Joy), nốt dau E4 + 12 = E5 = 660 Hz
+  act_at(2990, a_ioc); act_at(3100, a_pcap); act_at(3400, a_ioc); act_at(4400, a_ioc);   // so lan ghi I2C: OLED phai ve lai khi nốt doi
+  tap(4500, 0, 0, 30);                                      // PLAY / STOP = dung
+  act_at(4600, a_pcap);
+  endt = 4800; run();
+  printf("  tan so: %.1f / im / %.1f / %.1f / im Hz; bai 1: %.1f Hz, sau PLAY/STOP: %s; ghi I2C %d -> %d -> %d\n", pcap_hz[0], pcap_hz[2], pcap_hz[3], pcap_hz[5], pcap_on[6] ? "con keu" : "im", ioc[0], ioc[1], ioc[2]);
+  CHECK(pcap_n == 7);
   CHECK(pcap_on[0] && near_hz(pcap_hz[0], 524, 1.5));      // C5
   CHECK(!pcap_on[1]);                                       // giua 2 nốt: im
   CHECK(pcap_on[2] && near_hz(pcap_hz[2], 784, 1.5));      // G5
   CHECK(pcap_on[3] && near_hz(pcap_hz[3], 131, 0.6));      // C3
-  CHECK(!pcap_on[4] && !sim_buz_on);
+  CHECK(!pcap_on[4]);
+  CHECK(pcap_on[5] && near_hz(pcap_hz[5], 660, 1.5));      // bai 1, nốt 1 = E5 (khong bi anh huong boi Oct- vi bai nhac co quang tam rieng)
+  CHECK(!pcap_on[6] && !sim_buz_on);                        // PLAY / STOP: im
+  CHECK(ioc[1] > ioc[0] && ioc[2] - ioc[1] >= 8);          // OLED duoc cap nhat trong luc phat (nốt doi -> ve lai)
   CHECK(pcap_lv[0] > 0 && pcap_lv[0] <= (pcap_wrap[0] + 1) / 2 + 1 && pcap_lv[0] >= (pcap_wrap[0] + 1) / 2 - 2);   // am luong day, am sac 50%
   CHECK(pcap_wrap[3] > 0 && pcap_wrap[3] < 65536);
   CHECK(find_key(KC_NUMLOCK, 0) < 0);                       // khong lo NumLock / phim HID nao ra ngoai
@@ -225,7 +236,7 @@ int main(int argc, char **argv) {
   (void)argv; int rc = 0;
   for (int s = 0; s < 8; s++) {   // moi kich ban chay trong tien trinh rieng (trang thai tinh cua main.c khoi tron lan)
     fflush(stdout); pid_t p = fork();
-    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : s == 4 ? "coi bao Morse" : s == 5 ? "nhac cu (PIANO)" : s == 6 ? "chuot bay: may ngu / thuc day" : "chuot bay: hieu chuan bi lac"); fflush(stdout); exit(s == 6 ? scenario_susp() : s == 7 ? scenario_cal() : s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : s == 4 ? scenario_buz() : scenario_piano()); }
+    if (p == 0) { printf("kich ban %d (%s)\n", s, s == 0 ? "layer, tap-hold, macro, BOOT" : s == 1 ? "man hinh cho / LED may tinh" : s == 2 ? "Raw HID + luu flash" : s == 3 ? "chuot bay (gyro gia)" : s == 4 ? "coi bao Morse" : s == 5 ? "nhac cu (layer MUSIC)" : s == 6 ? "chuot bay: may ngu / thuc day" : "chuot bay: hieu chuan bi lac"); fflush(stdout); exit(s == 6 ? scenario_susp() : s == 7 ? scenario_cal() : s == 0 ? scenario_main() : s == 1 ? scenario_saver() : s == 2 ? scenario_proto() : s == 3 ? scenario_air() : s == 4 ? scenario_buz() : scenario_piano()); }
     int st; waitpid(p, &st, 0); if (!WIFEXITED(st) || WEXITSTATUS(st)) rc = 1;
   }
   if (argc > 5) return 2;
